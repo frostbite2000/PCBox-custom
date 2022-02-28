@@ -223,6 +223,8 @@ extern const device_t compaq_ati28800_device;
 extern const device_t ati28800_wonderxl24_device;
 #endif
 
+extern const device_t ati_r100_device;
+
 /* Cirrus Logic GD54xx */
 extern const device_t gd5401_isa_device;
 extern const device_t gd5402_isa_device;
