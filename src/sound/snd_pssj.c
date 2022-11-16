@@ -208,24 +208,22 @@ pssj_1e0_init(const device_t *info)
     return pssj;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 void *
 pssj_isa_init(const device_t *info)
 {
     pssj_t *pssj = malloc(sizeof(pssj_t));
     memset(pssj, 0, sizeof(pssj_t));
 
-    sn76489_init(&pssj->sn76489, 0x00c0, 0x0004, PSSJ, 3579545);
-
     uint16_t addr = device_get_config_hex16("base");
 
-    io_sethandler(addr, 0x0004, pssj_read, NULL, NULL, pssj_write, NULL, NULL, pssj);
+    sn76489_init(&pssj->sn76489, addr, 0x0004, PSSJ, 3579545);
+
+    io_sethandler(addr + 0x04, 0x0004, pssj_read, NULL, NULL, pssj_write, NULL, NULL, pssj);
     timer_add(&pssj->timer_count, pssj_callback, pssj, pssj->enable);
     sound_add_handler(pssj_get_buffer, pssj);
 
     return pssj;
 }
-#endif
 
 void
 pssj_close(void *p)
@@ -235,61 +233,86 @@ pssj_close(void *p)
     free(pssj);
 }
 
-#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 static const device_config_t pssj_isa_config[] = {
-// clang-format off
+  // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x2C0, "", { 0 },
-        {
-            { "0x0C0", 0x0C0 },
-            { "0x1E0", 0x1E0 },
-            { "0x2C0", 0x2C0 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x2C0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "0x0C0",
+                .value = 0x0C0
+            },
+            {
+                .description = "0x0E0",
+                .value = 0x0E0
+            },
+            {
+                .description = "0x1C0",
+                .value = 0x1C0
+            },
+            {
+                .description = "0x1E0",
+                .value = 0x1E0
+            },
+            {
+                .description = "0x2C0",
+                .value = 0x2C0
+            },
+            {
+                .description = "0x2E0",
+                .value = 0x2E0
+            },
+            { .description = "" }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
-#endif
 
 const device_t pssj_device = {
-    "Tandy PSSJ",
-    "pssj",
-    0,
-    0,
-    pssj_init,
-    pssj_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL
+    .name          = "Tandy PSSJ",
+    .internal_name = "pssj",
+    .flags         = 0,
+    .local         = 0,
+    .init          = pssj_init,
+    .close         = pssj_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t pssj_1e0_device = {
-    "Tandy PSSJ (port 1e0h)",
-    "pssj_1e0",
-    0,
-    0,
-    pssj_1e0_init,
-    pssj_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL
+    .name          = "Tandy PSSJ (port 1e0h)",
+    .internal_name = "pssj_1e0",
+    .flags         = 0,
+    .local         = 0,
+    .init          = pssj_1e0_init,
+    .close         = pssj_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
-#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 const device_t pssj_isa_device = {
-    "Tandy PSSJ Clone",
-    "pssj_isa",
-    DEVICE_ISA,
-    0,
-    pssj_isa_init,
-    pssj_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    pssj_isa_config
+    .name          = "Tandy PSSJ Clone",
+    .internal_name = "pssj_isa",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = pssj_isa_init,
+    .close         = pssj_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pssj_isa_config
 };
-#endif

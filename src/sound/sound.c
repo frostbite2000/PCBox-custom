@@ -33,6 +33,7 @@
 #include <86box/machine.h>
 #include <86box/midi.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/snd_ac97.h>
 #include <86box/snd_azt2316a.h>
 #include <86box/timer.h>
@@ -108,6 +109,7 @@ static const SOUND_CARD sound_cards[] = {
     // clang-format off
     { &sound_none_device         },
     { &sound_internal_device     },
+    { &acermagic_s20_device      },
     { &adlib_device              },
     { &adgold_device             },
     { &azt2316a_device           },
@@ -130,15 +132,16 @@ static const SOUND_CARD sound_cards[] = {
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
     { &pas16_device              },
 #endif
-#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
     { &pssj_isa_device           },
     { &tndy_device               },
-#endif
     { &wss_device                },
     { &adlib_mca_device          },
     { &ncr_business_audio_device },
     { &sb_mcv_device             },
     { &sb_pro_mcv_device         },
+    { &sb_16_reply_mca_device    },
+    { &cmi8338_device            },
+    { &cmi8738_device            },
     { &es1371_device             },
     { &ad1881_device             },
     { &cs4297a_device            },
@@ -184,7 +187,7 @@ sound_card_has_config(int card)
 {
     if (!sound_cards[card].device)
         return 0;
-    return sound_cards[card].device->config ? 1 : 0;
+    return device_has_config(sound_cards[card].device) ? 1 : 0;
 }
 
 char *
@@ -481,7 +484,7 @@ sound_reset(void)
 {
     sound_realloc_buffers();
 
-    midi_device_init();
+    midi_out_device_init();
     midi_in_device_init();
 
     inital();

@@ -259,7 +259,7 @@ static int opF6_a32(uint32_t fetchdat)
 
 static int opF7_w_a16(uint32_t fetchdat)
 {
-        uint32_t templ, templ2;
+        uint32_t templ, templ2 = 0;
         int tempws, tempws2 = 0;
         int16_t temps16;
         uint16_t src, dst;
@@ -356,7 +356,7 @@ static int opF7_w_a16(uint32_t fetchdat)
 }
 static int opF7_w_a32(uint32_t fetchdat)
 {
-        uint32_t templ, templ2;
+        uint32_t templ, templ2 = 0;
         int tempws, tempws2 = 1;
         int16_t temps16;
         uint16_t src, dst;
@@ -747,12 +747,14 @@ static int opCLTS(uint32_t fetchdat)
 
 static int opINVD(uint32_t fetchdat)
 {
+        cpu_INVD(0);
         CLOCK_CYCLES(1000);
         CPU_BLOCK_END();
         return 0;
 }
 static int opWBINVD(uint32_t fetchdat)
 {
+        cpu_INVD(1);
         CLOCK_CYCLES(10000);
         CPU_BLOCK_END();
         return 0;

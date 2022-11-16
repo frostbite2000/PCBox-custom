@@ -199,7 +199,7 @@
 #define OPCODE_UQADD_V4H     (0x2e600c00)
 #define OPCODE_UQSUB_V8B     (0x2e202c00)
 #define OPCODE_UQSUB_V4H     (0x2e602c00)
-#define OPCODE_UQXTN_V8B_8H  (0x2e214800)
+#define OPCODE_SQXTUN_V8B_8H  (0x7e212800)
 #define OPCODE_UQXTN_V4H_4S  (0x2e614800)
 #define OPCODE_USHR_VD       (0x2f000400)
 #define OPCODE_USHR_VQ       (0x6f000400)
@@ -267,12 +267,6 @@ static int offset_is_26bit(int offset)
 static inline int imm_is_imm16(uint32_t imm_data)
 {
 	if (!(imm_data & 0xffff0000) || !(imm_data & 0x0000ffff))
-		return 1;
-	return 0;
-}
-static inline int imm_is_imm12(uint32_t imm_data)
-{
-	if (!(imm_data & 0xfffff000) || !(imm_data & 0xff000fff))
 		return 1;
 	return 0;
 }
@@ -1307,9 +1301,9 @@ void host_arm64_UQSUB_V4H(codeblock_t *block, int dst_reg, int src_n_reg, int sr
 	codegen_addlong(block, OPCODE_UQSUB_V4H | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 
-void host_arm64_UQXTN_V8B_8H(codeblock_t *block, int dst_reg, int src_reg)
+void host_arm64_SQXTUN_V8B_8H(codeblock_t *block, int dst_reg, int src_reg)
 {
-	codegen_addlong(block, OPCODE_UQXTN_V8B_8H | Rd(dst_reg) | Rn(src_reg));
+	codegen_addlong(block, OPCODE_SQXTUN_V8B_8H | Rd(dst_reg) | Rn(src_reg));
 }
 void host_arm64_UQXTN_V4H_4S(codeblock_t *block, int dst_reg, int src_reg)
 {

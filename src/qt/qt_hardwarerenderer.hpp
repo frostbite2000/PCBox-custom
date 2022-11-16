@@ -8,6 +8,7 @@
 #include <QOpenGLShader>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTextureBlitter>
+#include <QOpenGLPixelTransferOptions>
 #include <QPainter>
 #include <QEvent>
 #include <QKeyEvent>
@@ -38,6 +39,8 @@ private:
     QOpenGLTextureBlitter* m_blt{nullptr};
     QOpenGLBuffer m_vbo[2];
     QOpenGLVertexArrayObject m_vao;
+    QOpenGLPixelTransferOptions m_transferOptions;
+
 public:
     enum class RenderType {
         OpenGL,
@@ -47,6 +50,10 @@ public:
     void resizeGL(int w, int h) override;
     void initializeGL() override;
     void paintGL() override;
+    void exposeEvent(QExposeEvent* event) override
+    {
+        onResize(size().width(), size().height());
+    }
     std::vector<std::tuple<uint8_t*, std::atomic_flag*>> getBuffers() override;
     HardwareRenderer(QWidget* parent = nullptr, RenderType rtype = RenderType::OpenGL)
     : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent->windowHandle()), QOpenGLFunctions()
@@ -63,9 +70,12 @@ public:
         parentWidget = parent;
         setRenderType(rtype);
 
+        m_transferOptions.setRowLength(2048);
+
         m_context = new QOpenGLContext();
         m_context->setFormat(format());
         m_context->create();
+        update();
     }
     ~HardwareRenderer()
     {

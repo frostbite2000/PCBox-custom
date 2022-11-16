@@ -5,6 +5,9 @@
 #    include <stdlib.h>
 #    include <string.h>
 #    include <wchar.h>
+#    ifdef __unix__
+#        include <unistd.h>
+#    endif
 
 #    include <86box/86box.h>
 #    include <86box/config.h>
@@ -12,6 +15,7 @@
 #    include <86box/midi.h>
 #    include <86box/plat.h>
 #    include <86box/plat_dynld.h>
+#    include <86box/thread.h>
 #    include <86box/sound.h>
 #    include <86box/ui.h>
 
@@ -54,6 +58,7 @@ static int   (*f_delete_fluid_synth)(void *synth);
 static int   (*f_fluid_synth_noteon)(void *synth, int chan, int key, int vel);
 static int   (*f_fluid_synth_noteoff)(void *synth, int chan, int key);
 static int   (*f_fluid_synth_cc)(void *synth, int chan, int ctrl, int val);
+static int   (*f_fluid_synth_channel_pressure)(void *synth, int chan, int val);
 static int   (*f_fluid_synth_sysex)(void *synth, const char *data, int len, char *response, int *response_len, int *handled, int dryrun);
 static int   (*f_fluid_synth_pitch_bend)(void *synth, int chan, int val);
 static int   (*f_fluid_synth_program_change)(void *synth, int chan, int program);
@@ -79,6 +84,7 @@ static dllimp_t fluidsynth_imports[] = {
   { "fluid_synth_noteon",            &f_fluid_synth_noteon            },
   { "fluid_synth_noteoff",           &f_fluid_synth_noteoff           },
   { "fluid_synth_cc",                &f_fluid_synth_cc                },
+  { "fluid_synth_channel_pressure",  &f_fluid_synth_channel_pressure  },
   { "fluid_synth_sysex",             &f_fluid_synth_sysex             },
   { "fluid_synth_pitch_bend",        &f_fluid_synth_pitch_bend        },
   { "fluid_synth_program_change",    &f_fluid_synth_program_change    },
@@ -195,6 +201,7 @@ fluidsynth_msg(uint8_t *msg)
             f_fluid_synth_program_change(data->synth, chan, param1);
             break;
         case 0xD0: /* Channel Pressure */
+            f_fluid_synth_channel_pressure(data->synth, chan, param1);
             break;
         case 0xE0: /* Pitch Bend */
             f_fluid_synth_pitch_bend(data->synth, chan, (param2 << 7) | param1);
@@ -237,7 +244,7 @@ fluidsynth_init(const device_t *info)
         fluidsynth_handle = dynld_module("libfluidsynth.so.2", fluidsynth_imports);
 #    endif
     if (fluidsynth_handle == NULL) {
-        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2080, (wchar_t *) IDS_2133);
+        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2080, (wchar_t *) IDS_2134);
         return NULL;
     }
 
@@ -248,7 +255,12 @@ fluidsynth_init(const device_t *info)
 
     data->synth = f_new_fluid_synth(data->settings);
 
-    char *sound_font = (char *) device_get_config_string("sound_font");
+    const char *sound_font = (char *) device_get_config_string("sound_font");
+#    ifdef __unix__
+    if (!sound_font || sound_font[0] == 0)
+        sound_font = (access("/usr/share/sounds/sf2/FluidR3_GM.sf2", F_OK) == 0 ? "/usr/share/sounds/sf2/FluidR3_GM.sf2" :
+                      (access("/usr/share/soundfonts/default.sf2", F_OK) == 0 ? "/usr/share/soundfonts/default.sf2" : ""));
+#    endif
     data->sound_font = f_fluid_synth_sfload(data->synth, sound_font, 1);
 
     if (device_get_config_int("chorus")) {
@@ -317,7 +329,7 @@ fluidsynth_init(const device_t *info)
     dev->play_sysex = fluidsynth_sysex;
     dev->poll       = fluidsynth_poll;
 
-    midi_init(dev);
+    midi_out_init(dev);
 
     data->on = 1;
 
@@ -533,24 +545,22 @@ static const device_config_t fluidsynth_config[] = {
         },
         .default_int = 2
     },
-    {
-        .type = -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
 const device_t fluidsynth_device = {
-    "FluidSynth",
-    "fluidsynth",
-    0,
-    0,
-    fluidsynth_init,
-    fluidsynth_close,
-    NULL,
-    { fluidsynth_available },
-    NULL,
-    NULL,
-    fluidsynth_config
+    .name          = "FluidSynth",
+    .internal_name = "fluidsynth",
+    .flags         = 0,
+    .local         = 0,
+    .init          = fluidsynth_init,
+    .close         = fluidsynth_close,
+    .reset         = NULL,
+    { .available = fluidsynth_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = fluidsynth_config
 };
 
-#endif /*USE_FLUIDSYNTH*/
+#endif/*USE_FLUIDSYNTH*/

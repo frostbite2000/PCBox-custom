@@ -38,6 +38,7 @@ extern "C" {
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QStringBuilder>
+#include <QStringList>
 
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
@@ -50,8 +51,9 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->fileField->setFilter(tr("Hard disk images") % util::DlgFilter({ "hd?","im?","vhd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     if (existing) {
+        ui->fileField->setFilter(tr("Hard disk images") % util::DlgFilter({ "hd?", "im?", "vhd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+
         setWindowTitle(tr("Add Existing Hard Disk"));
         ui->lineEditCylinders->setEnabled(false);
         ui->lineEditHeads->setEnabled(false);
@@ -64,8 +66,24 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 
         connect(ui->fileField, &FileField::fileSelected, this, &HarddiskDialog::onExistingFileSelected);
     } else {
+        QStringList filters({ tr("Raw image") % util::DlgFilter({ "img" }, true),
+                              tr("HDI image") % util::DlgFilter({ "hdi" }, true),
+                              tr("HDX image") % util::DlgFilter({ "hdx" }, true),
+                              tr("Fixed-size VHD") % util::DlgFilter({ "vhd" }, true),
+                              tr("Dynamic-size VHD") % util::DlgFilter({ "vhd" }, true),
+                              tr("Differencing VHD") % util::DlgFilter({ "vhd" }, true) });
+
+        ui->fileField->setFilter(filters.join(";;"));
+
         setWindowTitle(tr("Add New Hard Disk"));
         ui->fileField->setCreateFile(true);
+
+        connect(ui->fileField, &FileField::fileSelected, this, [this, filters] {
+            int filter = filters.indexOf(ui->fileField->selectedFilter());
+            if (filter > -1)
+                ui->comboBoxFormat->setCurrentIndex(filter);
+            ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+        });
     }
 
     auto* model = ui->comboBoxFormat->model();
@@ -101,9 +119,6 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 
     ui->lineEditSize->setValidator(new QIntValidator());
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
-    if (!existing) connect(ui->fileField, &FileField::fileSelected, this, [this] {
-        ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
-    });
 }
 
 HarddiskDialog::~HarddiskDialog()
@@ -121,6 +136,10 @@ uint8_t HarddiskDialog::channel() const {
 
 QString HarddiskDialog::fileName() const {
     return ui->fileField->fileName();
+}
+
+uint32_t HarddiskDialog::speed() const {
+    return static_cast<uint32_t>(ui->comboBoxSpeed->currentData().toUInt());
 }
 
 void HarddiskDialog::on_comboBoxFormat_currentIndexChanged(int index) {
@@ -237,7 +256,7 @@ static MVHDGeom create_drive_vhd_dynamic(const QString& fileName, uint16_t cyl, 
 static MVHDGeom create_drive_vhd_diff(const QString& fileName, const QString& parentFileName, int blocksize) {
     int vhd_error = 0;
     QByteArray filenameBytes = fileName.toUtf8();
-    QByteArray parentFilenameBytes = fileName.toUtf8();
+    QByteArray parentFilenameBytes = parentFileName.toUtf8();
     MVHDCreationOptions options;
     options.block_size_in_sectors = blocksize;
     options.path = filenameBytes.data();
@@ -274,7 +293,7 @@ void HarddiskDialog::onCreateNewFile() {
 
     ui->progressBar->setEnabled(true);
     setResult(QDialog::Rejected);
-    qint64 size = ui->lineEditSize->text().toUInt() << 20U;
+    quint64 size = ui->lineEditSize->text().toULongLong() << 20U;
     if (size > 0x1FFFFFFE00ll) {
         QMessageBox::critical(this, tr("Disk image too large"), tr("Disk images cannot be larger than 127 GB."));
         return;
@@ -288,15 +307,15 @@ void HarddiskDialog::onCreateNewFile() {
     auto fileName = ui->fileField->fileName();
     QString expectedSuffix;
     switch (img_format) {
-    case 1:
+    case IMG_FMT_HDI:
         expectedSuffix = "hdi";
         break;
-    case 2:
+    case IMG_FMT_HDX:
         expectedSuffix = "hdx";
         break;
-    case 3:
-    case 4:
-    case 5:
+    case IMG_FMT_VHD_FIXED:
+    case IMG_FMT_VHD_DYNAMIC:
+    case IMG_FMT_VHD_DIFF:
         expectedSuffix = "vhd";
         break;
     }
@@ -307,6 +326,9 @@ void HarddiskDialog::onCreateNewFile() {
             ui->fileField->setFileName(fileName);
         }
     }
+    QFileInfo fi(fileName);
+    fileName = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
+    ui->fileField->setFileName(fileName);
 
     QFile file(fileName);
     if (! file.open(QIODevice::WriteOnly)) {
@@ -314,7 +336,7 @@ void HarddiskDialog::onCreateNewFile() {
         return;
     }
 
-    if (img_format == 1) { /* HDI file */
+    if (img_format == IMG_FMT_HDI) { /* HDI file */
         QDataStream stream(&file);
         stream.setByteOrder(QDataStream::LittleEndian);
         if (size >= 0x100000000ll) {
@@ -334,7 +356,7 @@ void HarddiskDialog::onCreateNewFile() {
         for (int i = 0; i < 0x3f8; i++) {
             stream << zero;
         }
-    } else if (img_format == 2) { /* HDX file */
+    } else if (img_format == IMG_FMT_HDX) { /* HDX file */
         QDataStream stream(&file);
         stream.setByteOrder(QDataStream::LittleEndian);
         quint64 signature = 0xD778A82044445459;
@@ -346,13 +368,13 @@ void HarddiskDialog::onCreateNewFile() {
         stream << cylinders_;	/* 0000001C: Cylinders */
         stream << zero;			/* 00000020: [Translation] Sectors per cylinder */
         stream << zero;			/* 00000004: [Translation] Heads per cylinder */
-    } else if (img_format >= 3) { /* VHD file */
+    } else if (img_format >= IMG_FMT_VHD_FIXED) { /* VHD file */
         file.close();
 
         MVHDGeom _86box_geometry{};
         int block_size = ui->comboBoxBlockSize->currentIndex() == 0 ? MVHD_BLOCK_LARGE : MVHD_BLOCK_SMALL;
         switch (img_format) {
-        case 3:
+        case IMG_FMT_VHD_FIXED:
         {
             connect(this, &HarddiskDialog::fileProgress, this, [this] (int value) { ui->progressBar->setValue(value); QApplication::processEvents(); } );
             ui->progressBar->setVisible(true);
@@ -361,10 +383,10 @@ void HarddiskDialog::onCreateNewFile() {
             }();
         }
             break;
-        case 4:
+        case IMG_FMT_VHD_DYNAMIC:
             _86box_geometry = create_drive_vhd_dynamic(fileName, cylinders_, heads_, sectors_, block_size);
             break;
-        case 5:
+        case IMG_FMT_VHD_DIFF:
             QString vhdParent = QFileDialog::getOpenFileName(
                 this,
                 tr("Select the parent VHD"),
@@ -388,7 +410,7 @@ void HarddiskDialog::onCreateNewFile() {
             QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory."));
             return;
         }
-        else if (img_format != 5) {
+        else if (img_format != IMG_FMT_VHD_DIFF) {
             QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive."));
         }
 
@@ -549,7 +571,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
             else if (((size % 3072) == 0) && (size <= 53477376))
                 heads = 6;
             else {
-                int i;
+                uint32_t i;
                 for (i = 5; i < 16; i++) {
                     if (((size % (i << 9)) == 0) && (size <= ((i * 17) << 19)))
                         break;
@@ -589,6 +611,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
 }
 
 void HarddiskDialog::recalcSize() {
+    if (disallowSizeModifications) return;
     uint64_t size = (static_cast<uint64_t>(cylinders_) * static_cast<uint64_t>(heads_) * static_cast<uint64_t>(sectors_)) << 9;
     ui->lineEditSize->setText(QString::number(size >> 20));
 }
@@ -685,6 +708,8 @@ void HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index) {
     ui->lineEditSectors->setValidator(new QIntValidator(1, max_sectors, this));
 
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt());
+    Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), ui->comboBoxBus->currentData().toInt());
+
     switch (ui->comboBoxBus->currentData().toInt())
     {
         case HDD_BUS_MFM:
@@ -705,10 +730,12 @@ void HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index) {
             break;
     }
 
+    if (chanIdx == 0xFF) chanIdx = 0;
     ui->comboBoxChannel->setCurrentIndex(chanIdx);
 }
 
 void HarddiskDialog::on_lineEditSize_textEdited(const QString &text) {
+    disallowSizeModifications = true;
     uint32_t size = text.toUInt();
     /* This is needed to ensure VHD standard compliance. */
     hdd_image_calc_chs(&cylinders_, &heads_, &sectors_, size);
@@ -720,6 +747,8 @@ void HarddiskDialog::on_lineEditSize_textEdited(const QString &text) {
     checkAndAdjustCylinders();
     checkAndAdjustHeads();
     checkAndAdjustSectors();
+
+    disallowSizeModifications = false;
 }
 
 void HarddiskDialog::on_lineEditCylinders_textEdited(const QString &text) {

@@ -158,10 +158,13 @@ static const macro_op_t lods_op =
 };
 static const macro_op_t loop_op =
 {
-        .nr_uops = 2,
+        .nr_uops = 5,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU,    .latency = 1},
-        .uop[1] = {.type = UOP_BRANCH, .latency = 2}
+        .uop[1] = {.type = UOP_ALU,    .latency = 1},
+        .uop[2] = {.type = UOP_ALU,    .latency = 1},	
+        .uop[3] = {.type = UOP_ALU,    .latency = 1},			
+        .uop[4] = {.type = UOP_BRANCH, .latency = 1}
 };
 static const macro_op_t mov_reg_seg_op =
 {
@@ -1179,15 +1182,15 @@ static const macro_op_t *opcode_timings_0f[256] =
         &invd_op,               &wbinvd_op,             INVALID,                INVALID,
         INVALID,                &load_op,               &femms_op,              INVALID,
 
-/*10*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
+/*10*/  &load_float_op,         &load_float_op,         &load_float_op,         &load_float_op,
+        &load_float_op,         &load_float_op,         &load_float_op,         &load_float_op,
+        &load_op,               &load_op,               &load_op,               &load_op,
+        &load_op,               &load_op,               &load_op,               &load_op,
 
 /*20*/  &alu6_op,               &alu6_op,               &alu6_op,               &alu6_op,
         &alu6_op,               &alu6_op,               INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
+        &load_float_op,         &load_float_op,         &float_op,              &load_float_op,
+        &float_op,              &float_op,              &float_op,              &float_op,
 
 /*30*/  &alu6_op,               &alu6_op,               &alu6_op,               INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
@@ -1199,17 +1202,17 @@ static const macro_op_t *opcode_timings_0f[256] =
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
 
-/*50*/  INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,
+/*50*/  &load_op,               &float_op,              &float_op,              &float_op,
+        &float_op,              &float_op,              &float_op,              &float_op,
+        &float_op,              &float_op,              INVALID,                INVALID,
+        &float_op,              &float_op,              &float_op,              &float_op,
 
 /*60*/  &load_mmx_op,           &load_mmx_op,           &load_mmx_op,           &load_mmx_op,
         &load_mmx_op,           &load_mmx_op,           &load_mmx_op,           &load_mmx_op,
         &load_mmx_op,           &load_mmx_op,           &load_mmx_op,           &load_mmx_op,
         INVALID,                INVALID,                &mload_op,              &mload_op,
 
-/*70*/  INVALID,                &load_mmx_shift_op,     &load_mmx_shift_op,     &load_mmx_shift_op,
+/*70*/  &load_mmx_op,           &load_mmx_shift_op,     &load_mmx_shift_op,     &load_mmx_shift_op,
         &load_mmx_op,           &load_mmx_op,           &load_mmx_op,           &emms_op,
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                &mstore_op,             &mstore_op,
@@ -1234,23 +1237,23 @@ static const macro_op_t *opcode_timings_0f[256] =
         INVALID,                 INVALID,                &load_alu_op,           &load_alu_op,
         &bsx_op,                 &bsx_op,                &load_alup0_op,         &load_alu_op,
 
-/*c0*/  &alup0_store_op,         &alu_store_op,          INVALID,                INVALID,
-        INVALID,                 INVALID,                INVALID,                &cmpxchg_op,
+/*c0*/  &alup0_store_op,         &alu_store_op,          &float_op,              INVALID,
+        &load_op,                &load_op,               &load_op,               &cmpxchg_op,
         &bswap_op,               &bswap_op,              &bswap_op,              &bswap_op,
         &bswap_op,               &bswap_op,              &bswap_op,              &bswap_op,
 
 /*d0*/  INVALID,                 &load_mmx_shift_op,     &load_mmx_shift_op,     &load_mmx_shift_op,
-        INVALID,                 &load_mmx_mul_op,       INVALID,                INVALID,
-        &load_mmx_op,            &load_mmx_op,           INVALID,                &load_mmx_op,
-        &load_mmx_op,            &load_mmx_op,           INVALID,                &load_mmx_op,
+        INVALID,                 &load_mmx_mul_op,       INVALID,                &load_op,
+        &load_mmx_op,            &load_mmx_op,           &load_mmx_op,           &load_mmx_op,
+        &load_mmx_op,            &load_mmx_op,           &load_mmx_op,           &load_mmx_op,
 
-/*e0*/  &load_mmx_op,            &load_mmx_shift_op,     &load_mmx_shift_op,     INVALID,
-        INVALID,                 &pmul_mem_op,           INVALID,                INVALID,
-        &load_mmx_op,            &load_mmx_op,           INVALID,                &load_mmx_op,
-        &load_mmx_op,            &load_mmx_op,           INVALID,                &load_mmx_op,
+/*e0*/  &load_mmx_op,            &load_mmx_shift_op,     &load_mmx_shift_op,     &load_mmx_op,
+        &pmul_mem_op,            &pmul_mem_op,           INVALID,                &load_mmx_op,
+        &load_mmx_op,            &load_mmx_op,           &load_mmx_op,           &load_mmx_op,
+        &load_mmx_op,            &load_mmx_op,           &load_mmx_op,           &load_mmx_op,
 
 /*f0*/  INVALID,                 &load_mmx_shift_op,     &load_mmx_shift_op,     &load_mmx_shift_op,
-        INVALID,                 &pmul_mem_op,           INVALID,                INVALID,
+        INVALID,                 &pmul_mem_op,           &load_mmx_op,           &load_mmx_op,
         &load_mmx_op,            &load_mmx_op,           &load_mmx_op,           INVALID,
         &load_mmx_op,            &load_mmx_op,           &load_mmx_op,           INVALID,
 };

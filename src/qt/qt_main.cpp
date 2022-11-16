@@ -54,6 +54,7 @@ extern "C"
 #include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/discord.h>
+#include <86box/gdbstub.h>
 }
 
 #include <thread>
@@ -95,6 +96,11 @@ main_thread_fn()
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
         new_time = elapsed_timer.elapsed();
+#ifdef USE_GDBSTUB
+        if (gdbstub_next_asap && (drawits <= 0))
+                drawits = 10;
+        else
+#endif
         drawits += (new_time - old_time);
         old_time = new_time;
         if (drawits > 0 && !dopause) {
@@ -103,9 +109,21 @@ main_thread_fn()
             if (drawits > 50)
                 drawits = 0;
 
+#ifdef USE_INSTRUMENT
+            uint64_t start_time = elapsed_timer.nsecsElapsed();
+#endif
             /* Run a block of code. */
             pc_run();
 
+#ifdef USE_INSTRUMENT
+            if (instru_enabled) {
+                uint64_t elapsed_us = (elapsed_timer.nsecsElapsed() - start_time) / 1000;
+                uint64_t total_elapsed_ms = (uint64_t)((double)tsc / cpu_s->rspeed * 1000);
+                printf("[instrument] %llu, %llu\n", total_elapsed_ms, elapsed_us);
+                if (instru_run_ms && total_elapsed_ms >= instru_run_ms)
+                    break;
+            }
+#endif
             /* Every 200 frames we save the machine status. */
             if (++frames >= 200 && nvr_dosave) {
                 qt_nvr_save();
@@ -114,23 +132,15 @@ main_thread_fn()
             }
         } else {
             /* Just so we dont overload the host OS. */
-            if (drawits < -1 || dopause)
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            else
-                std::this_thread::yield();
-        }
-
-        /* If needed, handle a screen resize. */
-        if (!atomic_flag_test_and_set(&doresize) && !video_fullscreen && !is_quit) {
-            if (vid_resize & 2)
-                plat_resize(fixed_size_x, fixed_size_y);
-            else
-                plat_resize(scrnsz_x, scrnsz_y);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
     is_quit = 1;
+    QTimer::singleShot(0, QApplication::instance(), [] () { QApplication::instance()->quit(); });
 }
+
+static std::thread* main_thread;
 
 int main(int argc, char* argv[]) {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -162,6 +172,9 @@ int main(int argc, char* argv[]) {
     {
         return 0;
     }
+
+    bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;
+    fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
     ProgSettings::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
     auto font_name = QObject::tr("FONT_NAME");
@@ -170,7 +183,7 @@ int main(int argc, char* argv[]) {
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
     if (! pc_init_modules()) {
-        ui_msgbox_header(MBX_FATAL, (void*)IDS_2120, (void*)IDS_2056);
+        ui_msgbox_header(MBX_FATAL, (void*)IDS_2121, (void*)IDS_2056);
         return 6;
     }
 
@@ -188,7 +201,12 @@ int main(int argc, char* argv[]) {
     discord_load();
 
     main_window = new MainWindow();
-    main_window->show();
+    if (startMaximized) {
+        main_window->showMaximized();
+    } else {
+        main_window->show();
+    }
+
     app.installEventFilter(main_window);
 
 #ifdef Q_OS_WINDOWS
@@ -241,9 +259,19 @@ int main(int argc, char* argv[]) {
     UnixManagerSocket socket;
     if (qgetenv("86BOX_MANAGER_SOCKET").size())
     {
+        QObject::connect(&socket, &UnixManagerSocket::showsettings, main_window, &MainWindow::showSettings);
+        QObject::connect(&socket, &UnixManagerSocket::pause, main_window, &MainWindow::togglePause);
+        QObject::connect(&socket, &UnixManagerSocket::resetVM, main_window, &MainWindow::hardReset);
+        QObject::connect(&socket, &UnixManagerSocket::request_shutdown, main_window, &MainWindow::close);
+        QObject::connect(&socket, &UnixManagerSocket::force_shutdown, [](){
+            do_stop();
+            emit main_window->close();
+        });
+        QObject::connect(&socket, &UnixManagerSocket::ctrlaltdel, [](){ pc_send_cad(); });
+        main_window->installEventFilter(&socket);
         socket.connectToServer(qgetenv("86BOX_MANAGER_SOCKET"));
     }
-    pc_reset_hard_init();
+    //pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
     // plat_pause(0);
@@ -265,17 +293,21 @@ int main(int argc, char* argv[]) {
         QObject::connect(&discordupdate, &QTimer::timeout, &app, [] {
             discord_run_callbacks();
         });
-        discordupdate.start(0);
+        discordupdate.start(1000);
     }
 
     /* Initialize the rendering window, or fullscreen. */
-    auto main_thread = std::thread([] {
-       main_thread_fn();
+    QTimer::singleShot(0, &app, []
+    {
+        pc_reset_hard_init();
+        main_thread = new std::thread(main_thread_fn);
     });
 
     auto ret = app.exec();
     cpu_thread_run = 0;
-    main_thread.join();
+    main_thread->join();
+    pc_close(nullptr);
+    endblit();
 
     socket.close();
     return ret;

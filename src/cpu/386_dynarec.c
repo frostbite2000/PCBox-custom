@@ -26,12 +26,18 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/machine.h>
+#include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
 #include "codegen.h"
 #ifdef USE_NEW_DYNAREC
 #include "codegen_backend.h"
 #endif
 #endif
+
+#ifdef IS_DYNAREC
+#undef IS_DYNAREC
+#endif
+
 #include "386_common.h"
 
 #if defined(__APPLE__) && defined(__aarch64__)
@@ -179,7 +185,6 @@ static __inline void fetch_ea_16_long(uint32_t rmdat)
 
 #include "x86_flags.h"
 
-#define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
 
 /*Prefetch emulation is a fairly simplistic model:
   - All instruction bytes must be fetched before it starts.
@@ -195,7 +200,6 @@ static int prefetch_prefixes = 0;
 
 static void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
 {
-	//if(is486 && CACHE_ON()) return;
 	int mem_cycles = reads*cpu_cycles_read + reads_l*cpu_cycles_read_l + writes*cpu_cycles_write + writes_l*cpu_cycles_write_l;
 
 	if (instr_cycles < mem_cycles)
@@ -292,6 +296,9 @@ static void prefetch_flush()
 
 
 #include "386_ops.h"
+
+
+#define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
 
 #ifdef USE_DYNAREC
 int cycles_main = 0;
@@ -392,12 +399,13 @@ exec386_dynarec_int(void)
 		CPU_BLOCK_END();
     }
 
-    if (trap) {
+    if (!cpu_state.abrt && trap) {
 	trap = 0;
 #ifndef USE_NEW_DYNAREC
 	oldcs = CS;
 #endif
 	cpu_state.oldpc = cpu_state.pc;
+	dr[6] |= 0x4000;
 	x86_int(1);
     }
 
@@ -815,9 +823,6 @@ exec386_dynarec(int cycs)
 		if (smi_line)
 			enter_smm_check(0);
 		else if (nmi && nmi_enable && nmi_mask) {
-			if (is486 && (cpu_fast_off_flags & 0x20000000))
-				cpu_fast_off_count = cpu_fast_off_val + 1;
-
 #ifndef USE_NEW_DYNAREC
 			oldcs = CS;
 #endif
@@ -860,6 +865,11 @@ exec386_dynarec(int cycs)
 			if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
 				timer_process_inline();
 		}
+
+#ifdef USE_GDBSTUB
+		if (gdbstub_instruction())
+			return;
+#endif
 	}
 
 	cycles_main -= (cycles_start - cycles);

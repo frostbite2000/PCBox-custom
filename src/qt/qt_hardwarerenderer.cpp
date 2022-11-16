@@ -21,7 +21,10 @@
 #include "qt_hardwarerenderer.hpp"
 #include <QApplication>
 #include <QVector2D>
+#include <QOpenGLPixelTransferOptions>
+
 #include <atomic>
+#include <cstdint>
 #include <vector>
 
 extern "C" {
@@ -32,6 +35,7 @@ extern "C" {
 
 void HardwareRenderer::resizeGL(int w, int h)
 {
+    m_context->makeCurrent(this);
     glViewport(0, 0, qRound(w * devicePixelRatio()), qRound(h * devicePixelRatio()));
 }
 
@@ -42,7 +46,9 @@ void HardwareRenderer::initializeGL()
 {
     m_context->makeCurrent(this);
     initializeOpenGLFunctions();
-    m_texture = new QOpenGLTexture(QImage(2048,2048, QImage::Format::Format_RGB32));
+    auto image = QImage(2048, 2048, QImage::Format_RGB32);
+    image.fill(0xff000000);
+    m_texture = new QOpenGLTexture(image);
     m_blt = new QOpenGLTextureBlitter;
     m_blt->setRedBlueSwizzle(true);
     m_blt->create();
@@ -133,6 +139,9 @@ void HardwareRenderer::initializeGL()
     pclog("OpenGL version: %s\n", glGetString(GL_VERSION));
     pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
     glClearColor(0, 0, 0, 1);
+    m_texture->setWrapMode(QOpenGLTexture::ClampToEdge);
+    glClear(GL_COLOR_BUFFER_BIT);
+    m_context->swapBuffers(this);
 }
 
 void HardwareRenderer::paintGL() {
@@ -150,6 +159,7 @@ void HardwareRenderer::paintGL() {
     texcoords.push_back(QVector2D((float)source.x() / 2048.f, (float)(source.y() + source.height()) / 2048.f));
     texcoords.push_back(QVector2D((float)(source.x() + source.width()) / 2048.f, (float)(source.y() + source.height()) / 2048.f));
     texcoords.push_back(QVector2D((float)(source.x() + source.width()) / 2048.f, (float)(source.y()) / 2048.f));
+
     m_vbo[PROGRAM_VERTEX_ATTRIBUTE].bind(); m_vbo[PROGRAM_VERTEX_ATTRIBUTE].write(0, verts.data(), sizeof(QVector2D) * 4); m_vbo[PROGRAM_VERTEX_ATTRIBUTE].release();
     m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].bind(); m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].write(0, texcoords.data(), sizeof(QVector2D) * 4);  m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].release();
 
@@ -185,6 +195,7 @@ void HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
     auto tval = this;
     void* nuldata = 0;
     if (memcmp(&tval, &nuldata, sizeof(void*)) == 0) return;
+    auto origSource = source;
     if (!m_texture || !m_texture->isCreated())
     {
         buf_usage[buf_idx].clear();
@@ -192,9 +203,17 @@ void HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
         return;
     }
     m_context->makeCurrent(this);
-    m_texture->setData(QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)imagebufs[buf_idx].get());
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    m_texture->setData(x, y, 0, w, h, 0, QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)((uintptr_t)imagebufs[buf_idx].get() + (uintptr_t)(2048 * 4 * y + x * 4)), &m_transferOptions);
+#else
+    m_texture->bind();
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 2048);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)((uintptr_t)imagebufs[buf_idx].get() + (uintptr_t)(2048 * 4 * y + x * 4)));
+    m_texture->release();
+#endif
     buf_usage[buf_idx].clear();
     source.setRect(x, y, w, h);
+    if (origSource != source) onResize(this->width(), this->height());
     update();
 }
 

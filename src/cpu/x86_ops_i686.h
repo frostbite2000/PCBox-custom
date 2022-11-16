@@ -1,17 +1,17 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		x86 i686 (Pentium Pro/Pentium II) CPU Instructions.
+ *          x86 i686 (Pentium Pro/Pentium II) CPU Instructions.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2020 Miran Grca.
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Copyright 2016-2020 Miran Grca.
  */
 static int
 opSYSENTER(uint32_t fetchdat)
@@ -69,11 +69,16 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
     fxinst = (rmdat >> 3) & 7;
 
-    if (((fxinst > 1) && !is_pentium3)) {
+    if (((fxinst > 1) && !(cpu_features & CPU_FEATURE_SSE))) {
 	x86illegal();
 	return cpu_state.abrt;
     }
-	if(((fxinst > 3) && (fxinst != 7)) && is_pentium3)
+	if(((fxinst > 3) && (fxinst != 7)) && (cpu_features & CPU_FEATURE_SSE) && !(cpu_features & CPU_FEATURE_SSE2))
+	{
+		x86illegal();
+		return cpu_state.abrt;
+	}
+	else if(fxinst == 4)
 	{
 		x86illegal();
 		return cpu_state.abrt;
@@ -161,9 +166,10 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
 	x87_settag(rec_ftw);
 
-	if(is_pentium3)
+	if(cpu_features & CPU_FEATURE_SSE)
 	{
-		mxcsr = readmeml(easeg,cpu_state.eaaddr+24) & ~0xffbf;
+		if(!(cpu_features & CPU_FEATURE_SSE2)) mxcsr = readmeml(easeg,cpu_state.eaaddr+24) & ~0xffbf;
+		else mxcsr = readmeml(easeg,cpu_state.eaaddr+24) & ~0xffff;
 		XMM[0].q[0] = readmemq(easeg,cpu_state.eaaddr+0xa0);
 		XMM[0].q[1] = readmemq(easeg,cpu_state.eaaddr+0xa8);
 		XMM[1].q[0] = readmemq(easeg,cpu_state.eaaddr+0xb0);
@@ -239,9 +245,11 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 	cpu_state.eaaddr = old_eaaddr + 144;
 	cpu_state.ismmx ? x87_stmmx(cpu_state.MM[7]) : x87_st_fsave(7);
 
-	if(is_pentium3)
+	if(cpu_features & CPU_FEATURE_SSE)
 	{
 		writememl(easeg,cpu_state.eaaddr+24,mxcsr);
+		if(!(cpu_features & CPU_FEATURE_SSE2)) writememl(easeg, cpu_state.eaaddr+28,0xffbf);
+		else writememl(easeg, cpu_state.eaaddr+28,0xffff);
 		writememq(easeg,cpu_state.eaaddr+0xa0,XMM[0].q[0]);
 		writememq(easeg,cpu_state.eaaddr+0xa8,XMM[0].q[1]);
 		writememq(easeg,cpu_state.eaaddr+0xb0,XMM[1].q[0]);
@@ -284,11 +292,14 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 			return cpu_state.abrt;
 		}
 		uint32_t src;
+
+		uint32_t mxcsr_mask = 0xffbf;
+		if(!(cpu_features & CPU_FEATURE_SSE2)) mxcsr_mask = 0xffff;
     
     	SEG_CHECK_READ(cpu_state.ea_seg);
     	src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
-		//if(src & ~0xffbf) x86gpf(NULL, 0);
-    	mxcsr = src & 0xffbf;
+		//if(src & ~mxcsr_mask) x86gpf(NULL, 0);
+		mxcsr = src & mxcsr_mask;
 	}
 	else if(fxinst == 3)
 	{
@@ -298,9 +309,9 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 			return cpu_state.abrt;
 		}
 		SEG_CHECK_WRITE(cpu_state.ea_seg);
-    	writememl(easeg, cpu_state.eaaddr, mxcsr & 0xffbf); if (cpu_state.abrt) return 1;
+    	writememl(easeg, cpu_state.eaaddr, mxcsr); if (cpu_state.abrt) return 1;
 	}
-	//fxinst == 7 is SFENCE which deals with cache stuff.
+	//fxinst == 5 or 6 or 7 is L/M/SFENCE which deals with cache stuff.
 	//We don't emulate the cache so we can safely ignore it.
 
     return cpu_state.abrt;

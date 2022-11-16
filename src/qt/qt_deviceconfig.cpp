@@ -28,9 +28,12 @@
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/midi_rtmidi.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 }
 
 #include "qt_filefield.hpp"
@@ -51,6 +54,7 @@ DeviceConfig::~DeviceConfig()
 void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Settings* settings) {
     DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
+    int c, d, p, q;
 
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
@@ -67,6 +71,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             dc.ui->formLayout->addRow(config->description, cbox);
             break;
         }
+#ifdef USE_RTMIDI
         case CONFIG_MIDI_OUT:
         {
             auto* cbox = new QComboBox();
@@ -74,9 +79,9 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             auto* model = cbox->model();
             int currentIndex = -1;
             int selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
-            for (int i = 0; i < rtmidi_get_num_devs(); i++) {
+            for (int i = 0; i < rtmidi_out_get_num_devs(); i++) {
                 char midiName[512] = { 0 };
-                rtmidi_get_dev_name(i, midiName);
+                rtmidi_out_get_dev_name(i, midiName);
 
                 Models::AddEntry(model, midiName, i);
                 if (selected == i) {
@@ -107,6 +112,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             cbox->setCurrentIndex(currentIndex);
             break;
         }
+#endif
         case CONFIG_SELECTION:
         case CONFIG_HEX16:
         case CONFIG_HEX20:
@@ -115,7 +121,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             cbox->setObjectName(config->name);
             auto* model = cbox->model();
             int currentIndex = -1;
-            int selected;
+            int selected = 0;
             switch (config->type) {
             case CONFIG_SELECTION:
                 selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
@@ -128,11 +134,38 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
                 break;
             }
 
-            for (auto* sel = config->selection; (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
+            for (auto* sel = config->selection; (sel != nullptr) && (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
                 int row = Models::AddEntry(model, sel->description, sel->value);
                 if (selected == sel->value) {
                     currentIndex = row;
                 }
+            }
+            dc.ui->formLayout->addRow(config->description, cbox);
+            cbox->setCurrentIndex(currentIndex);
+            break;
+        }
+        case CONFIG_BIOS:
+        {
+            auto* cbox = new QComboBox();
+            cbox->setObjectName(config->name);
+            auto* model = cbox->model();
+            int currentIndex = -1;
+            char *selected;
+            selected = config_get_string(device_context.name, const_cast<char*>(config->name), const_cast<char*>(config->default_string));
+
+            c = q = 0;
+            for (auto* bios = config->bios; (bios != nullptr) && (bios->name != nullptr) && (strlen(bios->name) > 0); ++bios) {
+                p = 0;
+                for (d = 0; d < bios->files_no; d++)
+                    p += !!rom_present(const_cast<char*>(bios->files[d]));
+                if (p == bios->files_no) {
+                    int row = Models::AddEntry(model, bios->name, q);
+                    if (!strcmp(selected, bios->internal_name)) {
+                        currentIndex = row;
+                    }
+                    c++;
+               }
+               q++;
             }
             dc.ui->formLayout->addRow(config->description, cbox);
             cbox->setCurrentIndex(currentIndex);
@@ -184,6 +217,13 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             {
                 auto* cbox = dc.findChild<QComboBox*>(config->name);
                 config_set_int(device_context.name, const_cast<char*>(config->name), cbox->currentData().toInt());
+                break;
+            }
+            case CONFIG_BIOS:
+            {
+                auto* cbox = dc.findChild<QComboBox*>(config->name);
+                int idx = cbox->currentData().toInt();
+                config_set_string(device_context.name, const_cast<char*>(config->name), const_cast<char*>(config->bios[idx].internal_name));
                 break;
             }
             case CONFIG_HEX16:

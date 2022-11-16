@@ -25,6 +25,7 @@ extern "C" {
 #include <86box/sound.h>
 #include <86box/midi.h>
 #include <86box/snd_mpu401.h>
+#include <86box/snd_opl.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -45,13 +46,17 @@ SettingsSound::~SettingsSound()
 
 void SettingsSound::save() {
     sound_card_current = ui->comboBoxSoundCard->currentData().toInt();
-    midi_device_current = ui->comboBoxMidiOut->currentData().toInt();
+    midi_output_device_current = ui->comboBoxMidiOut->currentData().toInt();
     midi_input_device_current = ui->comboBoxMidiIn->currentData().toInt();
     mpu401_standalone_enable = ui->checkBoxMPU401->isChecked() ? 1 : 0;
     SSI2001 = ui->checkBoxSSI2001->isChecked() ? 1 : 0;;
     GAMEBLASTER = ui->checkBoxCMS->isChecked() ? 1 : 0;
     GUS = ui->checkBoxGUS->isChecked() ? 1 : 0;;
     sound_is_float = ui->checkBoxFloat32->isChecked() ? 1 : 0;;
+    if (ui->radioButtonYMFM->isChecked())
+        fm_driver = FM_DRV_YMFM;
+    else
+        fm_driver = FM_DRV_NUKED;
 }
 
 void SettingsSound::onCurrentMachineChanged(int machineId) {
@@ -95,14 +100,14 @@ void SettingsSound::onCurrentMachineChanged(int machineId) {
     c = 0;
     selectedRow = 0;
     while (true) {
-        QString name = DeviceConfig::DeviceName(midi_device_getdevice(c), midi_device_get_internal_name(c), 0);
+        QString name = DeviceConfig::DeviceName(midi_out_device_getdevice(c), midi_out_device_get_internal_name(c), 0);
         if (name.isEmpty()) {
             break;
         }
 
-        if (midi_device_available(c)) {
+        if (midi_out_device_available(c)) {
             int row = Models::AddEntry(model, name, c);
-            if (c == midi_device_current) {
+            if (c == midi_output_device_current) {
                 selectedRow = row - removeRows;
             }
         }
@@ -118,7 +123,7 @@ void SettingsSound::onCurrentMachineChanged(int machineId) {
     c = 0;
     selectedRow = 0;
     while (true) {
-        QString name = DeviceConfig::DeviceName(midi_in_device_getdevice(c), midi_device_get_internal_name(c), 0);
+        QString name = DeviceConfig::DeviceName(midi_in_device_getdevice(c), midi_in_device_get_internal_name(c), 0);
         if (name.isEmpty()) {
             break;
         }
@@ -144,17 +149,26 @@ void SettingsSound::onCurrentMachineChanged(int machineId) {
     ui->checkBoxFloat32->setChecked(sound_is_float > 0);
 
     bool hasIsa = machine_has_bus(machineId, MACHINE_BUS_ISA) > 0;
-    bool hasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA) > 0;
+    bool hasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
     ui->checkBoxCMS->setEnabled(hasIsa);
     ui->pushButtonConfigureCMS->setEnabled((GAMEBLASTER > 0) && hasIsa);
     ui->checkBoxGUS->setEnabled(hasIsa16);
     ui->pushButtonConfigureGUS->setEnabled((GUS > 0) && hasIsa16);
     ui->checkBoxSSI2001->setEnabled(hasIsa);
     ui->pushButtonConfigureSSI2001->setEnabled((SSI2001 > 0) && hasIsa);
+    switch (fm_driver) {
+    case FM_DRV_YMFM:
+        ui->radioButtonYMFM->setChecked(true);
+        break;
+    case FM_DRV_NUKED:
+    default:
+        ui->radioButtonNuked->setChecked(true);
+        break;
+    }
 }
 
 static bool allowMpu401(Ui::SettingsSound *ui) {
-    QString midiOut = midi_device_get_internal_name(ui->comboBoxMidiOut->currentData().toInt());
+    QString midiOut = midi_out_device_get_internal_name(ui->comboBoxMidiOut->currentData().toInt());
     QString midiIn  = midi_in_device_get_internal_name(ui->comboBoxMidiIn->currentData().toInt());
 
     if (midiOut.isEmpty()) {
@@ -184,13 +198,13 @@ void SettingsSound::on_comboBoxMidiOut_currentIndexChanged(int index) {
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureMidiOut->setEnabled(midi_device_has_config(ui->comboBoxMidiOut->currentData().toInt()));
+    ui->pushButtonConfigureMidiOut->setEnabled(midi_out_device_has_config(ui->comboBoxMidiOut->currentData().toInt()));
     ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA)));
     ui->pushButtonConfigureMPU401->setEnabled(allowMpu401(ui) && ui->checkBoxMPU401->isChecked());
 }
 
 void SettingsSound::on_pushButtonConfigureMidiOut_clicked() {
-    DeviceConfig::ConfigureDevice(midi_device_getdevice(ui->comboBoxMidiOut->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
+    DeviceConfig::ConfigureDevice(midi_out_device_getdevice(ui->comboBoxMidiOut->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsSound::on_comboBoxMidiIn_currentIndexChanged(int index) {

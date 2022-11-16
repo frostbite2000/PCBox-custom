@@ -15,7 +15,7 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
-    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
      <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
@@ -37,7 +37,14 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="RendererStack" name="stackedWidget"/>
+     <widget class="RendererStack" name="stackedWidget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -47,7 +54,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>22</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -82,6 +89,10 @@
     <addaction name="separator"/>
     <addaction name="actionBegin_trace"/>
     <addaction name="actionEnd_trace"/>
+    <addaction name="separator"/>
+    <addaction name="actionMCA_devices"/>
+    <addaction name="separator"/>
+    <addaction name="actionOpen_screenshots_folder"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -95,6 +106,9 @@
      <addaction name="actionHardware_Renderer_OpenGL"/>
      <addaction name="actionHardware_Renderer_OpenGL_ES"/>
      <addaction name="actionOpenGL_3_0_Core"/>
+     <addaction name="actionVulkan"/>
+     <addaction name="actionDirect3D_9"/>
+     <addaction name="actionVNC"/>
     </widget>
     <widget class="QMenu" name="menuWindow_scale_factor">
      <property name="title">
@@ -104,6 +118,12 @@
      <addaction name="action1x"/>
      <addaction name="action1_5x"/>
      <addaction name="action2x"/>
+     <addaction name="action3x"/>
+     <addaction name="action4x"/>
+     <addaction name="action5x"/>
+     <addaction name="action6x"/>
+     <addaction name="action7x"/>
+     <addaction name="action8x"/>
     </widget>
     <widget class="QMenu" name="menuFilter_method">
      <property name="title">
@@ -150,10 +170,13 @@
     <addaction name="actionHide_tool_bar"/>
     <addaction name="actionHide_status_bar"/>
     <addaction name="separator"/>
+    <addaction name="actionShow_non_primary_monitors"/>
     <addaction name="actionResizable_window"/>
     <addaction name="actionRemember_size_and_position"/>
     <addaction name="separator"/>
     <addaction name="menuRenderer"/>
+    <addaction name="actionRenderer_options"/>
+    <addaction name="separator"/>
     <addaction name="actionSpecify_dimensions"/>
     <addaction name="actionForce_4_3_display_ratio"/>
     <addaction name="menuWindow_scale_factor"/>
@@ -162,6 +185,7 @@
     <addaction name="separator"/>
     <addaction name="actionFullscreen"/>
     <addaction name="menuFullscreen_stretch_mode"/>
+    <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
     <addaction name="menuEGA_S_VGA_settings"/>
     <addaction name="separator"/>
     <addaction name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan"/>
@@ -193,6 +217,9 @@
    </property>
    <property name="windowTitle">
     <string notr="true">toolBar</string>
+   </property>
+   <property name="autoFillBackground">
+    <bool>true</bool>
    </property>
    <property name="movable">
     <bool>false</bool>
@@ -341,6 +368,9 @@
    <property name="text">
     <string>&amp;Qt (Software)</string>
    </property>
+   <property name="vid_api" stdset="0">
+    <number>0</number>
+   </property>
   </action>
   <action name="actionHardware_Renderer_OpenGL">
    <property name="checkable">
@@ -349,6 +379,9 @@
    <property name="text">
     <string>Qt (&amp;OpenGL)</string>
    </property>
+   <property name="vid_api" stdset="0">
+    <number>1</number>
+   </property>
   </action>
   <action name="actionHardware_Renderer_OpenGL_ES">
    <property name="checkable">
@@ -356,6 +389,9 @@
    </property>
    <property name="text">
     <string>Qt (OpenGL &amp;ES)</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>2</number>
    </property>
   </action>
   <action name="actionHide_status_bar">
@@ -449,6 +485,54 @@
    </property>
    <property name="text">
     <string>&amp;2x</string>
+   </property>
+  </action>
+  <action name="action3x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;3x</string>
+   </property>
+  </action>
+  <action name="action4x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;4x</string>
+   </property>
+  </action>
+  <action name="action5x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;5x</string>
+   </property>
+  </action>
+  <action name="action6x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;6x</string>
+   </property>
+  </action>
+  <action name="action7x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;7x</string>
+   </property>
+  </action>
+  <action name="action8x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;8x</string>
    </property>
   </action>
   <action name="actionNearest">
@@ -626,6 +710,9 @@
    <property name="text">
     <string>Open&amp;GL (3.0 Core)</string>
    </property>
+   <property name="vid_api" stdset="0">
+    <number>3</number>
+   </property>
   </action>
   <action name="actionPreferences">
    <property name="text">
@@ -698,6 +785,70 @@
    </property>
    <property name="shortcutVisibleInContextMenu">
     <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionRenderer_options">
+   <property name="text">
+    <string>Renderer options...</string>
+   </property>
+  </action>
+  <action name="actionVulkan">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Vulkan</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>4</number>
+   </property>
+  </action>
+  <action name="actionMCA_devices">
+   <property name="text">
+    <string>MCA devices...</string>
+   </property>
+  </action>
+  <action name="actionDirect3D_9">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Direct3D 9</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>5</number>
+   </property>
+  </action>
+  <action name="actionShow_non_primary_monitors">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show non-primary monitors</string>
+   </property>
+  </action>
+  <action name="actionVNC">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>VNC</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>6</number>
+   </property>
+  </action>
+  <action name="actionOpen_screenshots_folder">
+   <property name="text">
+    <string>Open screenshots folder...</string>
+   </property>
+  </action>
+  <action name="actionApply_fullscreen_stretch_mode_when_maximized">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Apply fullscreen stretch mode when maximized</string>
    </property>
   </action>
  </widget>

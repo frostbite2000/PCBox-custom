@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		x86 CPU segment emulation.
+ *          x86 CPU segment emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -40,8 +40,6 @@ uint8_t opcode2;
 
 int cgate16, cgate32;
 int intgatesize;
-
-uint32_t abrt_error;
 
 void taskswitch286(uint16_t seg, uint16_t *segdat, int is32);
 
@@ -83,7 +81,10 @@ seg_reset(x86seg *s)
     if (s == &cpu_state.seg_cs) {
 	if (!cpu_inited)
 		fatal("seg_reset(&cpu_state.seg.cs) without an initialized CPU\n");
-	s->base = is286 ? (cpu_16bitbus ? 0x00ff0000 : 0xffff0000) : 0x000ffff0;
+	if (is6117)
+		s->base = 0x03ff0000;
+	else
+		s->base = is286 ? (cpu_16bitbus ? 0x00ff0000 : 0xffff0000) : 0x000ffff0;
 	s->seg = is286 ? 0xf000 : 0xffff;
     } else {
 	s->base = 0;
@@ -159,6 +160,18 @@ x86_doabrt(int x86_abrt)
 		SP -= 4;
 	}
     }
+}
+
+
+void
+x86de(char *s, uint16_t error)
+{
+#ifdef BAD_CODE
+    cpu_state.abrt = ABRT_DE;
+    abrt_error = error;
+#else
+    x86_int(0);
+#endif
 }
 
 
@@ -258,9 +271,6 @@ do_seg_load(x86seg *s, uint16_t *segdat)
 	else
 		cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
-
-    if (s->base == 0xffffffff)
-	fatal("do_seg_load(): %04X%04X%04X%04X\n", segdat[3], segdat[2], segdat[1], segdat[0]);
 }
 
 

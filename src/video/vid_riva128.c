@@ -189,6 +189,9 @@ typedef struct riva128_t
         int fifo_access;
         uint32_t surf_config;
 
+        uint16_t lin_start_x, lin_end_x, lin_start_y, lin_end_y;
+        uint32_t lin_color;
+
         uint16_t gdi_vtx_x[0x40];
         uint16_t gdi_vtx_y[0x40];
         uint16_t gdi_rect_w[0x40];
@@ -1306,7 +1309,7 @@ riva128_pgraph_execute_command(uint16_t method, uint32_t param, uint32_t ctx,
 uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, void *p)
 {
     riva128_t *riva128 = (riva128_t *)p;
-    svga_t *svga = &riva128->svga;
+    //svga_t *svga = &riva128->svga;
 
     uint8_t objclass = (ctx >> 16) & 0x1f;
 
@@ -1410,6 +1413,45 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
                     riva128_pgraph_color_t color = riva128_pgraph_expand_color(graphobj0, param, riva128);
                     riva128->pgraph.pattern_mono_color_rgb[1] = (color.r << 20) | (color.g << 10) | color.b;
                     riva128->pgraph.pattern_mono_color_a[1] = color.a;
+                    break;
+                }
+            }
+            break;
+        }
+        case 0x0a:
+        {
+            switch(method)
+            {
+                case 0x304:
+                {
+                    riva128->pgraph.lin_color = param;
+                    break;
+                }
+                case 0x400:
+                {
+                    riva128->pgraph.lin_start_x = (param >> 16) & 0xffff;
+                    riva128->pgraph.lin_start_y = param & 0xffff;
+                    break;
+                }
+                case 0x404:
+                {
+                    riva128->pgraph.lin_end_x = (param >> 16) & 0xffff;
+                    riva128->pgraph.lin_end_y = param & 0xffff;
+                    if(riva128->pgraph.lin_start_x == riva128->pgraph.lin_end_x)
+                    {
+                        for(int y = riva128->pgraph.lin_start_y; y < riva128->pgraph.lin_end_y; y++)
+                        {
+                            riva128_pgraph_write_pixel(riva128->pgraph.lin_start_x, y, riva128->pgraph.lin_color, 0xff, riva128);
+                        }
+                    }
+                    else if(riva128->pgraph.lin_start_y == riva128->pgraph.lin_end_y)
+                    {
+                        for(int x = riva128->pgraph.lin_start_x; x < riva128->pgraph.lin_end_x; x++)
+                        {
+                            riva128_pgraph_write_pixel(x, riva128->pgraph.lin_start_y, riva128->pgraph.lin_color, 0xff, riva128);
+                        }
+                    }
+                    else pclog("RIVA 128 not a vertical or horizontal lin\n");
                     break;
                 }
             }
@@ -1566,17 +1608,17 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
         riva128->pgraph.notify_impending--;
         if(riva128->pgraph.notify_impending == 0)
         {
-            uint64_t *vram_q = (uint64_t *)svga->vram;
+            //uint64_t *vram_q = (uint64_t *)svga->vram;
             uint32_t notify_obj_addr = (graphobj1 >> 16) << 4;
-            uint32_t flags = riva128_ramin_read_l(notify_obj_addr, riva128);
-            uint32_t limit = riva128_ramin_read_l(notify_obj_addr + 4, riva128);
+            //uint32_t flags = riva128_ramin_read_l(notify_obj_addr, riva128);
+            //uint32_t limit = riva128_ramin_read_l(notify_obj_addr + 4, riva128);
             uint32_t pte = riva128_ramin_read_l(notify_obj_addr + 8, riva128);
             uint32_t pte_frame = pte & 0xfffff000;
             uint32_t notifier[4];
             notifier[0] = riva128->ptimer.time & 0xffffffffull;
             notifier[1] = riva128->ptimer.time >> 32;
             notifier[2] = notifier[3] = 0;
-            dma_bm_write(pte_frame, notifier, 4, 4);
+            dma_bm_write(pte_frame, (uint8_t*)notifier, 4, 4);
             if(riva128->pgraph.notifier_obj == 1) riva128_pgraph_interrupt(28, riva128);
         }
     }
@@ -1727,7 +1769,7 @@ void
 riva128_do_gpu_work(void *p)
 {
     riva128_t *riva128 = (riva128_t *)p;
-    svga_t *svga = &riva128->svga;
+    //svga_t *svga = &riva128->svga;
 
     /*if(riva128->pfifo.caches[1].dma_ctrl & 1)
     {
@@ -1836,12 +1878,12 @@ riva128_ptimer_tick(void *p)
     //pclog("[RIVA 128] PTIMER tick! mul %04x div %04x\n", riva128->ptimer.clock_mul, riva128->ptimer.clock_div);
 
     double time = ((double)riva128->ptimer.clock_mul * 10.0) / (double)riva128->ptimer.clock_div; //Multiply by 10 to avoid timer system limitations.
-    uint32_t tmp;
+    //uint32_t tmp;
     int alarm_check;
 
     //if(cs == 0x0008 && !riva128->pgraph.beta) nv_riva_log("RIVA 128 PTIMER time elapsed %f alarm %08x, time_low %08x\n", time, riva128->ptimer.alarm, riva128->ptimer.time & 0xffffffff);
 
-    tmp = riva128->ptimer.time;
+    //tmp = riva128->ptimer.time;
     riva128->ptimer.time += (uint64_t)time;
 
     alarm_check = ((uint32_t)riva128->ptimer.time >= (uint32_t)riva128->ptimer.alarm);
@@ -2372,6 +2414,7 @@ static void
           NULL, NULL);
 
     svga->decode_mask = riva128->vram_mask;
+    svga->force_old_addr = 1;
 
     mem_mapping_add(&riva128->mmio_mapping, 0, 0, riva128_mmio_read, riva128_mmio_read_w, riva128_mmio_read_l, riva128_mmio_write, riva128_mmio_write_w, riva128_mmio_write_l,  NULL, MEM_MAPPING_EXTERNAL, riva128);
     mem_mapping_disable(&riva128->mmio_mapping);
@@ -2460,49 +2503,43 @@ riva128_force_redraw(void *p)
     riva128->svga.fullchange = changeframecount;
 }
 
-
-static const device_config_t riva128_config[] =
-{
-        {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "1 MB",
-                                .value = 1
-                        },
-                        {
-                                .description = "2 MB",
-                                .value = 2
-                        },
-                        {
-                                .description = "4 MB",
-                                .value = 4
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 4
+static const device_config_t riva128_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         },
-        {
-                .type = -1
-        }
+        .default_int = 4
+    },
+    { .type = -1 }
 };
 
-const device_t riva128_pci_device =
-{
-    "nVidia RIVA 128 (PCI)",
-    "riva128",
-    DEVICE_PCI,
-    RIVA128_DEVICE_ID,
-    riva128_init,
-    riva128_close, 
-    NULL,
-    { riva128_available },
-    riva128_speed_changed,
-    riva128_force_redraw,
-    riva128_config
+const device_t riva128_pci_device = {
+    .name = "nVidia RIVA 128 (PCI)",
+    .internal_name = "riva128",
+    .flags = DEVICE_PCI,
+    .local = RIVA128_DEVICE_ID,
+    .init = riva128_init,
+    .close = riva128_close, 
+    .reset = NULL,
+    { .available = riva128_available },
+    .speed_changed = riva128_speed_changed,
+    .force_redraw = riva128_force_redraw,
+    .config = riva128_config
 };

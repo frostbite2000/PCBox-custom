@@ -28,7 +28,7 @@ void Harddrives::populateBuses(QAbstractItemModel *model) {
     model->removeRows(0, model->rowCount());
     model->insertRows(0, 6);
     model->setData(model->index(0, 0), "MFM/RLL");
-    model->setData(model->index(1, 0), "XT IDE");
+    model->setData(model->index(1, 0), "XTA");
     model->setData(model->index(2, 0), "ESDI");
     model->setData(model->index(3, 0), "IDE");
     model->setData(model->index(4, 0), "ATAPI");
@@ -52,6 +52,28 @@ void Harddrives::populateRemovableBuses(QAbstractItemModel *model) {
     model->setData(model->index(0, 0), HDD_BUS_DISABLED, Qt::UserRole);
     model->setData(model->index(1, 0), HDD_BUS_ATAPI, Qt::UserRole);
     model->setData(model->index(2, 0), HDD_BUS_SCSI, Qt::UserRole);
+}
+
+void Harddrives::populateSpeeds(QAbstractItemModel *model, int bus) {
+    int num_preset;
+
+    switch (bus) {
+        case HDD_BUS_IDE:
+        case HDD_BUS_ESDI:
+            num_preset = hdd_preset_get_num();
+            break;
+
+        default:
+            num_preset = 1;
+    }
+
+    model->removeRows(0, model->rowCount());
+    model->insertRows(0, num_preset);
+
+    for (int i = 0; i < num_preset; i++) {
+        model->setData(model->index(i, 0), QObject::tr(hdd_preset_getname(i)));
+        model->setData(model->index(i, 0), i, Qt::UserRole);
+    }
 }
 
 void Harddrives::populateBusChannels(QAbstractItemModel *model, int bus) {
@@ -97,7 +119,7 @@ QString Harddrives::BusChannelName(uint8_t bus, uint8_t channel) {
         busName = QString("MFM/RLL (%1:%2)").arg(channel >> 1).arg(channel & 1);
         break;
     case HDD_BUS_XTA:
-        busName = QString("XT IDE (%1:%2)").arg(channel >> 1).arg(channel & 1);
+        busName = QString("XTA (%1:%2)").arg(channel >> 1).arg(channel & 1);
         break;
     case HDD_BUS_ESDI:
         busName = QString("ESDI (%1:%2)").arg(channel >> 1).arg(channel & 1);

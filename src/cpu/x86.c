@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Functions common to all emulated x86 CPU's.
+ *          Functions common to all emulated x86 CPU's.
  *
- * Authors:	Andrew Jenner, <https://www.reenigne.org>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Andrew Jenner, <https://www.reenigne.org>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2015-2020 Andrew Jenner.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2015-2020 Andrew Jenner.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -36,6 +36,8 @@
 #include <86box/pci.h>
 #include <86box/ppi.h>
 #include <86box/timer.h>
+#include <86box/video.h>
+#include <86box/vid_svga.h>
 
 /* The opcode of the instruction currently being executed. */
 uint8_t opcode;
@@ -270,6 +272,8 @@ reset_common(int hard)
 	loadcs(0xF000);
 	cpu_state.pc = 0xFFF0;
 	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+	if (is6117)
+		rammask |= 0x03000000;
     }
     idt.base = 0;
     cpu_state.flags = 2;
@@ -342,6 +346,9 @@ softresetx86(void)
 {
     if (soft_reset_mask)
 	return;
+
+    if (ibm8514_enabled || xga_enabled)
+        vga_on = 1;
 
     reset_common(0);
 }

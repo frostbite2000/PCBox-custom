@@ -509,7 +509,7 @@ rivatnt_pfb_read(uint32_t addr, void *p)
 uint32_t
 rivatnt_pextdev_read(uint32_t addr, void *p)
 {
-    rivatnt_t *rivatnt = (rivatnt_t *)p;
+    //rivatnt_t *rivatnt = (rivatnt_t *)p;
 
     switch(addr)
     {
@@ -593,12 +593,12 @@ rivatnt_ptimer_tick(void *p)
     //pclog("[RIVA TNT] PTIMER tick! mul %04x div %04x\n", rivatnt->ptimer.clock_mul, rivatnt->ptimer.clock_div);
 
     double time = ((double)rivatnt->ptimer.clock_mul * 10.0) / (double)rivatnt->ptimer.clock_div; //Multiply by 10 to avoid timer system limitations.
-    uint32_t tmp;
+    //uint32_t tmp;
     int alarm_check;
 
     //if(cs == 0x0008 && !rivatnt->pgraph.beta) nv_riva_log("RIVA TNT PTIMER time elapsed %f alarm %08x, time_low %08x\n", time, rivatnt->ptimer.alarm, rivatnt->ptimer.time & 0xffffffff);
 
-    tmp = rivatnt->ptimer.time;
+    //tmp = rivatnt->ptimer.time;
     rivatnt->ptimer.time += (uint64_t)time;
 
     alarm_check = (uint32_t)(rivatnt->ptimer.time - rivatnt->ptimer.alarm) & 0x80000000;
@@ -813,7 +813,7 @@ rivatnt_rma_in(uint16_t addr, void *p)
 
     addr &= 0xff;
 
-    // nv_riva_log("RIVA TNT RMA read %04X %04X:%08X\n", addr, CS, cpu_state.pc);
+    pclog("RIVA TNT RMA read %04X %04X:%08X\n", addr, CS, cpu_state.pc);
 
     switch(addr) {
     case 0x00:
@@ -851,7 +851,7 @@ rivatnt_rma_out(uint16_t addr, uint8_t val, void *p)
 
     addr &= 0xff;
 
-    // nv_riva_log("RIVA TNT RMA write %04X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+    pclog("RIVA TNT RMA write %04X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
 
     switch(addr) {
     case 0x04:
@@ -962,8 +962,8 @@ rivatnt_out(uint16_t addr, uint8_t val, void *p)
                     break;
             }
         }
-        //if (svga->crtcreg > 0x18)
-            // pclog("RIVA TNT Extended CRTC write %02X %02x\n", svga->crtcreg, val);
+        //if (svga->crtcreg > 0x18 && svga->crtcreg != 0x38 && svga->crtcreg != 0x1d && svga->crtcreg != 0x1e && svga->crtcreg != 0x19 && svga->crtcreg != 0x1a && svga->crtcreg != 0x25 && svga->crtcreg != 0x28)
+             //pclog("RIVA TNT Extended CRTC write %02X %02x\n", svga->crtcreg, val);
         if (old != val) {
             if ((svga->crtcreg < 0xe) || (svga->crtcreg > 0x10)) {
                 svga->fullchange = changeframecount;
@@ -1112,6 +1112,7 @@ static void
           NULL, NULL);
 
     svga->decode_mask = rivatnt->vram_mask;
+    svga->force_old_addr = 1;
 
     rom_init(&rivatnt->bios_rom, romfn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&rivatnt->bios_rom.mapping);
@@ -1165,8 +1166,6 @@ rivatnt_close(void *p)
     rivatnt_t *rivatnt = (rivatnt_t *)p;
     
     svga_close(&rivatnt->svga);
-
-    free(rivatnt->ramin);
     
     free(rivatnt);
 }
@@ -1190,48 +1189,43 @@ rivatnt_force_redraw(void *p)
 }
 
 
-static const device_config_t rivatnt_config[] =
-{
-        {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "4 MB",
-                                .value = 4
-                        },
-                        {
-                                .description = "8 MB",
-                                .value = 8
-                        },
-                        {
-                                .description = "16 MB",
-                                .value = 16
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 16
+static const device_config_t rivatnt_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = "8 MB",
+                .value = 8
+            },
+            {
+                .description = "16 MB",
+                .value = 16
+            },
+            {
+                .description = ""
+            }
         },
-        {
-                .type = -1
-        }
+        .default_int = 16
+    },
+    { .type = -1 }
 };
 
-const device_t rivatnt_pci_device =
-{
-    "nVidia RIVA TNT (PCI)",
-    "rivatnt",
-    DEVICE_PCI,
-    RIVATNT_DEVICE_ID,
-    rivatnt_init,
-    rivatnt_close, 
-    NULL,
-    { rivatnt_available },
-    rivatnt_speed_changed,
-    rivatnt_force_redraw,
-    rivatnt_config
+const device_t rivatnt_pci_device = {
+    .name = "nVidia RIVA TNT (PCI)",
+    .internal_name = "rivatnt",
+    .flags = DEVICE_PCI,
+    .local = RIVATNT_DEVICE_ID,
+    .init = rivatnt_init,
+    .close = rivatnt_close, 
+    .reset = NULL,
+    { .available = rivatnt_available },
+    .speed_changed = rivatnt_speed_changed,
+    .force_redraw = rivatnt_force_redraw,
+    .config = rivatnt_config
 };

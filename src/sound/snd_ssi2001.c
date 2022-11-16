@@ -91,14 +91,33 @@ ssi2001_close(void *p)
 }
 
 static const device_config_t ssi2001_config[] = {
-// clang-format off
-    { "base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
-        {
-            { "0x280", 0x280 },
-            { "0x2A0", 0x2A0 },
-            { "0x2C0", 0x2C0 },
-            { "0x2E0", 0x2E0 },
-            { ""             }
+    // clang-format off
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x280,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "0x280",
+                .value = 0x280
+            },
+            {
+                .description = "0x2A0",
+                .value = 0x2A0
+            },
+            {
+                .description = "0x2C0",
+                .value = 0x2C0
+            },
+            {
+                .description = "0x2E0",
+                .value = 0x2E0
+            },
+            { .description = "" }
         }
     },
     { "gameport", "Enable Game port", CONFIG_BINARY, "",  1 },
@@ -108,15 +127,15 @@ static const device_config_t ssi2001_config[] = {
 
 const device_t ssi2001_device =
 {
-    "Innovation SSI-2001",
-    "ssi2001",
-    DEVICE_ISA,
-    0,
-    ssi2001_init,
-    ssi2001_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    ssi2001_config
+    .name = "Innovation SSI-2001",
+    .internal_name = "ssi2001",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = ssi2001_init,
+    .close = ssi2001_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ssi2001_config
 };

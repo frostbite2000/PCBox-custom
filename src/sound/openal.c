@@ -124,22 +124,22 @@ inital(void)
     alutInit(0, 0);
     atexit(closeal);
 
-    mdn = midi_device_get_internal_name(midi_device_current);
+    mdn = midi_out_device_get_internal_name(midi_output_device_current);
     if (strcmp(mdn, "none") && strcmp(mdn, SYSTEM_MIDI_INTERNAL_NAME))
         init_midi = 1; /* If the device is neither none, nor system MIDI, initialize the
                 MIDI buffer and source, otherwise, do not. */
     sources = 2 + !!init_midi;
 
     if (sound_is_float) {
-        buf    = (float *) malloc((BUFLEN << 1) * sizeof(float));
-        cd_buf = (float *) malloc((CD_BUFLEN << 1) * sizeof(float));
+        buf    = (float *) calloc((BUFLEN << 1), sizeof(float));
+        cd_buf = (float *) calloc((CD_BUFLEN << 1), sizeof(float));
         if (init_midi)
-            midi_buf = (float *) malloc(midi_buf_size * sizeof(float));
+            midi_buf = (float *) calloc(midi_buf_size, sizeof(float));
     } else {
-        buf_int16    = (int16_t *) malloc((BUFLEN << 1) * sizeof(int16_t));
-        cd_buf_int16 = (int16_t *) malloc((CD_BUFLEN << 1) * sizeof(int16_t));
+        buf_int16    = (int16_t *) calloc((BUFLEN << 1), sizeof(int16_t));
+        cd_buf_int16 = (int16_t *) calloc((CD_BUFLEN << 1), sizeof(int16_t));
         if (init_midi)
-            midi_buf_int16 = (int16_t *) malloc(midi_buf_size * sizeof(int16_t));
+            midi_buf_int16 = (int16_t *) calloc(midi_buf_size, sizeof(int16_t));
     }
 
     alGenBuffers(4, buffers);

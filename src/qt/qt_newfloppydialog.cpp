@@ -187,6 +187,7 @@ void NewFloppyDialog::onCreate() {
 
     QProgressDialog progress("Creating floppy image", QString(), 0, 100, this);
     connect(this, &NewFloppyDialog::fileProgress, &progress, &QProgressDialog::setValue);
+    connect(this, &NewFloppyDialog::fileProgress, [] { QApplication::processEvents(); });
     switch (mediaType_) {
     case MediaType::Floppy:
         if (fi.suffix().toLower() == QStringLiteral("86f")) {
@@ -339,6 +340,11 @@ bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk
     return true;
 }
 
+/* Ignore false positive warning caused by a bug on gcc */
+#if __GNUC__ >= 11
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 bool NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t& disk_size, FileType type)
 {
     uint32_t total_size = 0;
@@ -441,11 +447,6 @@ bool NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_s
     uint32_t total_size = 0;
     uint32_t total_sectors = 0;
     uint32_t sector_bytes = 0;
-    uint32_t root_dir_bytes = 0;
-    uint32_t fat_size = 0;
-    uint32_t fat1_offs = 0;
-    uint32_t fat2_offs = 0;
-    uint32_t zero_bytes = 0;
     uint16_t base = 0x1000;
     uint32_t pbar_max = 0;
 
@@ -461,11 +462,6 @@ bool NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_s
     if (total_sectors > ZIP_SECTORS)
         total_sectors = ZIP_250_SECTORS;
     total_size = total_sectors * sector_bytes;
-    root_dir_bytes = (disk_size.root_dir_entries << 5);
-    fat_size = (disk_size.spfat * sector_bytes);
-    fat1_offs = sector_bytes;
-    fat2_offs = fat1_offs + fat_size;
-    zero_bytes = fat2_offs + fat_size + root_dir_bytes;
 
     pbar_max = total_size;
     if (type == FileType::Zdi) {

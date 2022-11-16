@@ -1,28 +1,28 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Define all known processor types.
+ *          Define all known processor types.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		leilei,
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		RichardG, <richardg867@gmail.com>
- *		dob205,
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          leilei,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          RichardG, <richardg867@gmail.com>
+ *          dob205,
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 leilei.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2020 RichardG.
- *		Copyright 2021 dob205.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 leilei.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2020 RichardG.
+ *          Copyright 2021 dob205.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -41,6 +41,13 @@ FPU fpus_8088[] =
 {
         {"None", "none",  FPU_NONE},
         {"8087", "8087",  FPU_8087},
+        {NULL, NULL, 0}
+};
+FPU fpus_80186[] =
+{
+        {"None", "none",  FPU_NONE},
+        {"8087", "8087",  FPU_8087},
+        {"80187", "80187",  FPU_80187},
         {NULL, NULL, 0}
 };
 FPU fpus_80286[] =
@@ -79,6 +86,7 @@ const cpu_family_t cpu_families[] = {
 		{"4.77",    CPU_8088, fpus_8088,  4772728,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"7.16",    CPU_8088, fpus_8088,  7159092,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"8",       CPU_8088, fpus_8088,  8000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+//		{"9.54",    CPU_8088, fpus_8088,  9545456,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"10",      CPU_8088, fpus_8088, 10000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"12",      CPU_8088, fpus_8088, 12000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"16",      CPU_8088, fpus_8088, 16000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
@@ -107,6 +115,66 @@ const cpu_family_t cpu_families[] = {
 		{"10",      CPU_8086, fpus_8088,  10000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"12",      CPU_8086, fpus_8088,  12000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"16",      CPU_8086, fpus_8088,  16000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 2},
+		{"", 0}
+	}
+    }, {
+	.package = CPU_PKG_188,
+	.manufacturer = "Intel",
+	.name = "80188",
+	.internal_name = "80188",
+	.cpus = (const CPU[]) {
+		{"6",       CPU_188, fpus_8088,   6000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"7.16",    CPU_188, fpus_8088,   7159092,    1, 5000, 0, 0, 0, CPU_ALTERNATE_XTAL, 0,0,0,0, 1},
+		{"8",       CPU_188, fpus_8088,   8000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"9.54",    CPU_188, fpus_8088,   9545456,    1, 5000, 0, 0, 0, CPU_ALTERNATE_XTAL, 0,0,0,0, 1},
+		{"10",      CPU_188, fpus_8088,  10000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"12",      CPU_188, fpus_8088,  12000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"16",      CPU_188, fpus_8088,  16000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 2},
+		{"20",      CPU_188, fpus_8088,  20000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 3},
+		{"25",      CPU_188, fpus_8088,  25000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 3},
+		{"", 0}
+	}
+    }, {
+	.package = CPU_PKG_8088,
+	.manufacturer = "NEC",
+	.name = "V20",
+	.internal_name = "necv20",
+	.cpus = (const CPU[]) {
+		{"4.77",    CPU_V20, fpus_8088,   4772728,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"7.16",    CPU_V20, fpus_8088,   7159092,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"10",      CPU_V20, fpus_8088,  10000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"12",      CPU_V20, fpus_8088,  12000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"16",      CPU_V20, fpus_8088,  16000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 2},
+		{"", 0}
+	}
+    }, {
+	.package = CPU_PKG_186,
+	.manufacturer = "Intel",
+	.name = "80186",
+	.internal_name = "80186",
+	.cpus = (const CPU[]) {
+		{"6",       CPU_186, fpus_80186,   6000000,    1, 0, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"7.16",    CPU_186, fpus_80186,   7159092,    1, 0, 0, 0, 0, CPU_ALTERNATE_XTAL, 0,0,0,0, 1},
+		{"8",       CPU_186, fpus_80186,   8000000,    1, 0, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"9.54",    CPU_186, fpus_80186,   9545456,    1, 0, 0, 0, 0, CPU_ALTERNATE_XTAL, 0,0,0,0, 1},
+		{"10",      CPU_186, fpus_80186,  10000000,    1, 0, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"12",      CPU_186, fpus_80186,  12000000,    1, 0, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"16",      CPU_186, fpus_80186,  16000000,    1, 0, 0, 0, 0, 0, 0,0,0,0, 2},
+		{"20",      CPU_186, fpus_80186,  20000000,    1, 0, 0, 0, 0, 0, 0,0,0,0, 3},
+		{"25",      CPU_186, fpus_80186,  25000000,    1, 0, 0, 0, 0, 0, 0,0,0,0, 3},
+		{"", 0}
+	}
+    }, {
+	.package = CPU_PKG_8086,
+	.manufacturer = "NEC",
+	.name = "V30",
+	.internal_name = "necv30",
+	.cpus = (const CPU[]) {
+		{"5",       CPU_V30, fpus_80186,   5000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"8",       CPU_V30, fpus_80186,   8000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"10",      CPU_V30, fpus_80186,  10000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"12",      CPU_V30, fpus_80186,  12000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"16",      CPU_V30, fpus_80186,  16000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 2},
 		{"", 0}
 	}
     }, {
@@ -390,7 +458,7 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3_PC330, /*OEM versions are 3.3V, Retail versions are 3.3V with a 5V regulator for installation in older boards. hey are functionally identical*/
+	.package = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3_PC330, /*OEM versions are 3.3V, Retail versions are 3.3V with a 5V regulator for installation in older boards. They are functionally identical*/
 	.manufacturer = "Intel",
 	.name = "iDX4",
 	.internal_name = "idx4",
@@ -1121,6 +1189,35 @@ const cpu_family_t cpu_families[] = {
 	}
 	}, {
 	.package = CPU_PKG_SOCKET370,
+	.manufacturer = "Intel",
+	.name = "Pentium III (Tualatin)",
+	.internal_name = "pentium3_tualatin",
+	.cpus = (const CPU[]) {
+		{"1000",      CPU_PENTIUM3,  fpus_internal, 1000000000,  7.5, 1475,  0x6B1,  0x6B1, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1133",      CPU_PENTIUM3,  fpus_internal, 1133333333,  8.5, 1475,  0x6B1,  0x6B1, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1200",      CPU_PENTIUM3,  fpus_internal, 1200000000,  9.0, 1475,  0x6B1,  0x6B1, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1266",      CPU_PENTIUM3,  fpus_internal, 1266666666,  9.5, 1450,  0x6B1,  0x6B1, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1333",      CPU_PENTIUM3,  fpus_internal, 1333333333, 10.0, 1475,  0x6B1,  0x6B1, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1400",      CPU_PENTIUM3,  fpus_internal, 1400000000, 10.5, 1450,  0x6B1,  0x6B1, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"", 0}
+	}
+	}, {
+	.package = CPU_PKG_SOCKET370,
+	.manufacturer = "Intel",
+	.name = "Celeron (Tualatin)",
+	.internal_name = "celeron_tualatin",
+	.cpus = (const CPU[]) {
+		{"900",      CPU_PENTIUM3,  fpus_internal, 900000000,  9.0, 1475,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1000",      CPU_PENTIUM3,  fpus_internal, 1000000000, 10.0, 1475,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1100",      CPU_PENTIUM3,  fpus_internal, 1100000000, 11.0, 1500,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1200",      CPU_PENTIUM3,  fpus_internal, 1200000000, 12.0, 1500,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1300",      CPU_PENTIUM3,  fpus_internal, 1300000000, 13.0, 1500,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1400",      CPU_PENTIUM3,  fpus_internal, 1400000000, 14.0, 1500,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1500",      CPU_PENTIUM3,  fpus_internal, 1500000000, 15.0, 1500,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"", 0}
+	}
+	}, {
+	.package = CPU_PKG_SOCKET370,
 	.manufacturer = "VIA",
 	.name = "Cyrix III",
 	.internal_name = "c3_samuel",
@@ -1148,9 +1245,54 @@ const cpu_family_t cpu_families[] = {
 		{"667",     CPU_CYRIX3S, fpus_internal, 666666667, 5.0, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 60, 60, 16, 16, 80},
 		{"700",     CPU_CYRIX3S, fpus_internal, 700000000, 7.0, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
 		{"733",     CPU_CYRIX3S, fpus_internal, 733333333, 5.5, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 66, 66, 18, 18, 88},
+		{"750",     CPU_CYRIX3S, fpus_internal, 750000000, 7.5, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"800",     CPU_CYRIX3S, fpus_internal, 800000000, 8.0, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
 		{"", 0}
 	}
     }, {
+	.package = CPU_PKG_SOCKET370,
+	.manufacturer = "VIA",
+	.name = "Cyrix III (Ezra)",
+	.internal_name = "c3_ezra",
+	.cpus = (const CPU[]) {
+		{"800",     CPU_CYRIX3S, fpus_internal, 800000000, 8.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},\
+		{"800/133", CPU_CYRIX3S, fpus_internal, 800000000, 6.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"850",     CPU_CYRIX3S, fpus_internal, 850000000, 8.5, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"866",     CPU_CYRIX3S, fpus_internal, 866666666, 6.5, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"900",     CPU_CYRIX3S, fpus_internal, 900000000, 9.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"933",     CPU_CYRIX3S, fpus_internal, 933333333, 7.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"1000",    CPU_CYRIX3S, fpus_internal, 1000000000,7.5, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"", 0}
+	}
+    }, {
+	.package = CPU_PKG_SOCKET370,
+	.manufacturer = "VIA",
+	.name = "Cyrix III (Nehemiah)",
+	.internal_name = "c3_nehemiah",
+	.cpus = (const CPU[]) {
+		{"1000", CPU_CYRIX3S, fpus_internal,   1000000000, 7.5, 2050,   0x693, 0x693, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"1133", CPU_CYRIX3S, fpus_internal,   1133333333, 8.5, 2050,   0x693, 0x693, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"1200", CPU_CYRIX3S, fpus_internal,   1200000000, 9.0, 2050,   0x693, 0x693, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"1300", CPU_CYRIX3S, fpus_internal,   1300000000,10.0, 2050,   0x693, 0x693, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"1400", CPU_CYRIX3S, fpus_internal,   1400000000,10.5, 2050,   0x693, 0x693, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
+		{"", 0}
+	}
+    }, {
+	.package = CPU_PKG_SOCKET370,
+	.manufacturer = "Intel",
+	.name = "Generic",
+	.internal_name = "generic_intel",
+	.cpus = (const CPU[]) {
+		{"900",      CPU_GENERICINTEL,  fpus_internal, 900000000,  9.0, 1475,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1000",      CPU_GENERICINTEL,  fpus_internal, 1000000000, 10.0, 1475,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1100",      CPU_GENERICINTEL,  fpus_internal, 1100000000, 11.0, 1500,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1200",      CPU_GENERICINTEL,  fpus_internal, 1200000000, 12.0, 1500,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1300",      CPU_GENERICINTEL,  fpus_internal, 1300000000, 13.0, 1500,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1400",      CPU_GENERICINTEL,  fpus_internal, 1400000000, 14.0, 1500,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"1500",      CPU_GENERICINTEL,  fpus_internal, 1500000000, 15.0, 1500,  0x6B4,  0x6B4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"", 0}
+	}
+	}, {
 	.package = 0,
     }
 };

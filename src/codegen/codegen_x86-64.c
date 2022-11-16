@@ -21,7 +21,7 @@
 #include "codegen_ops.h"
 #include "codegen_ops_x86-64.h"
 
-#if defined(__unix__) || defined(__APPLE__)
+#if defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -66,7 +66,7 @@ void codegen_init()
 
 #if _WIN64
         codeblock = VirtualAlloc(NULL, BLOCK_SIZE * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-#elif defined(__unix__) || defined(__APPLE__)
+#elif defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
         codeblock = mmap(NULL, BLOCK_SIZE * sizeof(codeblock_t), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
 #else
         codeblock = malloc(BLOCK_SIZE * sizeof(codeblock_t));
@@ -267,6 +267,7 @@ void codegen_block_init(uint32_t phys_addr)
 void codegen_block_start_recompile(codeblock_t *block)
 {
         page_t *page = &pages[block->phys >> 12];
+        uintptr_t rip_rel;
 
         if (!page->block[(block->phys >> 10) & 3])
                 mem_flush_write_page(block->phys, cs+cpu_state.pc);
@@ -298,15 +299,17 @@ void codegen_block_start_recompile(codeblock_t *block)
 	while (block_pos < BLOCK_EXIT_OFFSET)
 	       addbyte(0x90); /*NOP*/
 #else
-	addbyte(0xc6);	/* mov byte ptr[&(cpu_state.abrt)],ABRT_GPF */
-	addbyte(0x05);
-	addlong((uint32_t) (uintptr_t) &(cpu_state.abrt));
+        addbyte(0xC6); /*MOVB ABRT_GPF,(abrt)*/
+        addbyte(0x45);
+        addbyte((uint8_t)cpu_state_offset(abrt));
 	addbyte(ABRT_GPF);
 	addbyte(0x31);	/* xor eax,eax */
 	addbyte(0xc0);
-	addbyte(0x67);	/* mov [&(abrt_error)],eax */
-	addbyte(0xa3);
-	addlong((uint32_t) (uintptr_t) &(abrt_error));
+        addbyte(0x89); /*MOVB eax,(abrt_error)*/
+        addbyte(0x85);
+        rip_rel = ((uintptr_t)&cpu_state) + 128;
+        rip_rel = ((uintptr_t) &(abrt_error)) - rip_rel;
+	addlong((uint32_t) rip_rel);
 #endif
         block_pos = BLOCK_EXIT_OFFSET; /*Exit code*/
         addbyte(0x48); /*ADDL $40,%rsp*/
@@ -523,8 +526,8 @@ int opcode_0f_modrm[256] =
         0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 1, /*30*/
 
         1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*40*/
-        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 0, 0,  1, 1, 1, 1, /*50*/
-        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  0, 0, 1, 1, /*60*/
+        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*50*/
+        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*60*/
         1, 1, 1, 1,  1, 1, 1, 0,  0, 0, 0, 0,  0, 0, 1, 1, /*70*/
 
         0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*80*/
@@ -532,10 +535,10 @@ int opcode_0f_modrm[256] =
         0, 0, 0, 1,  1, 1, 0, 0,  0, 0, 0, 1,  1, 1, 1, 1, /*a0*/
         1, 1, 1, 1,  1, 1, 1, 1,  0, 0, 1, 1,  1, 1, 1, 1, /*b0*/
 
-        1, 1, 1, 0,  1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 0, /*c0*/
-        0, 1, 1, 1,  0, 1, 0, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*d0*/
-        1, 1, 1, 1,  1, 1, 0, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*e0*/
-        0, 1, 1, 1,  0, 1, 1, 1,  1, 1, 1, 0,  1, 1, 1, 0  /*f0*/
+        1, 1, 1, 1,  1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 0, /*c0*/
+        0, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*d0*/
+        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*e0*/
+        0, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 0,  1, 1, 1, 0  /*f0*/
 };
 
 void codegen_debug()

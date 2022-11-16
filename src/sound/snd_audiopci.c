@@ -495,10 +495,6 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
             break;
     }
 
-    if (page == 0x0e || page == 0x0f) {
-        audiopci_log("Read frame = %02x, page = %02x, uart fifo valid = %02x, temp = %03x\n", frame, page, dev->valid, ret);
-    }
-
     return ret;
 }
 
@@ -1240,7 +1236,7 @@ capture_event(es1371_t *dev, int type, int rw, uint16_t port)
         dev->legacy_ctrl &= ~LEGACY_EVENT_TYPE_RW;
     dev->legacy_ctrl |= ((port << LEGACY_EVENT_ADDR_SHIFT) & LEGACY_EVENT_ADDR_MASK);
     dev->legacy_ctrl &= ~LEGACY_INT;
-    nmi = 1;
+    nmi_raise();
 }
 
 static void
@@ -2053,64 +2049,83 @@ es1371_speed_changed(void *p)
 }
 
 static const device_config_t es1371_config[] = {
-// clang-format off
+  // clang-format off
     {
-    .name = "codec",
-    .description = "CODEC",
-    .type = CONFIG_SELECTION,
-    .selection = {
-        {
-            .description = "Asahi Kasei AK4540",
-            .value = AC97_CODEC_AK4540
-        }, {
-            .description = "Crystal CS4297",
-            .value = AC97_CODEC_CS4297
-        }, {
-            .description = "Crystal CS4297A",
-            .value = AC97_CODEC_CS4297A
-        }, {
-            .description = "SigmaTel STAC9708",
-            .value = AC97_CODEC_STAC9708
-        }, {
-            .description = "SigmaTel STAC9721",
-            .value = AC97_CODEC_STAC9721
-        }
-    },
-    .default_int = AC97_CODEC_CS4297A
+        .name = "codec",
+        .description = "CODEC",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "Asahi Kasei AK4540",
+                .value = AC97_CODEC_AK4540
+            },
+            {
+                .description = "Crystal CS4297",
+                .value = AC97_CODEC_CS4297
+            },
+            {
+                .description = "Crystal CS4297A",
+                .value = AC97_CODEC_CS4297A
+            },
+            {
+                .description = "SigmaTel STAC9708",
+                .value = AC97_CODEC_STAC9708
+            },
+            {
+                .description = "SigmaTel STAC9721",
+                .value = AC97_CODEC_STAC9721
+            }
+        },
+        .default_int = AC97_CODEC_CS4297A
     },
     {
-        "receive_input", "Receive input (MIDI)", CONFIG_BINARY, "", 1
+        .name = "receive_input",
+        .description = "Receive input (MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
     },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_config_t es1371_onboard_config[] = {
+  // clang-format off
     {
-    "", "", -1
-    }
+        .name = "receive_input",
+        .description = "Receive input (MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
 const device_t es1371_device = {
-    "Ensoniq AudioPCI (ES1371)",
-    "es1371",
-    DEVICE_PCI,
-    0,
-    es1371_init,
-    es1371_close,
-    es1371_reset,
-    { NULL },
-    es1371_speed_changed,
-    NULL,
-    es1371_config
+    .name          = "Ensoniq AudioPCI (ES1371)",
+    .internal_name = "es1371",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = es1371_init,
+    .close         = es1371_close,
+    .reset         = es1371_reset,
+    { .available = NULL },
+    .speed_changed = es1371_speed_changed,
+    .force_redraw  = NULL,
+    .config        = es1371_config
 };
 
 const device_t es1371_onboard_device = {
-    "Ensoniq AudioPCI (ES1371) (On-Board)",
-    "es1371_onboard",
-    DEVICE_PCI,
-    1,
-    es1371_init,
-    es1371_close,
-    es1371_reset,
-    { NULL },
-    es1371_speed_changed,
-    NULL,
-    NULL
+    .name          = "Ensoniq AudioPCI (ES1371) (On-Board)",
+    .internal_name = "es1371_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = 1,
+    .init          = es1371_init,
+    .close         = es1371_close,
+    .reset         = es1371_reset,
+    { .available = NULL },
+    .speed_changed = es1371_speed_changed,
+    .force_redraw  = NULL,
+    .config        = es1371_onboard_config
 };

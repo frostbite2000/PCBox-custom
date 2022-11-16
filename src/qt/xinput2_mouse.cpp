@@ -48,7 +48,6 @@ int xi2flides[2] = { 0, 0 };
 
 static Display* disp = nullptr;
 static QThread* procThread = nullptr;
-static bool xi2childinit = false;
 static XIEventMask ximask;
 static std::atomic<bool> exitfromthread = false;
 static std::atomic<double> xi2_mouse_x = 0, xi2_mouse_y = 0, xi2_mouse_abs_x = 0, xi2_mouse_abs_y = 0;
@@ -82,8 +81,7 @@ void xinput2_proc()
     Window win;
     win = DefaultRootWindow(disp);
 
-    // XIAllMasterDevices doesn't work for click-and-drag operations.
-    ximask.deviceid = XIAllDevices;
+    ximask.deviceid = XIAllMasterDevices;
     ximask.mask_len = XIMaskLen(XI_LASTEVENT);
     ximask.mask = (unsigned char*)calloc(ximask.mask_len, sizeof(unsigned char));
 
@@ -106,7 +104,6 @@ void xinput2_proc()
         if (XGetEventData(disp, cookie) && cookie->type == GenericEvent && cookie->extension == xi2opcode) {
             switch (cookie->evtype) {
                 case XI_RawMotion: {
-                    static int ss = 0;
                     const XIRawEvent *rawev = (const XIRawEvent*)cookie->data;
                     double relative_coords[2] = { 0., 0. };
                     parse_valuators(rawev->raw_values,rawev->valuators.mask,
@@ -168,7 +165,7 @@ void xinput2_init()
         qWarning() << "Cannot open current X11 display";
         return;
     }
-    auto event = 0, err = 0, minor = 0, major = 2;
+    auto event = 0, err = 0, minor = 1, major = 2;
     if (XQueryExtension(disp, "XInputExtension", &xi2opcode, &event, &err))
     {
         if (XIQueryVersion(disp, &major, &minor) == Success)

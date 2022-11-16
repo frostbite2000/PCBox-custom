@@ -30,13 +30,16 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QTemporaryFile>
+#include <QStandardPaths>
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QLocalSocket>
+#include <QTimer>
 
 #include <QLibrary>
 #include <QElapsedTimer>
 
+#include "qt_rendererstack.hpp"
 #include "qt_mainwindow.hpp"
 #include "qt_progsettings.hpp"
 
@@ -50,7 +53,7 @@ extern MainWindow* main_window;
 QElapsedTimer elapsed_timer;
 
 static std::atomic_int blitmx_contention = 0;
-static std::mutex blitmx;
+static std::recursive_mutex blitmx;
 
 class CharPointer {
 public:
@@ -74,18 +77,23 @@ private:
 
 extern "C" {
 #ifdef Q_OS_WINDOWS
-#define NOMINMAX
-#include <windows.h>
-#include <86box/win.h>
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
+#    include <windows.h>
+#    include <86box/win.h>
 #else
-#include <strings.h>
+#    include <strings.h>
 #endif
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/gameport.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/path.h>
 #include <86box/plat_dynld.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/config.h>
 #include <86box/ui.h>
 #include <86box/discord.h>
@@ -135,7 +143,7 @@ void plat_get_exe_name(char *s, int size)
 
     memcpy(s, exepath_temp.data(), std::min((qsizetype)exepath_temp.size(),(qsizetype)size));
 
-    plat_path_slash(s);
+    path_slash(s);
 }
 
 uint32_t
@@ -153,13 +161,25 @@ plat_timer_read(void)
 FILE *
 plat_fopen(const char *path, const char *mode)
 {
+#if defined(Q_OS_MACOS) or defined(Q_OS_LINUX)
+    QFileInfo fi(path);
+    QString filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
+    return fopen(filename.toUtf8().constData(), mode);
+#else
     return fopen(QString::fromUtf8(path).toLocal8Bit(), mode);
+#endif
 }
 
 FILE *
 plat_fopen64(const char *path, const char *mode)
 {
-    return fopen(path, mode);
+#if defined(Q_OS_MACOS) or defined(Q_OS_LINUX)
+    QFileInfo fi(path);
+    QString filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
+    return fopen(filename.toUtf8().constData(), mode);
+#else
+    return fopen(QString::fromUtf8(path).toLocal8Bit(), mode);
+#endif
 }
 
 int
@@ -178,19 +198,24 @@ plat_dir_check(char *path)
 int
 plat_getcwd(char *bufp, int max)
 {
+#ifdef __APPLE__
+    /* Working directory for .app bundles is undefined. */
+    strncpy(bufp, exe_path, max);
+#else
     CharPointer(bufp, max) = QDir::currentPath().toUtf8();
+#endif
     return 0;
 }
 
 void
-plat_get_dirname(char *dest, const char *path)
+path_get_dirname(char *dest, const char *path)
 {
     QFileInfo fi(path);
     CharPointer(dest, -1) = fi.dir().path().toUtf8();
 }
 
 char *
-plat_get_extension(char *s)
+path_get_extension(char *s)
 {
     auto len = strlen(s);
     auto idx = QByteArray::fromRawData(s, len).lastIndexOf('.');
@@ -201,7 +226,7 @@ plat_get_extension(char *s)
 }
 
 char *
-plat_get_filename(char *s)
+path_get_filename(char *s)
 {
 #ifdef Q_OS_WINDOWS
     int c = strlen(s) - 1;
@@ -223,7 +248,7 @@ plat_get_filename(char *s)
 }
 
 int
-plat_path_abs(char *path)
+path_abs(char *path)
 {
 #ifdef Q_OS_WINDOWS
     if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/'))
@@ -236,21 +261,33 @@ plat_path_abs(char *path)
 }
 
 void
-plat_path_slash(char *path)
+path_normalize(char* path)
+{
+#ifdef Q_OS_WINDOWS
+    while (*path++ != 0)
+    {
+        if (*path == '\\') *path = '/';
+    }
+#endif
+}
+
+void
+path_slash(char *path)
 {
     auto len = strlen(path);
-    auto separator = QDir::separator().toLatin1();
+    auto separator = '/';
     if (path[len-1] != separator) {
         path[len] = separator;
         path[len+1] = 0;
     }
+    path_normalize(path);
 }
 
 void
-plat_append_filename(char *dest, const char *s1, const char *s2)
+path_append_filename(char *dest, const char *s1, const char *s2)
 {
     strcpy(dest, s1);
-    plat_path_slash(dest);
+    path_slash(dest);
     strcat(dest, s2);
 }
 
@@ -302,7 +339,7 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t title[512], paused_msg[64];
+    wchar_t title[1024], paused_msg[512];
 
     if (p == dopause) {
 #ifdef Q_OS_WINDOWS
@@ -311,20 +348,25 @@ plat_pause(int p)
 #endif
         return;
     }
+
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
     dopause = p;
     if (p) {
+	if (mouse_capture)
+		plat_mouse_capture(0);
+
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
-        QObject::tr(" - PAUSED").toWCharArray(paused_msg);
+        paused_msg[QObject::tr(" - PAUSED").toWCharArray(paused_msg)] = 0;
         wcscat(title, paused_msg);
         ui_window_title(title);
     } else {
         ui_window_title(oldtitle);
     }
     discord_update_activity(dopause);
+    QTimer::singleShot(0, main_window, &MainWindow::updateUiPauseState);
 
 #ifdef Q_OS_WINDOWS
     if (source_hwnd)
@@ -348,7 +390,7 @@ plat_power_off(void)
     cycles -= 99999999;
 
     cpu_thread_run = 0;
-    main_window->close();
+    QTimer::singleShot(0, (const QWidget *) main_window, &QMainWindow::close);
 }
 
 void set_language(uint32_t id) {
@@ -361,7 +403,7 @@ extern "C++"
     {
         {0x0405, {"cs-CZ", "Czech (Czech Republic)"} },
         {0x0407, {"de-DE", "German (Germany)"} },
-        {0x0408, {"en-US", "English (United States)"} },
+        {0x0409, {"en-US", "English (United States)"} },
         {0x0809, {"en-GB", "English (United Kingdom)"} },
         {0x0C0A, {"es-ES", "Spanish (Spain)"} },
         {0x040B, {"fi-FI", "Finnish (Finland)"} },
@@ -379,6 +421,7 @@ extern "C++"
         {0x041F, {"tr-TR", "Turkish (Turkey)"} },
         {0x0422, {"uk-UA", "Ukrainian (Ukraine)"} },
         {0x0804, {"zh-CN", "Chinese (China)"} },
+        {0x0404, {"zh-TW", "Chinese (Taiwan)"} },
         {0xFFFF, {"system", "(System Default)"} },
     };
 }
@@ -406,6 +449,7 @@ void plat_language_code_r(uint32_t lcid, char* outbuf, int len) {
     return;
 }
 
+#ifndef Q_OS_WINDOWS
 void* dynld_module(const char *name, dllimp_t *table)
 {
     QString libraryName = name;
@@ -437,6 +481,7 @@ void dynld_close(void *handle)
 {
     delete reinterpret_cast<QLibrary*>(handle);
 }
+#endif
 
 void startblit()
 {
@@ -503,11 +548,6 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
 #define LIB_NAME_FREETYPE "libfreetype"
 #define MOUSE_CAPTURE_KEYSEQ "CTRL-END"
 #endif
-#ifdef Q_OS_MACOS
-#define ROMDIR "~/Library/Application Support/net.86box.86box/roms"
-#else
-#define ROMDIR "roms"
-#endif
 
 
 QMap<int, std::wstring> ProgSettings::translatedstrings;
@@ -519,18 +559,21 @@ void ProgSettings::reloadStrings()
     translatedstrings[IDS_2078] = QCoreApplication::translate("", "Press F8+F12 to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
     translatedstrings[IDS_2079] = QCoreApplication::translate("", "Press F8+F12 or middle button to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
     translatedstrings[IDS_2080] = QCoreApplication::translate("", "Failed to initialize FluidSynth").toStdWString();
+    translatedstrings[IDS_2131] = QCoreApplication::translate("", "Invalid configuration").toStdWString();
     translatedstrings[IDS_4099] = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
-    translatedstrings[IDS_2093] = QCoreApplication::translate("", "Failed to set up PCap").toStdWString();
-    translatedstrings[IDS_2094] = QCoreApplication::translate("", "No PCap devices found").toStdWString();
-    translatedstrings[IDS_2110] = QCoreApplication::translate("", "Unable to initialize FreeType").toStdWString();
-    translatedstrings[IDS_2111] = QCoreApplication::translate("", "Unable to initialize SDL, libsdl2 is required").toStdWString();
-    translatedstrings[IDS_2129] = QCoreApplication::translate("", "Make sure libpcap is installed and that you are on a libpcap-compatible network connection.").toStdWString();
-    translatedstrings[IDS_2114] = QCoreApplication::translate("", "Unable to initialize Ghostscript").toStdWString();
+    translatedstrings[IDS_2094] = QCoreApplication::translate("", "Failed to set up PCap").toStdWString();
+    translatedstrings[IDS_2095] = QCoreApplication::translate("", "No PCap devices found").toStdWString();
+    translatedstrings[IDS_2096] = QCoreApplication::translate("", "Invalid PCap device").toStdWString();
+    translatedstrings[IDS_2111] = QCoreApplication::translate("", "Unable to initialize FreeType").toStdWString();
+    translatedstrings[IDS_2112] = QCoreApplication::translate("", "Unable to initialize SDL, libsdl2 is required").toStdWString();
+    translatedstrings[IDS_2130] = QCoreApplication::translate("", "Make sure libpcap is installed and that you are on a libpcap-compatible network connection.").toStdWString();
+    translatedstrings[IDS_2115] = QCoreApplication::translate("", "Unable to initialize Ghostscript").toStdWString();
     translatedstrings[IDS_2063] = QCoreApplication::translate("", "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toStdWString();
     translatedstrings[IDS_2064] = QCoreApplication::translate("", "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toStdWString();
-    translatedstrings[IDS_2128] = QCoreApplication::translate("", "Hardware not available").toStdWString();
-    translatedstrings[IDS_2120] = QCoreApplication::translate("", "No ROMs found").toStdWString();
-    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").replace("roms", ROMDIR).toStdWString();
+    translatedstrings[IDS_2129] = QCoreApplication::translate("", "Hardware not available").toStdWString();
+    translatedstrings[IDS_2143] = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
+    translatedstrings[IDS_2121] = QCoreApplication::translate("", "No ROMs found").toStdWString();
+    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").toStdWString();
 
     auto flsynthstr = QCoreApplication::translate("", " is required for FluidSynth MIDI output.");
     if (flsynthstr.contains("libfluidsynth"))
@@ -538,21 +581,21 @@ void ProgSettings::reloadStrings()
         flsynthstr.replace("libfluidsynth", LIB_NAME_FLUIDSYNTH);
     }
     else flsynthstr.prepend(LIB_NAME_FLUIDSYNTH);
-    translatedstrings[IDS_2133] = flsynthstr.toStdWString();
+    translatedstrings[IDS_2134] = flsynthstr.toStdWString();
     auto gssynthstr = QCoreApplication::translate("", " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.");
     if (gssynthstr.contains("libgs"))
     {
         gssynthstr.replace("libgs", LIB_NAME_GS);
     }
     else gssynthstr.prepend(LIB_NAME_GS);
-    translatedstrings[IDS_2132] = flsynthstr.toStdWString();
+    translatedstrings[IDS_2133] = gssynthstr.toStdWString();
     auto ftsynthstr = QCoreApplication::translate("", " is required for ESC/P printer emulation.");
     if (ftsynthstr.contains("libfreetype"))
     {
         ftsynthstr.replace("libfreetype", LIB_NAME_FREETYPE);
     }
     else ftsynthstr.prepend(LIB_NAME_FREETYPE);
-    translatedstrings[IDS_2131] = ftsynthstr.toStdWString();
+    translatedstrings[IDS_2132] = ftsynthstr.toStdWString();
 }
 
 wchar_t* plat_get_string(int i)
@@ -565,4 +608,27 @@ int
 plat_chdir(char *path)
 {
     return QDir::setCurrent(QString(path)) ? 0 : -1;
+}
+
+void
+plat_init_rom_paths()
+{
+    auto paths = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+
+#ifdef _WIN32
+    // HACK: The standard locations returned for GenericDataLocation include
+    // the EXE path and a `data` directory within it as the last two entries.
+
+    // Remove the entries as we don't need them.
+    paths.removeLast();
+    paths.removeLast();
+#endif
+
+    for (auto& path : paths) {
+#ifdef __APPLE__
+        rom_add_path(QDir(path).filePath("net.86Box.86Box/roms").toUtf8().constData());
+#else
+        rom_add_path(QDir(path).filePath("86Box/roms").toUtf8().constData());
+#endif
+    }
 }
