@@ -748,7 +748,8 @@ VIDOBJ := agpgart.o video.o \
           vid_ogc.o \
           vid_nga.o \
           vid_tvp3026_ramdac.o \
-          vid_xga.o
+          vid_xga.o \
+          vid_ati_r100.o
 
 VOODOOOBJ := vid_voodoo.o vid_voodoo_banshee.o \
              vid_voodoo_banshee_blitter.o \
