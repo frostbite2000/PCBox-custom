@@ -549,7 +549,7 @@ static const device_config_t r100_config[] = {
         .name = "memory",
         .description = "Memory size",
         .type = CONFIG_SELECTION,
-        .default_int = 64
+        .default_int = 64,
         .selection = {
             {
                 .description = "64 MB",
@@ -558,7 +558,7 @@ static const device_config_t r100_config[] = {
             {
                 .description = ""
             }
-        },
+        }
     },
     {
         .type = CONFIG_END
