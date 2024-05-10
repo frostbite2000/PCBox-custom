@@ -27,6 +27,8 @@
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/device.h>
+#include <86box/apic.h>
 #include <86box/machine.h>
 #include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
@@ -254,8 +256,11 @@ update_tsc(void)
         cycdiff -= delta;
     }
 
-    if (cycdiff > 0)
+    if (cycdiff > 0) {
         tsc += cycdiff;
+        if (current_apic)
+            lapic_timer_advance_ticks(cycdiff);
+    }
 
     if (cycdiff > 0) {
         if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
@@ -325,7 +330,7 @@ exec386_dynarec_int(void)
             CPU_BLOCK_END();
         else if (nmi && nmi_enable && nmi_mask)
             CPU_BLOCK_END();
-        else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
+        else if ((cpu_state.flags & I_FLAG) && (pic.int_pending || apic_lapic_is_irr_pending()) && !cpu_end_block_after_ins)
             CPU_BLOCK_END();
     }
 
@@ -558,7 +563,7 @@ exec386_dynarec_dyn(void)
                 CPU_BLOCK_END();
             if (nmi && nmi_enable && nmi_mask)
                 CPU_BLOCK_END();
-            if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
+            if ((cpu_state.flags & I_FLAG) && (pic.int_pending || apic_lapic_is_irr_pending()) && !cpu_end_block_after_ins)
                 CPU_BLOCK_END();
 
             if (cpu_end_block_after_ins) {
@@ -656,7 +661,7 @@ exec386_dynarec_dyn(void)
                 CPU_BLOCK_END();
             if (nmi && nmi_enable && nmi_mask)
                 CPU_BLOCK_END();
-            if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
+            if ((cpu_state.flags & I_FLAG) && (pic.int_pending || apic_lapic_is_irr_pending()) && !cpu_end_block_after_ins)
                 CPU_BLOCK_END();
 
             if (cpu_end_block_after_ins) {
@@ -769,7 +774,7 @@ exec386_dynarec(int32_t cycs)
 #    else
                 nmi = 0;
 #    endif
-            } else if ((cpu_state.flags & I_FLAG) && pic.int_pending) {
+            } else if ((cpu_state.flags & I_FLAG) && (pic.int_pending || apic_lapic_is_irr_pending())) {
                 vector = picinterrupt();
                 if (vector != -1) {
 #    ifndef USE_NEW_DYNAREC
@@ -786,11 +791,16 @@ exec386_dynarec(int32_t cycs)
                 /* TSC has changed, this means interim timer processing has happened,
                    see how much we still need to add. */
                 cycdiff -= delta;
-                if (cycdiff > 0)
+                if (cycdiff > 0) {
                     tsc += cycdiff;
+                    if (current_apic)
+                        lapic_timer_advance_ticks(cycdiff);
+                }
             } else {
                 /* TSC has not changed. */
                 tsc += cycdiff;
+                if (current_apic)
+                    lapic_timer_advance_ticks(cycdiff);
             }
 
             if (cycdiff > 0) {

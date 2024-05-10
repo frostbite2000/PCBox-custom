@@ -36,7 +36,9 @@
 #include "x86seg_common.h"
 #include <86box/mem.h>
 #include <86box/nmi.h>
+#include <86box/timer.h>
 #include <86box/pic.h>
+#include <86box/apic.h>
 #include <86box/pci.h>
 #include <86box/smram.h>
 #include <86box/gdbstub.h>
@@ -68,7 +70,7 @@ enum {
     CPUID_PAE       = (1 << 6),  /* Physical Address Extension */
     CPUID_MCE       = (1 << 7),  /* Machine Check Exception */
     CPUID_CMPXCHG8B = (1 << 8),  /* CMPXCHG8B instruction */
-    CPUID_APIC      = (1 << 9),  /* On-chip APIC */
+    CPUID_LAPIC      = (1 << 9),  /* On-chip APIC */
     CPUID_AMDPGE    = (1 << 9),  /* Global Page Enable (AMD K5 Model 0 only) */
     CPUID_AMDSEP    = (1 << 10), /* SYSCALL and SYSRET instructions (AMD K6 only) */
     CPUID_SEP       = (1 << 11), /* SYSENTER and SYSEXIT instructions (SYSCALL and SYSRET if EAX=80000001h) */
@@ -2742,7 +2744,8 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_LAPIC | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                if (msr.apic_base & (1 << 11)) EDX &= ~CPUID_LAPIC;
             } else if (EAX == 2) {
                 EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
                                      Instruction TLB: 4 MB pages, fully associative, 2 entries
@@ -2820,6 +2823,7 @@ cpu_CPUID(void)
                 EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_SSE;
+                if (msr.apic_base & (1 << 11)) EDX &= ~CPUID_LAPIC;
             } else if (EAX == 2) {
                 EAX = 0x00000001;
                 EBX = ECX = 0;
@@ -2838,6 +2842,7 @@ cpu_CPUID(void)
                 EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_SSE | CPUID_SSE2;// | CPUID_CLFLUSH;
+                if (msr.apic_base & (1 << 11)) EDX &= ~CPUID_LAPIC;
             } else if (EAX == 2) {
                 EAX = 0x00000001;
                 EBX = ECX = 0;
@@ -3760,7 +3765,7 @@ pentium_invalid_rdmsr:
                 case 0x1B:
                     EAX = msr.apic_base & 0xffffffff;
                     EDX = msr.apic_base >> 32;
-                    cpu_log("APIC_BASE read : %08X%08X\n", EDX, EAX);
+                    pclog("APIC_BASE read : %08X%08X\n", EDX, EAX);
                     break;
                 /* Unknown (undocumented?) MSR used by the Hyper-V BIOS */
                 case 0x20:
@@ -4294,9 +4299,19 @@ cpu_WRMSR(void)
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x1b:
-                    if (cpu_s->cpu_type != CPU_ATHLON)
-                        goto amd_k_invalid_wrmsr;
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
+                    
+                    if (current_apic) {
+                        uint8_t disabled = (!(msr.apic_base & (1 << 11)));
+                        
+                        msr.apic_base = EAX | ((uint64_t) EDX << 32);
+                        if (disabled) msr.apic_base &= ~(1 << 11);
+                        if (EDX) {
+                            fatal("LAPIC-on-PAE not implemented!");
+                        }
+                        apic_lapic_set_base(msr.apic_base & 0xFFFFFFFF);
+                    }
+                    
                     // msr.apic_base = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x8b:

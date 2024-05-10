@@ -37,6 +37,8 @@
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/mem.h>
+#include <86box/apic.h>
 #include <86box/plat_unused.h>
 
 enum {
@@ -778,6 +780,53 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
         }
 
         update_pending();
+}
+
+void
+picint(uint16_t num)
+{
+    picint_common(num, PIC_IRQ_EDGE, 1, NULL);
+    if (current_apic) {
+        uint8_t i = 0;
+        for (i = 0; i < 16; i++) {
+            if (num & (1 << i)) apic_ioapic_set_irq(current_apic, (i == 0) ? 2 : i);
+        }
+    }
+}
+
+void
+picintlevel(uint16_t num, uint8_t* irq_state)
+{
+    picint_common(num, PIC_IRQ_LEVEL, 1, irq_state);
+    if (current_apic) {
+        uint8_t i = 0;
+        for (i = 0; i < 16; i++) {
+            if (num & (1 << i)) apic_ioapic_set_irq(current_apic, (i == 0) ? 2 : i);
+        }
+    }
+}
+
+void
+picintc(uint16_t num)
+{
+    picint_common(num, PIC_IRQ_EDGE, 0, NULL);
+    if (current_apic) {
+        uint8_t i = 0;
+        for (i = 0; i < 16; i++) {
+            if (num & (1 << i)) apic_ioapic_clear_irq(current_apic, (i == 0) ? 2 : i);
+        }
+    }
+}
+
+void
+picintclevel(uint16_t num, uint8_t* irq_state)
+{
+    picint_common(num, PIC_IRQ_LEVEL, 0, irq_state);
+    if (current_apic) {
+        uint8_t i = 0;
+        for (i = 0; i < 16; i++) {
+            if (num & (1 << i)) apic_ioapic_clear_irq(current_apic, (i == 0) ? 2 : i);
+        }
     }
 }
 
@@ -866,6 +915,12 @@ picinterrupt(void)
 {
     int ret = -1;
 
+    if (current_apic && (current_apic->lapic_spurious_interrupt & 0x100)) {
+        ret = apic_lapic_picinterrupt();
+        if (!(ret == -1 || (current_apic && ret == (current_apic->lapic_spurious_interrupt & 0xFF)))) {
+            return ret;
+        }
+    }
     if (pic.int_pending) {
         if (pic_slave_on(&pic, pic.interrupt)) {
             if (!pic.slaves[pic.interrupt]->int_pending) {

@@ -17,6 +17,7 @@
 #include "x87.h"
 #include <86box/nmi.h>
 #include <86box/mem.h>
+#include <86box/device.h>
 #include <86box/smram.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
@@ -26,6 +27,7 @@
 #include <86box/timer.h>
 
 #include "x86seg.h"
+#include <86box/apic.h>
 #include "386_common.h"
 #include "x86_flags.h"
 #include <86box/plat_unused.h>
@@ -2118,7 +2120,10 @@ nmi_raise(void)
     if (is486 && (cpu_fast_off_flags & 0x20000000))
         cpu_fast_off_advance();
 
-    nmi = 1;
+    if (current_apic && (current_apic->lapic_spurious_interrupt & 0x100)) {
+        apic_lapic_service_nmi();
+    } else
+        nmi = 1;
 }
 
 #ifndef USE_DYNAREC

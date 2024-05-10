@@ -94,11 +94,10 @@ extern int     picinterrupt(void);
 #define PIC_FREEZE                      0x02
 #define PIC_MASTER_CLEAR                0x04
 
-/* Legacy defines. */
-#define picint(num)                     picint_common(num, PIC_IRQ_EDGE,  1, NULL)
-#define picintlevel(num, irq_state)     picint_common(num, PIC_IRQ_LEVEL, 1, irq_state)
-#define picintc(num)                    picint_common(num, PIC_IRQ_EDGE,  0, NULL)
-#define picintclevel(num, irq_state)    picint_common(num, PIC_IRQ_LEVEL, 0, irq_state)
+extern void picint(uint16_t num);
+extern void picintlevel(uint16_t num, uint8_t* irq_state);
+extern void picintc(uint16_t num);
+extern void picintclevel(uint16_t num, uint8_t* irq_state);
 
 extern uint8_t pic_irq_ack(void);
 

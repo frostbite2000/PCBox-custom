@@ -26,6 +26,8 @@
 #include <86box/fdc.h>
 #include <86box/machine.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/device.h>
+#include <86box/apic.h>
 #include <86box/gdbstub.h>
 #ifndef OPS_286_386
 #    define OPS_286_386
@@ -352,7 +354,7 @@ exec386_2386(int32_t cycs)
 #else
                 nmi = 0;
 #endif
-            } else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins) {
+            } else if ((cpu_state.flags & I_FLAG) && (pic.int_pending || (apic_lapic_is_irr_pending())) && !cpu_end_block_after_ins) {
                 vector = picinterrupt();
                 if (vector != -1) {
                     flags_rebuild();
@@ -374,6 +376,8 @@ exec386_2386(int32_t cycs)
 
             ins_cycles -= cycles;
             tsc += ins_cycles;
+            if (current_apic)
+                lapic_timer_advance_ticks(ins_cycles);
 
             cycdiff = oldcyc - cycles;
 
