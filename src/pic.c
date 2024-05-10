@@ -780,54 +780,26 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
         }
 
         update_pending();
-}
-
-void
-picint(uint16_t num)
-{
-    picint_common(num, PIC_IRQ_EDGE, 1, NULL);
-    if (current_apic) {
-        uint8_t i = 0;
-        for (i = 0; i < 16; i++) {
-            if (num & (1 << i)) apic_ioapic_set_irq(current_apic, (i == 0) ? 2 : i);
+   }
+   
+   if (level)
+   {
+        if (current_apic) {
+            uint8_t i = 0;
+            for (i = 0; i < 16; i++) {
+                if (num & (1 << i)) apic_ioapic_set_irq(current_apic, (i == 0) ? 2 : i);
+            }
         }
-    }
-}
-
-void
-picintlevel(uint16_t num, uint8_t* irq_state)
-{
-    picint_common(num, PIC_IRQ_LEVEL, 1, irq_state);
-    if (current_apic) {
-        uint8_t i = 0;
-        for (i = 0; i < 16; i++) {
-            if (num & (1 << i)) apic_ioapic_set_irq(current_apic, (i == 0) ? 2 : i);
+   }
+   else
+   {
+        if (current_apic) {
+            uint8_t i = 0;
+            for (i = 0; i < 16; i++) {
+                if (num & (1 << i)) apic_ioapic_clear_irq(current_apic, (i == 0) ? 2 : i);
+            }
         }
-    }
-}
-
-void
-picintc(uint16_t num)
-{
-    picint_common(num, PIC_IRQ_EDGE, 0, NULL);
-    if (current_apic) {
-        uint8_t i = 0;
-        for (i = 0; i < 16; i++) {
-            if (num & (1 << i)) apic_ioapic_clear_irq(current_apic, (i == 0) ? 2 : i);
-        }
-    }
-}
-
-void
-picintclevel(uint16_t num, uint8_t* irq_state)
-{
-    picint_common(num, PIC_IRQ_LEVEL, 0, irq_state);
-    if (current_apic) {
-        uint8_t i = 0;
-        for (i = 0; i < 16; i++) {
-            if (num & (1 << i)) apic_ioapic_clear_irq(current_apic, (i == 0) ? 2 : i);
-        }
-    }
+   }
 }
 
 static uint8_t

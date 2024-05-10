@@ -21,6 +21,7 @@
 
 #include <86box/86box.h>
 #include "cpu/cpu.h"
+#include "cpu/x86seg.h"
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/mem.h>
