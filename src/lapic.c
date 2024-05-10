@@ -486,13 +486,11 @@ apic_lapic_picinterrupt(void)
         return ret;
     }
 
-#if 0
     if (pic.int_pending && (lapic->lapic_spurious_interrupt & 0x100) && !lapic->lapic_extint_servicing_process) {
         if (!lapic->lapic_lvt_lvt0.intr_mask) {
             lapic_service_interrupt(lapic, lapic->lapic_lvt_lvt0);
         }
     }
-#endif
 
     if (!(current_apic->irr_ll[0] || current_apic->irr_ll[1] || current_apic->irr_ll[2] || current_apic->irr_ll[3])) {
         return lapic->lapic_spurious_interrupt & 0xFF;
@@ -589,7 +587,6 @@ lapic_close(void* priv)
 void
 lapic_speed_changed(void* priv)
 {
-    #if 0
     apic_t* dev = (apic_t*)priv;
 
     if (!dev->lapic_timer_current_count)
@@ -599,7 +596,6 @@ lapic_speed_changed(void* priv)
         timer_on_auto(&dev->apic_timer, (1000000. / cpuclock));
     else
         timer_on_auto(&dev->apic_timer, (1000000. / cpuclock) * (1 << ((dev->lapic_timer_divider & 3) | ((dev->lapic_timer_divider & 0x8) >> 1)) + 1));
-        #endif
 }
 
 const device_t lapic_device = {
