@@ -30,6 +30,7 @@
 
 /* Needed to set the default Local APIC base. */
 #include "cpu/cpu.h"
+#include "cpu/x86seg.h"
 
 #define INITIAL_LAPIC_ADDRESS 0xFEE00000
 
