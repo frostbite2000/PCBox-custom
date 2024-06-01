@@ -21,7 +21,6 @@
 
 #include <86box/86box.h>
 #include "cpu/cpu.h"
-#include "cpu/x86seg.h"
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/mem.h>
@@ -40,40 +39,40 @@ extern int nmi;
 static __inline uint8_t
 lapic_get_bit_irr(apic_t *lapic, uint8_t bit)
 {
-    return !!(lapic->irr_ll[bit / 64] & (1ull << (bit & 63)));
+    return lapic->irr_ll[bit / 64] & (1ull << (bit & 63));
 }
 
 static __inline void
 lapic_set_bit_irr(apic_t *lapic, uint8_t bit, uint8_t val)
 {
     lapic->irr_ll[bit / 64] &= ~(1ull << (bit & 63));
-    lapic->irr_ll[bit / 64] |= ((uint64_t)!!val) << (bit & 63);
+    lapic->irr_ll[bit / 64] |= (((uint64_t)!!val) << (bit & 63));
 }
 
 static __inline uint8_t
 lapic_get_bit_isr(apic_t *lapic, uint8_t bit)
 {
-    return !!(lapic->isr_ll[bit / 64] & (1ull << (bit & 63)));
+    return lapic->isr_ll[bit / 64] & (1ull << (bit & 63));
 }
 
 static __inline void
 lapic_set_bit_isr(apic_t *lapic, uint8_t bit, uint8_t val)
 {
     lapic->isr_ll[bit / 64] &= ~(1ull << (bit & 63));
-    lapic->isr_ll[bit / 64] |= ((uint64_t)!!val) << (bit & 63);
+    lapic->isr_ll[bit / 64] |= (((uint64_t)!!val) << (bit & 63));
 }
 
 static __inline uint8_t
 lapic_get_bit_tmr(apic_t *lapic, uint8_t bit)
 {
-    return !!(lapic->tmr_ll[bit / 64] & (1ull << (bit & 63)));
+    return lapic->tmr_ll[bit / 64] & (1ull << (bit & 63));
 }
 
 static __inline void
 lapic_set_bit_tmr(apic_t *lapic, uint8_t bit, uint8_t val)
 {
     lapic->tmr_ll[bit / 64] &= ~(1ull << (bit & 63));
-    lapic->tmr_ll[bit / 64] |= ((uint64_t)!!val) << (bit & 63);
+    lapic->tmr_ll[bit / 64] |= (((uint64_t)!!val) << (bit & 63));
 }
 
 static __inline uint8_t
@@ -123,20 +122,23 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
     apic_t *dev = (apic_t *)priv;
     uint8_t bit = 0;
     uint32_t timer_current_count = dev->lapic_timer_current_count;
+    apic_ioredtable_t deliverstruct = { 0 };
+    uint8_t mode;
 
     addr -= dev->lapic_mem_window.base;
-    if (addr >= 0x400)
-        return;
-    switch(addr & 0x3FF) {
-        case 0x20:
+
+    pclog("Local APIC: [W] %04X = %08X\n", addr, val);
+
+    if (addr < 0x400)  switch (addr & 0x3ff) {
+        case 0x020:
             dev->lapic_id = val;
             break;
 
-        case 0x80:
+        case 0x080:
             dev->lapic_tpr = val & 0xFF;
             break;
 
-        case 0xB0:
+        case 0x0b0:
             bit = lapic_get_highest_bit(dev, lapic_get_bit_isr);
             if (bit != -1) {
                 lapic_set_bit_isr(dev, bit, 0);
@@ -145,15 +147,15 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
             }
             break;
 
-        case 0xD0:
-            dev->lapic_local_dest = val & 0xFF000000;
+        case 0x0d0:
+            dev->lapic_local_dest = val & 0xff000000;
             break;
 
-        case 0xE0:
-            dev->lapic_dest_format = val | 0xFFFFFF;
+        case 0x0e0:
+            dev->lapic_dest_format = val | 0xffffff;
             break;
         
-        case 0xF0:
+        case 0x0f0:
             dev->lapic_spurious_interrupt = val;
             break;
 
@@ -164,42 +166,38 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
 
         case 0x300:
             dev->icr0 = val;
-            {
-                apic_ioredtable_t deliverstruct = { 0 };
-                deliverstruct.intvec = dev->icr & 0xFF;
-                deliverstruct.delmod = (dev->icr & 0x700) >> 8;
-                deliverstruct.trigmode = 0;
-                switch(deliverstruct.delmod) {
-                    case 5:
-                        return; /* INIT Level Deassert not needed to be implemented. */
-                    case 6:
-                        break;
-                }
-                switch ((dev->icr0 >> 18) & 3) {
-                    case 0:
-                        {
-                            uint8_t mode = (dev->icr >> 11) & 1;
-                            if (mode == 0 && (dev->icr >> 56) != dev->lapic_id) {
-                                break;
-                            }
-                            if (mode == 1 && !(((uint8_t)(dev->icr >> 56)) & (1 << (dev->lapic_id & 0xFF)))) {
-                                break;
-                            }
-                        }
-                    case 1:
-                    case 2:
-                        if (deliverstruct.delmod == 6) {
-                            loadcs((deliverstruct.intvec & 0xFF) << 8);
-                            cpu_state.oldpc = cpu_state.pc;
-                            cpu_state.pc = 0;
-                            pclog("SIPI jump\n");
-                        }
-                        else
-                            lapic_service_interrupt(dev, deliverstruct);
-                        break;
-                }
-                dev->icr0 &= ~(1 << 12);
+
+            deliverstruct.intvec = dev->icr & 0xFF;
+            deliverstruct.delmod = (dev->icr & 0x700) >> 8;
+            deliverstruct.trigmode = 0;
+
+            switch (deliverstruct.delmod) {
+                case 5:
+                    return; /* INIT Level Deassert not needed to be implemented. */
+                case 6:
+                    break;
             }
+
+            switch ((dev->icr0 >> 18) & 3) {
+                case 0:
+                    mode = (dev->icr >> 11) & 1;
+                    if (mode == 0 && (dev->icr >> 56) != dev->lapic_id)
+                        break;
+                    if (mode == 1 && !(((uint8_t)(dev->icr >> 56)) & (1 << (dev->lapic_id & 0xff))))
+                        break;
+                case 1:
+                case 2:
+                    if (deliverstruct.delmod == 6) {
+                        loadcs((deliverstruct.intvec & 0xff) << 8);
+                        cpu_state.oldpc = cpu_state.pc;
+                        cpu_state.pc = 0;
+                        pclog("SIPI jump\n");
+                    } else
+                        lapic_service_interrupt(dev, deliverstruct);
+                    break;
+            }
+
+            dev->icr0 &= ~(1 << 12);
             break;
 
         case 0x310:
@@ -236,7 +234,7 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
             pclog("APIC: Timer count: %u\n", dev->lapic_timer_initial_count);
             break;
 
-        case 0x3E0:
+        case 0x3e0:
             dev->lapic_timer_divider = val;
             pclog("APIC: Timer divider: 0x%01X\n", dev->lapic_timer_divider);
             break;
@@ -247,108 +245,107 @@ uint32_t
 apic_lapic_readl(uint32_t addr, void *priv)
 {
     apic_t *dev = (apic_t *)priv;
+    uint32_t ret = 0xffffffff;
 
-    //pclog("APIC read: 0x%X\n", addr);
     addr -= dev->lapic_mem_window.base;
-    if (addr >= 0x400)
-        return -1;
-    
-    switch(addr & 0x3FF) {
-        case 0x20:
-            return dev->lapic_id;
 
-        case 0x30:
-            return 0x40012;
+    if ((addr < 0x400) && !(addr & 0x003))  switch (addr & 0x3ff) {
+        case 0x020:
+            ret = dev->lapic_id;
+            break;
 
-        case 0x80:
-            return dev->lapic_tpr;
+        case 0x030:
+            ret = 0x00040012;
+            break;
 
-        case 0xA0:
-            {
-                if (lapic_get_highest_bit(dev, lapic_get_bit_isr) != 0xFF) {
-                    return lapic_get_highest_bit(dev, lapic_get_bit_isr);
-                } else {
-                    return dev->lapic_tpr;
-                }
-                return dev->lapic_tpr;
-            }
+        case 0x080:
+            ret = dev->lapic_tpr;
+            break;
 
-        case 0xD0:
-            return dev->lapic_local_dest;
+        case 0x0a0:
+            if (lapic_get_highest_bit(dev, lapic_get_bit_isr) != 0xff)
+                ret = lapic_get_highest_bit(dev, lapic_get_bit_isr);
+            else
+                ret = dev->lapic_tpr;
+            break;
 
-        case 0xE0:
-            return dev->lapic_dest_format;
+        case 0x0d0:
+            ret = dev->lapic_local_dest;
+            break;
 
-        case 0xF0:
-            return dev->lapic_spurious_interrupt;
+        case 0x0e0:
+            ret = dev->lapic_dest_format;
+            break;
 
-        case 0x100:
-        case 0x110:
-        case 0x120:
-        case 0x130:
-        case 0x140:
-        case 0x150:
-        case 0x160:
-        case 0x170:
-            return dev->isr_l[(addr - 0x100) >> 4];
+        case 0x0f0:
+            ret = dev->lapic_spurious_interrupt;
+            break;
 
-        case 0x180:
-        case 0x190:
-        case 0x1A0:
-        case 0x1B0:
-        case 0x1C0:
-        case 0x1D0:
-        case 0x1E0:
-        case 0x1F0:
-            return dev->tmr_l[(addr - 0x180) >> 4];
+        case 0x100 ... 0x170:
+            ret = dev->isr_l[(addr - 0x100) >> 4];
+            break;
 
-        case 0x200:
-        case 0x210:
-        case 0x220:
-        case 0x230:
-        case 0x240:
-        case 0x250:
-        case 0x260:
-        case 0x270:
-            return dev->irr_l[(addr - 0x200) >> 4];
+        case 0x180 ... 0x1f0:
+            ret = dev->tmr_l[(addr - 0x180) >> 4];
+            break;
+
+        case 0x200 ... 0x270:
+            ret = dev->irr_l[(addr - 0x200) >> 4];
+            break;
 
         case 0x280:
-            return dev->lapic_lvt_read_error_val;
+            ret = dev->lapic_lvt_read_error_val;
+            break;
 
         case 0x300:
-            return dev->icr0;
+            ret = dev->icr0;
+            break;
 
         case 0x310:
-            return dev->icr1;
+            ret = dev->icr1;
+            break;
 
         case 0x320:
-            return dev->lapic_lvt_timer_val;
+            ret = dev->lapic_lvt_timer_val;
+            break;
 
         case 0x330:
-            return dev->lapic_lvt_thermal_val;
+            ret = dev->lapic_lvt_thermal_val;
+            break;
 
         case 0x340:
-            return dev->lapic_lvt_perf_val;
+            ret = dev->lapic_lvt_perf_val;
+            break;
 
         case 0x350:
-            return dev->lapic_lvt_lvt0_val;
+            ret = dev->lapic_lvt_lvt0_val;
+            break;
 
         case 0x360:
-            return dev->lapic_lvt_lvt1_val;
+            ret = dev->lapic_lvt_lvt1_val;
+            break;
 
         case 0x370:
-            return dev->lapic_lvt_error_val;
+            ret = dev->lapic_lvt_error_val;
+            break;
 
         case 0x380:
-            return dev->lapic_timer_initial_count;
-        
-        case 0x390:
-            //pclog("APIC: Read current timer count %u\n", dev->lapic_timer_current_count);
-            return dev->lapic_timer_current_count;
+            ret = dev->lapic_timer_initial_count;
+            break;
 
-        case 0x3E0:
-            return dev->lapic_timer_divider;
+        case 0x390:
+            pclog("APIC: Read current timer count %u\n", dev->lapic_timer_current_count);
+            ret = dev->lapic_timer_current_count;
+            break;
+
+        case 0x3e0:
+            ret = dev->lapic_timer_divider;
+            break;
     }
+
+    pclog("Local APIC: [R] %04X = %08X\n", addr, ret);
+
+    return ret;
 }
 
 void
@@ -410,9 +407,9 @@ lapic_timer_advance_ticks(uint32_t ticks)
                 lapic_service_interrupt(dev, dev->lapic_lvt_timer);
                 if (dev->lapic_lvt_timer.timer_mode == 1) {
                     dev->lapic_timer_current_count = dev->lapic_timer_initial_count;
-                    //pclog("APIC: Timer restart (%f, %f, %f)\n", cpuclock, (double)cpu_busspeed, bus_timing);
+                    pclog("APIC: Timer restart\n");
                 } else {
-                    //pclog("APIC: Timer one-shot finish\n");
+                    pclog("APIC: Timer one-shot finish\n");
                 }
             } else {
                 dev->lapic_timer_current_count -= ticks;
@@ -486,11 +483,13 @@ apic_lapic_picinterrupt(void)
         return ret;
     }
 
+#if 0
     if (pic.int_pending && (lapic->lapic_spurious_interrupt & 0x100) && !lapic->lapic_extint_servicing_process) {
         if (!lapic->lapic_lvt_lvt0.intr_mask) {
             lapic_service_interrupt(lapic, lapic->lapic_lvt_lvt0);
         }
     }
+#endif
 
     if (!(current_apic->irr_ll[0] || current_apic->irr_ll[1] || current_apic->irr_ll[2] || current_apic->irr_ll[3])) {
         return lapic->lapic_spurious_interrupt & 0xFF;
@@ -507,7 +506,7 @@ apic_lapic_picinterrupt(void)
     lapic_set_bit_irr(lapic, highest_irr, 0);
     lapic_set_bit_isr(lapic, highest_irr, 1);
 
-    //pclog("LAPIC: Service INTVEC 0x%02X\n", highest_irr);
+    pclog("LAPIC: Service INTVEC 0x%02X\n", highest_irr);
     return highest_irr;
 }
 
@@ -533,6 +532,7 @@ lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
         return;
     }
     if (interrupt.intr_mask) {
+        pclog("Interrupt 0x%08X masked.\n", *((uint64_t*)&interrupt));
         return;
     }
     switch (interrupt.delmod) {
@@ -570,7 +570,7 @@ lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
     
     lapic_set_bit_irr(lapic, interrupt.intvec, 1);
     lapic_set_bit_tmr(lapic, interrupt.intvec, !!interrupt.trigmode);
-    //pclog("LAPIC: Interrupt 0x%X serviced\n", interrupt.intvec);
+    pclog("LAPIC: Interrupt 0x%X serviced\n", interrupt.intvec);
 }
 
 void
@@ -587,6 +587,7 @@ lapic_close(void* priv)
 void
 lapic_speed_changed(void* priv)
 {
+    #if 0
     apic_t* dev = (apic_t*)priv;
 
     if (!dev->lapic_timer_current_count)
@@ -596,6 +597,7 @@ lapic_speed_changed(void* priv)
         timer_on_auto(&dev->apic_timer, (1000000. / cpuclock));
     else
         timer_on_auto(&dev->apic_timer, (1000000. / cpuclock) * (1 << ((dev->lapic_timer_divider & 3) | ((dev->lapic_timer_divider & 0x8) >> 1)) + 1));
+        #endif
 }
 
 const device_t lapic_device = {
