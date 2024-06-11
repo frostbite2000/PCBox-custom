@@ -2588,8 +2588,8 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
-            .max = 15872,
-            .step = 128
+            .max = 512,
+            .step = 256
         },
         .nvrmask = 63,
         .kbc_device = NULL,
@@ -2708,7 +2708,7 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
-            .max = 15872,
+            .max = 640,
             .step = 128
         },
         .nvrmask = 127,
@@ -2748,8 +2748,8 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
-            .max = 15872,
-            .step = 128
+            .max = 512,
+            .step = 256
         },
         .nvrmask = 63,
         .kbc_device = NULL,
@@ -3073,8 +3073,8 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
-            .max = 15872,
-            .step = 128
+            .max = 512,
+            .step = 256
         },
         .nvrmask = 63,
         .kbc_device = NULL,
@@ -3113,8 +3113,8 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
-            .max = 15872,
-            .step = 128
+            .max = 512,
+            .step = 256
         },
         .nvrmask = 63,
         .kbc_device = NULL,
@@ -4248,6 +4248,46 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+            {
+        .name = "[ALI M1409] Acer 100T",
+        .internal_name = "acer100t",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M1409,
+        .init = machine_at_acer100t_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 16000000,
+            .max_bus = 25000000, /* Limited to 25 due a inaccurate cpu speed */
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0,
+            
+        },
+        .bus_flags = MACHINE_PS2, 
+        .flags = MACHINE_IDE | MACHINE_VIDEO , /* Machine has internal OTI 077 Video card*/
+        .ram = {
+            .min = 2048,
+            .max = 16256,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &oti077_acer100t_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -11964,7 +12004,7 @@ const machine_t machines[] = {
     /* 430TX */
     /* The BIOS sends KBC command B8, CA, and CB, so it has an AMI KBC firmware. */
     {
-        .name = "[i430TX] ADLink NuPRO-592",
+        .name = "[i430TX] ADLink NuPRO-591/592",
         .internal_name = "nupro592",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_INTEL_430TX,
@@ -11984,7 +12024,7 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Has internal video: C&T B69000 */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO,
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -11998,7 +12038,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &chips_69000_onboard_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -12928,7 +12968,7 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Has internal video: ATI 3D Rage Pro Turbo AGP and sound: Ensoniq ES1373*/
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Has internal video: ATI 3D Rage Pro Turbo AGP and sound: Ensoniq ES1373 */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -12943,7 +12983,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
     /* Has the ALi M1543C southbridge with on-chip KBC. */
@@ -14408,7 +14448,7 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal sound: Ensoniq ES1373 */
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal sound: Ensoniq ES1371 */
         .ram = {
             .min = 8192,
             .max = 1048576,
@@ -14507,7 +14547,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &voodoo_3_2000_agp_onboard_8m_device,
-        .snd_device = NULL,
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -14548,7 +14588,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &voodoo_3_2000_agp_onboard_8m_device,
-        .snd_device = NULL,
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
 
@@ -14757,7 +14797,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = &es1371_onboard_device,
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
 
@@ -14799,7 +14839,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = &es1371_onboard_device,    /* ES1373 but we currently don't emulate that. */
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
     /* Has the SiS (5)600 chipset with on-chip KBC. */
@@ -14912,7 +14952,7 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
             .min = 8192,
             .max = 786432,
@@ -14927,7 +14967,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = &es1371_onboard_device,
+        .snd_device = &es1373_onboard_device,
         .net_device = NULL
     },
     /* VIA Apollo Pro */
