@@ -187,6 +187,10 @@
 #define REG_CURPOSX                   0x3c0c
 #define REG_CURPOSY                   0x3c0e
 
+/*G200 only*/
+#define REG_SRCORG     0x2cb4
+#define REG_DSTORG     0x2cb8
+
 #define REG_STATUS_VSYNCSTS           (1 << 3)
 
 #define CRTCX_R0_STARTADD_MASK        (0xf << 0)
@@ -338,7 +342,7 @@
 #define MACCESS_NODITHER              (1 << 30)
 #define MACCESS_DIT555                (1 << 31)
 
-#define PITCH_MASK                    0xfe0
+#define PITCH_MASK                    ((mystique->type == MGA_G200) ? 0x1fe0 : 0xfe0)
 #define PITCH_YLIN                    (1 << 15)
 
 #define SGN_SDYDXL                    (1 << 0)
@@ -1766,6 +1770,8 @@ mystique_accel_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
         start_blit = 1;
     }
 
+    //pclog("Mystique accel ctrl write addr %04x val %02x\n", addr & 0x3fff, val);
+
     switch (addr & 0x3fff) {
         case REG_MACCESS:
         case REG_MACCESS + 1:
@@ -1815,7 +1821,7 @@ mystique_accel_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
             else
                 mystique->dwgreg.ar[6] &= ~0xffff8000;
             WRITE8(addr & 1, mystique->dwgreg.ydst, val);
-            mystique->dwgreg.ydst_lin = ((int32_t) (int16_t) mystique->dwgreg.ydst * (mystique->dwgreg.pitch & PITCH_MASK)) + mystique->dwgreg.ydstorg;
+            mystique->dwgreg.ydst_lin = (((int32_t) (int16_t) mystique->dwgreg.ydst * (mystique->dwgreg.pitch & PITCH_MASK))) / 2 + mystique->dwgreg.ydstorg;
             break;
 
         case REG_XYEND:
@@ -1879,7 +1885,7 @@ mystique_accel_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
         case REG_YDSTLEN:
         case REG_YDSTLEN + 1:
             WRITE8(addr, mystique->dwgreg.length, val);
-#if 0
+#if 1
             pclog("Write YDSTLEN+%i %i\n", addr&1, mystique->dwgreg.length);
 #endif
             break;
@@ -1888,7 +1894,7 @@ mystique_accel_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
             if (mystique->dwgreg.pitch & PITCH_YLIN)
                 mystique->dwgreg.ydst_lin = (mystique->dwgreg.ydst << 5) + mystique->dwgreg.ydstorg;
             else {
-                mystique->dwgreg.ydst_lin = ((int32_t) (int16_t) mystique->dwgreg.ydst * (mystique->dwgreg.pitch & PITCH_MASK)) + mystique->dwgreg.ydstorg;
+                mystique->dwgreg.ydst_lin = (((int32_t) (int16_t) mystique->dwgreg.ydst * (mystique->dwgreg.pitch & PITCH_MASK))) / 2 + mystique->dwgreg.ydstorg;
                 mystique->dwgreg.selline  = val & 7;
             }
             break;
@@ -1897,7 +1903,7 @@ mystique_accel_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
             if (mystique->dwgreg.pitch & PITCH_YLIN)
                 mystique->dwgreg.ydst_lin = (mystique->dwgreg.ydst << 5) + mystique->dwgreg.ydstorg;
             else
-                mystique->dwgreg.ydst_lin = ((int32_t) (int16_t) mystique->dwgreg.ydst * (mystique->dwgreg.pitch & PITCH_MASK)) + mystique->dwgreg.ydstorg;
+                mystique->dwgreg.ydst_lin = (((int32_t) (int16_t) mystique->dwgreg.ydst * (mystique->dwgreg.pitch & PITCH_MASK))) / 2 + mystique->dwgreg.ydstorg;
             break;
 
         case REG_XDST:
@@ -2087,6 +2093,11 @@ mystique_accel_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
         case REG_OPMODE:
             mystique->dwgreg.dmamod   = (val >> 2) & 3;
             mystique->dma.iload_state = 0;
+            break;
+
+        case REG_DSTORG:
+            WRITE8(addr, mystique->dwgreg.ydstorg, val & ~7);
+            mystique->dwgreg.z_base = mystique->dwgreg.ydstorg * ((mystique->maccess & MACCESS_ZWIDTH) ? 4 : 2) + mystique->dwgreg.zorg;
             break;
 
         default:
@@ -2443,7 +2454,7 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + (y * 16)));
                     }
                 }
-#if 0
+#if 1
                 pclog("SRC0 = 0x%08X\n", val);
 #endif
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
@@ -2458,7 +2469,7 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 2) * 16)));
                     }
                 }
-#if 0
+#if 1
                 pclog("SRC1 = 0x%08X\n", val);
 #endif
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
@@ -2473,7 +2484,7 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 4) * 16)));
                     }
                 }
-#if 0
+#if 1
                 pclog("SRC2 = 0x%08X\n", val);
 #endif
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
@@ -2488,7 +2499,7 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 6) * 16)));
                     }
                 }
-#if 0
+#if 1
                 pclog("SRC3 = 0x%08X\n", val);
 #endif
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
@@ -2643,6 +2654,11 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
         case REG_TEXFILTER:
             mystique->dwgreg.texfilter = val;
             break;
+        
+        case REG_DSTORG:
+            mystique->dwgreg.ydstorg = val & ~7;
+            mystique->dwgreg.z_base = mystique->dwgreg.ydstorg * ((mystique->maccess & MACCESS_ZWIDTH) ? 4 : 2) + mystique->dwgreg.zorg;
+            break;
 
         default:
             mystique_accel_ctrl_write_b(addr, val & 0xff, priv);
@@ -2678,7 +2694,7 @@ mystique_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
         case REG_PRIMEND:
             thread_wait_mutex(mystique->dma.lock);
             mystique->dma.primend = val;
-            //pclog("PRIMADDRESS = 0x%08X, PRIMEND = 0x%08X\n", mystique->dma.primaddress, mystique->dma.primend);
+            pclog("PRIMADDRESS = 0x%08X, PRIMEND = 0x%08X\n", mystique->dma.primaddress, mystique->dma.primend);
             if (mystique->dma.state == DMA_STATE_IDLE && (mystique->dma.primaddress & DMA_ADDR_MASK) != (mystique->dma.primend & DMA_ADDR_MASK)) {
                 mystique->endprdmasts_pending = 0;
                 mystique->status &= ~STATUS_ENDPRDMASTS;
@@ -2810,8 +2826,8 @@ mystique_accel_iload_write_l(UNUSED(uint32_t addr), uint32_t val, void *priv)
             break;
 
         default:
-#if 0
-            pclog("ILOAD write DMAMOD %i\n", mystique->dwgreg.dmamod); */
+#if 1
+            pclog("ILOAD write DMAMOD %i\n", mystique->dwgreg.dmamod);
 #endif
             break;
     }
@@ -2953,7 +2969,7 @@ run_dma(mystique_t *mystique)
                         }
                         if (mystique->dma.pri_state == 0 && !mystique->dma.words_expected) {
                             dma_bm_read(mystique->dma.primaddress & DMA_ADDR_MASK, (uint8_t *) &mystique->dma.pri_header, 4, 4);
-                            //pclog("DMA header: 0x%08X\n", mystique->dma.pri_header);
+                            pclog("DMA header: 0x%08X\n", mystique->dma.pri_header);
                             mystique->dma.primaddress += 4;
                             mystique->dma.words_expected = 4;
                             words_transferred++;
@@ -2981,7 +2997,7 @@ run_dma(mystique_t *mystique)
                             if ((reg_addr & 0x300) == 0x100)
                                 mystique->blitter_submit_dma_refcount++;
 
-                            //pclog("DMA value: 0x%08X to reg 0x%04X\n", val, reg_addr);
+                            pclog("DMA value: 0x%08X to reg 0x%04X\n", val, reg_addr);
                             mystique_accel_ctrl_write_l(reg_addr, val, mystique);
                             if (reg_addr == REG_SOFTRAP) {
                                 mystique->dma.primaddress += 4;
@@ -3028,7 +3044,7 @@ run_dma(mystique_t *mystique)
                         if (mystique->dma.sec_state == 0) {
                             dma_bm_read(mystique->dma.secaddress & DMA_ADDR_MASK, (uint8_t *) &mystique->dma.sec_header, 4, 4);
                             mystique->dma.secaddress += 4;
-                            //pclog("DMA header (secondary): 0x%08X\n", mystique->dma.sec_header);
+                            pclog("DMA header (secondary): 0x%08X\n", mystique->dma.sec_header);
                             words_transferred++;
                         }
 
@@ -3061,7 +3077,7 @@ run_dma(mystique_t *mystique)
                             mystique->blitter_submit_dma_refcount++;
 
                         mystique_accel_ctrl_write_l(reg_addr, val, mystique);
-                        //pclog("DMA value (secondary): 0x%08X\n", val);
+                        pclog("DMA value (secondary): 0x%08X\n", val);
                         mystique->dma.sec_header >>= 8;
                         mystique->dma.sec_state = (mystique->dma.sec_state + 1) & 3;
 
@@ -3505,7 +3521,7 @@ blit_idump_read(mystique_t *mystique)
             break;
 
         default:
-            /* pclog("blit_idump_read: bad opcode %08x\n", mystique->dwgreg.dwgctrl_running); */
+            pclog("blit_idump_read: bad opcode %08x\n", mystique->dwgreg.dwgctrl_running);
             break;
     }
 
@@ -3620,6 +3636,8 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
             bltcmsk &= 0xffff;
             break;
     }
+
+    //pclog("dwgctrl %08x ydst_lin %08x xdst %04x\n", mystique->dwgreg.dwgctrl_running, mystique->dwgreg.ydst_lin, mystique->dwgreg.xdst);
 
     mystique->dwgreg.words++;
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK) {
@@ -4620,7 +4638,7 @@ blit_line(mystique_t *mystique, int closed, int autoline)
             break;
 
         default:
-#if 0
+#if 1
             pclog("Unknown atype %03x %08x LINE\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running);
 #endif
             break;
@@ -4696,6 +4714,8 @@ blit_trap(mystique_t *mystique)
                 int16_t              x_r   = mystique->dwgreg.fxright & 0xffff;
                 int                  yoff  = (mystique->dwgreg.yoff + mystique->dwgreg.ydst) & 7;
                 int                  len;
+
+                //pclog("x_l %04x x_r %04x yoff %02x cxleft %04x cxright %04x ydst_lin %08x ydstorg %08x\n", x_l, x_r, yoff, mystique->dwgreg.cxleft, mystique->dwgreg.cxright, mystique->dwgreg.ydst_lin, mystique->dwgreg.ydstorg);
 
                 if (x_l > x_r)
                     len = x_l - x_r;
@@ -4984,7 +5004,7 @@ blit_trap(mystique_t *mystique)
             break;
 
         default:
-#if 0
+#if 1
             pclog("Unknown atype %03x %08x TRAP\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running);
 #endif
             break;
@@ -5889,7 +5909,7 @@ blit_bitblt(mystique_t *mystique)
             break;
 
         default:
-#if 0
+#if 1
             pclog("Unknown BITBLT atype %03x %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running);
 #endif
             break;
@@ -5905,7 +5925,7 @@ blit_iload(mystique_t *mystique)
         case DWGCTRL_ATYPE_RPL:
         case DWGCTRL_ATYPE_RSTR:
         case DWGCTRL_ATYPE_BLK:
-#if 0
+#if 1
             pclog("ILOAD BLTMOD DWGCTRL = %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK);
 #endif
             switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) {
@@ -5919,7 +5939,7 @@ blit_iload(mystique_t *mystique)
                     mystique->dwgreg.iload_rem_data  = 0;
                     mystique->dwgreg.iload_rem_count = 0;
                     mystique->busy                   = 1;
-#if 0
+#if 1
                     pclog("ILOAD busy\n");
 #endif
                     mystique->dwgreg.words = 0;
@@ -5949,7 +5969,7 @@ blit_idump(mystique_t *mystique)
             mystique->dwgreg.iload_rem_data    = 0;
             mystique->dwgreg.idump_end_of_line = 0;
             mystique->busy                     = 1;
-#if 0
+#if 1
             pclog("IDUMP ATYPE RPL busy\n");
 #endif
             break;
@@ -5972,7 +5992,7 @@ blit_iload_scale(mystique_t *mystique)
                     mystique->dwgreg.iload_rem_count = 0;
                     mystique->busy                   = 1;
                     mystique->dwgreg.words           = 0;
-                    /* pclog("ILOAD SCALE ATYPE RPL BLTMOD BUYUV busy\n"); */
+                    pclog("ILOAD SCALE ATYPE RPL BLTMOD BUYUV busy\n");
                     break;
 
                 default:
@@ -6000,7 +6020,7 @@ blit_iload_high(mystique_t *mystique)
                     mystique->dwgreg.iload_rem_count = 0;
                     mystique->busy                   = 1;
                     mystique->dwgreg.words           = 0;
-                    /* pclog("ILOAD HIGH ATYPE RPL BLTMOD BUYUV busy\n"); */
+                    pclog("ILOAD HIGH ATYPE RPL BLTMOD BUYUV busy\n");
                     break;
 
                 default:
@@ -6031,7 +6051,7 @@ blit_iload_highv(mystique_t *mystique)
                     mystique->dwgreg.lastpix_r       = 0;
                     mystique->dwgreg.lastpix_g       = 0;
                     mystique->dwgreg.lastpix_b       = 0;
-                    /* pclog("ILOAD HIGHV ATYPE RPL BLTMOD BUYUV busy\n"); */
+                    pclog("ILOAD HIGHV ATYPE RPL BLTMOD BUYUV busy\n");
                     break;
 
                 default:
@@ -6578,7 +6598,7 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x4a:
         case 0x4b:
             addr = (mystique->pci_regs[0x44] & 0xfc) | ((mystique->pci_regs[0x45] & 0x3f) << 8) | (addr & 3);
-#if 0
+#if 1
             pclog("mystique_ctrl_write_b(%04X, %02X)\n", addr, val);
 #endif
             mystique_ctrl_write_b(addr, val, mystique);
@@ -6611,7 +6631,7 @@ mystique_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
         if (bpp == 15) {
             if (mystique->xgenctrl & (1 << 2))
                 color &= 0x7FFF;
-#if 0
+#if 1
             uint8_t b = getcolr(svga->pallook[(color & 0x1F) | (!!(color & 0x8000) >> 8)]);
             uint8_t g = getcolg(svga->pallook[((color & 0x3E0) >> 5) | (!!(color & 0x8000) >> 8)]);
             uint8_t r = getcolb(svga->pallook[((color & 0x7C00) >> 10) | (!!(color & 0x8000) >> 8)]);
