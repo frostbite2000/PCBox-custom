@@ -42,6 +42,7 @@
 #define ROM_MYSTIQUE      "roms/video/matrox/MYSTIQUE.VBI"
 #define ROM_MYSTIQUE_220  "roms/video/matrox/Myst220_66-99mhz.vbi"
 #define ROM_G100          "roms/video/matrox/productiva8mbsdr.BIN"
+#define ROM_G200          "roms/video/matrox/g200.vbi"
 
 #define FIFO_SIZE        65536
 #define FIFO_MASK        (FIFO_SIZE - 1)
@@ -412,6 +413,7 @@ enum {
     MGA_1164SG, /*Mystique 220*/
     MGA_2164W, /*Millennium II*/
     MGA_G100,  /*Productiva G100*/
+    MGA_G200,  /*Millenium G200*/
 };
 
 enum {
@@ -6208,7 +6210,9 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
                 break;
 
             case 0x02:
-                if (mystique->type == MGA_G100)
+                if (mystique->type == MGA_G200)
+                    ret = 0x21;
+                else if (mystique->type == MGA_G100)
                     ret = 0x01;
                 else
                     ret = (mystique->type == MGA_2164W) ? 0x1b : ((mystique->type == MGA_2064W) ? 0x19 : 0x1a);
@@ -6647,6 +6651,8 @@ mystique_init(const device_t *info)
         romfn = ROM_MYSTIQUE;
     else if (mystique->type == MGA_G100)
         romfn = ROM_G100;
+    else if (mystique->type == MGA_G200)
+        romfn = ROM_G200;
     else
         romfn = ROM_MYSTIQUE_220;
 
@@ -6827,6 +6833,12 @@ matrox_g100_available(void)
     return rom_present(ROM_G100);
 }
 
+static int
+matrox_g200_available(void)
+{
+    return rom_present(ROM_G200);
+}
+
 static void
 mystique_speed_changed(void *priv)
 {
@@ -6972,6 +6984,21 @@ const device_t productiva_g100_device = {
     .close         = mystique_close,
     .reset         = NULL,
     { .available = matrox_g100_available },
+    .speed_changed = mystique_speed_changed,
+    .force_redraw  = mystique_force_redraw,
+    .config        = millennium_ii_config
+};
+
+
+const device_t millennium_g200_device = {
+    .name          = "Matrox Millennium G200",
+    .internal_name = "millennium_g200",
+    .flags         = DEVICE_AGP,
+    .local         = MGA_G200,
+    .init          = mystique_init,
+    .close         = mystique_close,
+    .reset         = NULL,
+    { .available = matrox_g200_available },
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = millennium_ii_config
