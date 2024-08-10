@@ -2147,7 +2147,7 @@ nmi_raise(void)
     if (is486 && (cpu_fast_off_flags & 0x20000000))
         cpu_fast_off_advance();
 
-    if (current_apic && (current_apic->lapic_spurious_interrupt & 0x100)) {
+    if (current_lapic && (current_lapic->lapic_spurious_interrupt & 0x100)) {
         apic_lapic_service_nmi();
     } else
         nmi = 1;

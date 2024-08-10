@@ -29,7 +29,7 @@ typedef struct apic_lapic_lvt_t
     uint32_t reserved   : 14;
 } apic_lapic_lvt_t;
 
-typedef struct apic_t
+typedef struct ioapic_t
 {
     /* I/O APIC parts */
     union {
@@ -49,7 +49,10 @@ typedef struct apic_t
     mem_mapping_t ioapic_mem_window;
     uint32_t irq_value;
     uint32_t irr;
+} ioapic_t;
 
+typedef struct lapic_t
+{
     /* Local APIC parts. */
     pc_timer_t apic_timer;
     union {
@@ -111,7 +114,7 @@ typedef struct apic_t
     /* Common parts. */
     uint32_t lines; /* For level triggered interrupts. */
     uint32_t ref_count; /* Structure reference count. */
-} apic_t;
+} lapic_t;
 
 /* IOREDTABL masks */
 #define IOAPIC_INTVEC_MASK    0xFF
@@ -128,16 +131,18 @@ extern const device_t i82093aa_ioapic_device;
 extern const device_t lapic_device;
 
 /* Only one processor is emulated. */
-extern apic_t* current_apic;
+extern lapic_t* current_lapic;
+
+extern ioapic_t* current_ioapic;
 
 extern void apic_ioapic_set_base(uint8_t x_base, uint8_t y_base);
 extern void apic_lapic_set_base(uint32_t base);
 extern uint8_t apic_lapic_is_irr_pending(void);
-extern void apic_ioapic_lapic_interrupt_check(apic_t* ioapic, uint8_t irq);
-extern void apic_ioapic_set_irq(apic_t* ioapic, uint8_t irq);
-extern void apic_ioapic_clear_irq(apic_t* ioapic, uint8_t irq);
-extern void apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector);
-extern void lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt);
+extern void apic_ioapic_lapic_interrupt_check(ioapic_t* ioapic, uint8_t irq);
+extern void apic_ioapic_set_irq(ioapic_t* ioapic, uint8_t irq);
+extern void apic_ioapic_clear_irq(ioapic_t* ioapic, uint8_t irq);
+extern void apic_lapic_ioapic_remote_eoi(ioapic_t* ioapic, uint8_t vector);
+extern void lapic_service_interrupt(lapic_t *lapic, apic_ioredtable_t interrupt);
 extern uint8_t apic_lapic_picinterrupt(void);
 extern void apic_lapic_service_nmi(void);
 extern void apic_lapic_service_extint(void);

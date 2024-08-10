@@ -30,20 +30,20 @@
 #include <86box/apic.h>
 
 /* Only one processor is emulated */
-apic_t* current_apic = NULL;
+ioapic_t* current_ioapic = NULL;
 
 void apic_ioapic_set_base(uint8_t x_base, uint8_t y_base)
 {
-    if (!current_apic)
+    if (!current_ioapic)
         return;
 
-    mem_mapping_set_addr(&current_apic->ioapic_mem_window, 0xFEC00000 | ((y_base & 0x3) << 8) | ((x_base & 0xF) << 16), 0x20);
+    mem_mapping_set_addr(&current_ioapic->ioapic_mem_window, 0xFEC00000 | ((y_base & 0x3) << 8) | ((x_base & 0xF) << 16), 0x20);
 
-    pclog("I/O APIC base: 0x%08X\n", current_apic->ioapic_mem_window.base);
+    pclog("I/O APIC base: 0x%08X\n", current_ioapic->ioapic_mem_window.base);
 }
 
 void
-ioapic_i82093aa_reset(apic_t* ioapic)
+ioapic_i82093aa_reset(ioapic_t* ioapic)
 {
     int i = 0;
 
@@ -57,7 +57,7 @@ ioapic_i82093aa_reset(apic_t* ioapic)
 }
 
 void
-apic_ioapic_lapic_interrupt_check(apic_t* ioapic, uint8_t irq)
+apic_ioapic_lapic_interrupt_check(ioapic_t* ioapic, uint8_t irq)
 {
     uint32_t mask = 1 << irq;
     apic_ioredtable_t service_parameters;
@@ -82,11 +82,11 @@ apic_ioapic_lapic_interrupt_check(apic_t* ioapic, uint8_t irq)
         }
     }
 
-    lapic_service_interrupt(ioapic, service_parameters);
+    if(current_lapic) lapic_service_interrupt(current_lapic, service_parameters);
 }
 
 void
-apic_ioapic_set_irq(apic_t* ioapic, uint8_t irq)
+apic_ioapic_set_irq(ioapic_t* ioapic, uint8_t irq)
 {
     uint32_t mask = 1 << irq;
 
@@ -101,7 +101,7 @@ apic_ioapic_set_irq(apic_t* ioapic, uint8_t irq)
 }
 
 void
-apic_ioapic_clear_irq(apic_t* ioapic, uint8_t irq)
+apic_ioapic_clear_irq(ioapic_t* ioapic, uint8_t irq)
 {
     uint32_t mask = 1 << irq;
 
@@ -113,7 +113,7 @@ apic_ioapic_clear_irq(apic_t* ioapic, uint8_t irq)
 }
 
 void
-apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector)
+apic_lapic_ioapic_remote_eoi(ioapic_t* ioapic, uint8_t vector)
 {
     int i = 0;
 
@@ -128,7 +128,7 @@ apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector)
 uint32_t
 ioapic_i82093aa_readl(uint32_t addr, void *priv)
 {
-    apic_t *dev = (apic_t *)priv;
+    ioapic_t *dev = (ioapic_t *)priv;
     uint32_t ret = (uint32_t)-1;
 
     if ((addr - dev->ioapic_mem_window.base) >= 0x40)
@@ -156,7 +156,7 @@ ioapic_i82093aa_readl(uint32_t addr, void *priv)
 void
 ioapic_i82093aa_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    apic_t *dev = (apic_t *)priv;
+    ioapic_t *dev = (ioapic_t *)priv;
 
     if ((addr - dev->ioapic_mem_window.base) >= 0x40)
         return;
@@ -208,15 +208,10 @@ ioapic_i82093aa_readw(uint32_t addr, void *priv)
 void*
 ioapic_i82093aa_init(const device_t* info)
 {
-    apic_t *dev = NULL;
-    
-    if (current_apic) {
-        current_apic->ref_count++;
-        dev = current_apic;
-    } else {
-        dev = (apic_t *) calloc(sizeof(apic_t), 1);
-        current_apic = dev;
-    }
+    ioapic_t *dev = NULL;
+    dev = (ioapic_t *) calloc(sizeof(ioapic_t), 1);
+    current_ioapic = dev;
+
     mem_mapping_add(&dev->ioapic_mem_window, 0xFEC00000, 0x20, ioapic_i82093aa_read, ioapic_i82093aa_readw, ioapic_i82093aa_readl, ioapic_i82093aa_write, ioapic_i82093aa_writew, ioapic_i82093aa_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
     ioapic_i82093aa_reset(dev);
     return dev;
@@ -225,10 +220,11 @@ ioapic_i82093aa_init(const device_t* info)
 void
 ioapic_i82093aa_close(void *priv)
 {
-    apic_t *dev = (apic_t *)priv;
-    mem_mapping_disable(&dev->ioapic_mem_window);
-    if ((--dev->ref_count) == 0) {
-        current_apic = NULL;
+    ioapic_t *dev = (ioapic_t *)priv;
+    if(dev != NULL)
+    {
+        mem_mapping_disable(&dev->ioapic_mem_window);
+        current_ioapic = NULL;
         free(priv);
     }
 }

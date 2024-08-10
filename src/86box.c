@@ -1273,7 +1273,7 @@ pc_reset_hard_init(void)
     pci_pic_reset();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
     
-    if (current_apic) {
+    if (cpu_features & CPU_FEATURE_LAPIC) {
         device_add(&lapic_device);
     }
 

@@ -1754,7 +1754,7 @@ cpu_set(void)
 
             timing_misaligned = 3;
 
-            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
+            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_LAPIC;
             if (cpu_s->cpu_type >= CPU_PENTIUM2)
                 cpu_features |= CPU_FEATURE_MMX;
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_PGE;
@@ -1837,7 +1837,7 @@ cpu_set(void)
 
             timing_misaligned = 3;
 
-            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX | CPU_FEATURE_SSE;
+            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX | CPU_FEATURE_SSE | CPU_FEATURE_LAPIC;
             msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_PGE;
             cpu_CR4_mask |= CR4_OSFXSR | CR4_OSXMMEXCPT;
@@ -1920,7 +1920,7 @@ cpu_set(void)
 
             timing_misaligned = 3;
 
-            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX | CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_CLFLUSH | CPU_FEATURE_NX;
+            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX | CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_CLFLUSH | CPU_FEATURE_NX | CPU_FEATURE_LAPIC;
             msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_PGE;
             cpu_CR4_mask |= CR4_OSFXSR | CR4_OSXMMEXCPT;
@@ -1983,7 +1983,7 @@ cpu_set(void)
 
             timing_misaligned = 3;
 
-            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX | CPU_FEATURE_3DNOW | CPU_FEATURE_3DNOWE;
+            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX | CPU_FEATURE_3DNOW | CPU_FEATURE_3DNOWE | CPU_FEATURE_LAPIC;
             msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE;
 
@@ -4713,7 +4713,7 @@ cpu_WRMSR(void)
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
                     
-                    if (current_apic) {
+                    if (current_lapic) {
                         uint8_t disabled = (!(msr.apic_base & (1 << 11)));
                         
                         msr.apic_base = EAX | ((uint64_t) EDX << 32);

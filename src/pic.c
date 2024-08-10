@@ -784,19 +784,19 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
    
    if (level)
    {
-        if (current_apic) {
+        if (current_ioapic) {
             uint8_t i = 0;
             for (i = 0; i < 16; i++) {
-                if (num & (1 << i)) apic_ioapic_set_irq(current_apic, (i == 0) ? 2 : i);
+                if (num & (1 << i)) apic_ioapic_set_irq(current_ioapic, (i == 0) ? 2 : i);
             }
         }
    }
    else
    {
-        if (current_apic) {
+        if (current_ioapic) {
             uint8_t i = 0;
             for (i = 0; i < 16; i++) {
-                if (num & (1 << i)) apic_ioapic_clear_irq(current_apic, (i == 0) ? 2 : i);
+                if (num & (1 << i)) apic_ioapic_clear_irq(current_ioapic, (i == 0) ? 2 : i);
             }
         }
    }
@@ -887,9 +887,9 @@ picinterrupt(void)
 {
     int ret = -1;
 
-    if (current_apic && (current_apic->lapic_spurious_interrupt & 0x100)) {
+    if (current_lapic && (current_lapic->lapic_spurious_interrupt & 0x100)) {
         ret = apic_lapic_picinterrupt();
-        if (!(ret == -1 || (current_apic && ret == (current_apic->lapic_spurious_interrupt & 0xFF)))) {
+        if (!(ret == -1 || (current_lapic && ret == (current_lapic->lapic_spurious_interrupt & 0xFF)))) {
             return ret;
         }
     }

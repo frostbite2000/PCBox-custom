@@ -383,7 +383,7 @@ exec386_2386(int32_t cycs)
 
             ins_cycles -= cycles;
             tsc += ins_cycles;
-            if (current_apic)
+            if (current_lapic)
                 lapic_timer_advance_ticks(ins_cycles);
 
             cycdiff = oldcyc - cycles;

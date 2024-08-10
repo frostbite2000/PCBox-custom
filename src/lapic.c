@@ -37,47 +37,49 @@
 extern double cpuclock;
 extern int nmi;
 
+lapic_t* current_lapic;
+
 static __inline uint8_t
-lapic_get_bit_irr(apic_t *lapic, uint8_t bit)
+lapic_get_bit_irr(lapic_t *lapic, uint8_t bit)
 {
     return lapic->irr_ll[bit / 64] & (1ull << (bit & 63));
 }
 
 static __inline void
-lapic_set_bit_irr(apic_t *lapic, uint8_t bit, uint8_t val)
+lapic_set_bit_irr(lapic_t *lapic, uint8_t bit, uint8_t val)
 {
     lapic->irr_ll[bit / 64] &= ~(1ull << (bit & 63));
     lapic->irr_ll[bit / 64] |= (((uint64_t)!!val) << (bit & 63));
 }
 
 static __inline uint8_t
-lapic_get_bit_isr(apic_t *lapic, uint8_t bit)
+lapic_get_bit_isr(lapic_t *lapic, uint8_t bit)
 {
     return lapic->isr_ll[bit / 64] & (1ull << (bit & 63));
 }
 
 static __inline void
-lapic_set_bit_isr(apic_t *lapic, uint8_t bit, uint8_t val)
+lapic_set_bit_isr(lapic_t *lapic, uint8_t bit, uint8_t val)
 {
     lapic->isr_ll[bit / 64] &= ~(1ull << (bit & 63));
     lapic->isr_ll[bit / 64] |= (((uint64_t)!!val) << (bit & 63));
 }
 
 static __inline uint8_t
-lapic_get_bit_tmr(apic_t *lapic, uint8_t bit)
+lapic_get_bit_tmr(lapic_t *lapic, uint8_t bit)
 {
     return lapic->tmr_ll[bit / 64] & (1ull << (bit & 63));
 }
 
 static __inline void
-lapic_set_bit_tmr(apic_t *lapic, uint8_t bit, uint8_t val)
+lapic_set_bit_tmr(lapic_t *lapic, uint8_t bit, uint8_t val)
 {
     lapic->tmr_ll[bit / 64] &= ~(1ull << (bit & 63));
     lapic->tmr_ll[bit / 64] |= (((uint64_t)!!val) << (bit & 63));
 }
 
 static __inline uint8_t
-lapic_get_highest_bit(apic_t *lapic, uint8_t (*get_bit)(apic_t*, uint8_t)) {
+lapic_get_highest_bit(lapic_t *lapic, uint8_t (*get_bit)(lapic_t*, uint8_t)) {
     uint8_t highest_bit = 0xFF;
     for (uint32_t bit = 0; bit < 256; bit++) {
         if (get_bit(lapic, bit)) {
@@ -88,7 +90,7 @@ lapic_get_highest_bit(apic_t *lapic, uint8_t (*get_bit)(apic_t*, uint8_t)) {
 }
 
 void
-lapic_reset(apic_t *lapic)
+lapic_reset(lapic_t *lapic)
 {
     /* Always set lapic_id and lapic_arb to 0, regardless of soft/hard resets. */
     lapic->lapic_id = lapic->lapic_arb = 0;
@@ -120,7 +122,7 @@ lapic_reset(apic_t *lapic)
 void
 apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    apic_t *dev = (apic_t *)priv;
+    lapic_t *dev = (lapic_t *)priv;
     uint8_t bit = 0;
     uint32_t timer_current_count = dev->lapic_timer_current_count;
     apic_ioredtable_t deliverstruct = { 0 };
@@ -143,8 +145,8 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
             bit = lapic_get_highest_bit(dev, lapic_get_bit_isr);
             if (bit != -1) {
                 lapic_set_bit_isr(dev, bit, 0);
-                if (lapic_get_bit_tmr(dev, bit)) 
-                    apic_lapic_ioapic_remote_eoi(dev, bit);
+                if (lapic_get_bit_tmr(dev, bit) && current_ioapic) 
+                    apic_lapic_ioapic_remote_eoi(current_ioapic, bit);
             }
             break;
 
@@ -245,7 +247,7 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
 uint32_t
 apic_lapic_readl(uint32_t addr, void *priv)
 {
-    apic_t *dev = (apic_t *)priv;
+    lapic_t *dev = (lapic_t *)priv;
     uint32_t ret = 0xffffffff;
 
     addr -= dev->lapic_mem_window.base;
@@ -378,20 +380,20 @@ apic_lapic_readw(uint32_t addr, void *priv)
 void
 apic_lapic_set_base(uint32_t base)
 {
-    if (!current_apic)
+    if (!current_lapic)
         return;
 
-    mem_mapping_set_addr(&current_apic->lapic_mem_window, base & 0xFFFFF000, 0x100000);
+    mem_mapping_set_addr(&current_lapic->lapic_mem_window, base & 0xFFFFF000, 0x100000);
     if (base & (1 << 11)) {
-        mem_mapping_disable(&current_apic->lapic_mem_window);
-        current_apic->lapic_spurious_interrupt &= ~0x100;
+        mem_mapping_disable(&current_lapic->lapic_mem_window);
+        current_lapic->lapic_spurious_interrupt &= ~0x100;
     }
 }
 
 void
 lapic_timer_advance_ticks(uint32_t ticks)
 {
-    apic_t *dev = (apic_t *)current_apic;
+    lapic_t *dev = (lapic_t *)current_lapic;
     uint32_t timer_divider_value = 1 << (1 + (dev->lapic_timer_divider & 3) + ((dev->lapic_timer_divider & 0x8) >> 1));
 
     if (dev->lapic_timer_divider == 0xB) {
@@ -422,23 +424,23 @@ lapic_timer_advance_ticks(uint32_t ticks)
 uint8_t
 apic_lapic_is_irr_pending(void)
 {
-    if (!current_apic)
+    if (!current_lapic)
         return 0;
 
-    if (!(current_apic->lapic_spurious_interrupt & 0x100))
+    if (!(current_lapic->lapic_spurious_interrupt & 0x100))
         return 0;
 
-    if (current_apic->lapic_extint_servicing)
+    if (current_lapic->lapic_extint_servicing)
         return 1;
 
-    if (current_apic->irr_ll[0] || current_apic->irr_ll[1] || current_apic->irr_ll[2] || current_apic->irr_ll[3]) {
-        uint8_t highest_irr = lapic_get_highest_bit(current_apic, lapic_get_bit_irr);
-        uint8_t highest_isr = lapic_get_highest_bit(current_apic, lapic_get_bit_isr);
-        uint8_t tpr         = current_apic->lapic_tpr;
+    if (current_lapic->irr_ll[0] || current_lapic->irr_ll[1] || current_lapic->irr_ll[2] || current_lapic->irr_ll[3]) {
+        uint8_t highest_irr = lapic_get_highest_bit(current_lapic, lapic_get_bit_irr);
+        uint8_t highest_isr = lapic_get_highest_bit(current_lapic, lapic_get_bit_isr);
+        uint8_t tpr         = current_lapic->lapic_tpr;
                 
         //pclog("Highest ISR: 0x%X. Highest IRR: 0x%X. TPR: 0x%X\n", highest_isr, highest_irr, tpr);
 
-        if (highest_isr >= highest_irr && (current_apic->isr_ll[0] || current_apic->isr_ll[1] || current_apic->isr_ll[2] || current_apic->isr_ll[3]))
+        if (highest_isr >= highest_irr && (current_lapic->isr_ll[0] || current_lapic->isr_ll[1] || current_lapic->isr_ll[2] || current_lapic->isr_ll[3]))
             return 0;
 
         if ((highest_irr & 0xF0) <= (tpr & 0xF0))
@@ -453,15 +455,10 @@ apic_lapic_is_irr_pending(void)
 void*
 lapic_init(const device_t* info)
 {
-    apic_t *dev = NULL;
+    lapic_t *dev = NULL;
     
-    if (current_apic) {
-        current_apic->ref_count++;
-        dev = current_apic;
-    } else {
-        dev = (apic_t *) calloc(sizeof(apic_t), 1);
-        current_apic = dev;
-    }
+    dev = (lapic_t *) calloc(sizeof(lapic_t), 1);
+    current_lapic = dev;
 
     msr.apic_base = INITIAL_LAPIC_ADDRESS | (1 << 11) | (1 << 8);
     mem_mapping_add(&dev->lapic_mem_window, INITIAL_LAPIC_ADDRESS, 0x100000, apic_lapic_read, apic_lapic_readw, apic_lapic_readl, apic_lapic_write, apic_lapic_writew, apic_lapic_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
@@ -472,10 +469,10 @@ lapic_init(const device_t* info)
 uint8_t
 apic_lapic_picinterrupt(void)
 {
-    apic_t *lapic = current_apic;
-    uint8_t highest_irr = lapic_get_highest_bit(current_apic, lapic_get_bit_irr);
-    uint8_t highest_isr = lapic_get_highest_bit(current_apic, lapic_get_bit_isr);
-    uint8_t tpr         = current_apic->lapic_tpr;
+    lapic_t *lapic = current_lapic;
+    uint8_t highest_irr = lapic_get_highest_bit(current_lapic, lapic_get_bit_irr);
+    uint8_t highest_isr = lapic_get_highest_bit(current_lapic, lapic_get_bit_isr);
+    uint8_t tpr         = current_lapic->lapic_tpr;
 
     if (lapic->lapic_extint_servicing) {
         uint8_t ret = lapic->lapic_extint_servicing;
@@ -492,11 +489,11 @@ apic_lapic_picinterrupt(void)
     }
 #endif
 
-    if (!(current_apic->irr_ll[0] || current_apic->irr_ll[1] || current_apic->irr_ll[2] || current_apic->irr_ll[3])) {
+    if (!(current_lapic->irr_ll[0] || current_lapic->irr_ll[1] || current_lapic->irr_ll[2] || current_lapic->irr_ll[3])) {
         return lapic->lapic_spurious_interrupt & 0xFF;
     }
 
-    if (highest_isr >= highest_irr && (current_apic->isr_ll[0] || current_apic->isr_ll[1] || current_apic->isr_ll[2] || current_apic->isr_ll[3])) {
+    if (highest_isr >= highest_irr && (current_lapic->isr_ll[0] || current_lapic->isr_ll[1] || current_lapic->isr_ll[2] || current_lapic->isr_ll[3])) {
         return lapic->lapic_spurious_interrupt & 0xFF;
     }
 
@@ -514,22 +511,22 @@ apic_lapic_picinterrupt(void)
 void
 apic_lapic_service_nmi(void)
 {
-    lapic_service_interrupt(current_apic, current_apic->lapic_lvt_lvt1);
+    lapic_service_interrupt(current_lapic, current_lapic->lapic_lvt_lvt1);
 }
 
 /* TODO: Figure out how to wire this up to ExtINT. */
 void
 apic_lapic_service_extint(void)
 {
-    lapic_service_interrupt(current_apic, current_apic->lapic_lvt_lvt0);
+    lapic_service_interrupt(current_lapic, current_lapic->lapic_lvt_lvt0);
 }
 
 void
-lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
+lapic_service_interrupt(lapic_t *lapic, apic_ioredtable_t interrupt)
 {
-    if (!(lapic->lapic_spurious_interrupt & 0x100)) {
+    if (!(lapic->lapic_spurious_interrupt & 0x100) && current_ioapic) {
         /* All interrupts are presumed masked. */
-        apic_lapic_ioapic_remote_eoi(lapic, interrupt.intvec);
+        apic_lapic_ioapic_remote_eoi(current_ioapic, interrupt.intvec);
         return;
     }
     if (interrupt.intr_mask) {
@@ -539,15 +536,15 @@ lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
     switch (interrupt.delmod) {
         case 2:
             smi_raise();
-            apic_lapic_ioapic_remote_eoi(lapic, interrupt.intvec);
+            if(current_ioapic) apic_lapic_ioapic_remote_eoi(current_ioapic, interrupt.intvec);
             return;
         case 4:
             nmi = 1;
-            apic_lapic_ioapic_remote_eoi(lapic, interrupt.intvec);
+            if(current_ioapic) apic_lapic_ioapic_remote_eoi(current_ioapic, interrupt.intvec);
             return;
         case 5: /*INIT*/
             {
-                apic_lapic_ioapic_remote_eoi(lapic, interrupt.intvec);
+                if(current_ioapic) apic_lapic_ioapic_remote_eoi(current_ioapic, interrupt.intvec);
                 softresetx86();
                 cpu_set_edx();
                 flushmmucache();
@@ -577,10 +574,10 @@ lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
 void
 lapic_close(void* priv)
 {
-    apic_t *dev = (apic_t *)priv;
-    mem_mapping_disable(&dev->lapic_mem_window);
-    if ((--dev->ref_count) == 0) {
-        current_apic = NULL;
+    lapic_t *dev = (lapic_t *)priv;
+    if (dev != NULL) {
+        mem_mapping_disable(&dev->lapic_mem_window);
+        current_lapic = NULL;
         free(priv);
     }
 }
@@ -589,15 +586,15 @@ void
 lapic_speed_changed(void* priv)
 {
     #if 0
-    apic_t* dev = (apic_t*)priv;
+    lapic_t* dev = (lapic_t*)priv;
 
     if (!dev->lapic_timer_current_count)
         return;
 
     if ((dev->lapic_timer_divider & 0xF) == 0xB)
-        timer_on_auto(&dev->apic_timer, (1000000. / cpuclock));
+        timer_on_auto(&dev->lapic_timer, (1000000. / cpuclock));
     else
-        timer_on_auto(&dev->apic_timer, (1000000. / cpuclock) * (1 << ((dev->lapic_timer_divider & 3) | ((dev->lapic_timer_divider & 0x8) >> 1)) + 1));
+        timer_on_auto(&dev->lapic_timer, (1000000. / cpuclock) * (1 << ((dev->lapic_timer_divider & 3) | ((dev->lapic_timer_divider & 0x8) >> 1)) + 1));
         #endif
 }
 

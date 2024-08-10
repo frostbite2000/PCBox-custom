@@ -265,7 +265,7 @@ update_tsc(void)
 
     if (cycdiff > 0) {
         tsc += cycdiff;
-        if (current_apic)
+        if (current_lapic)
             lapic_timer_advance_ticks(cycdiff);
     }
 
@@ -856,13 +856,13 @@ exec386_dynarec(int32_t cycs)
                 cycdiff -= delta;
                 if (cycdiff > 0) {
                     tsc += cycdiff;
-                    if (current_apic)
+                    if (current_lapic)
                         lapic_timer_advance_ticks(cycdiff);
                 }
             } else {
                 /* TSC has not changed. */
                 tsc += cycdiff;
-                if (current_apic)
+                if (current_lapic)
                     lapic_timer_advance_ticks(cycdiff);
             }
 
