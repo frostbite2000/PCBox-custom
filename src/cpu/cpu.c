@@ -3248,7 +3248,7 @@ cpu_ven_reset(void)
         case CPU_PENTIUM3:
         case CPU_GENERICINTEL:
             msr.mtrr_cap = 0x00000508ULL;
-            msr.apic_base = 0xFEE000000;
+            msr.apic_base = 0xFEE000000 | (1 << 11) | (1 << 8);
             break;
 
         case CPU_CYRIX3S:
