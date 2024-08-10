@@ -37,13 +37,13 @@ jobs:
       fail-fast: true
       matrix:
         build:
-#          - name: Regular
-#            preset: regular
+          - name: Regular
+            preset: regular
           - name: Debug
-            preset: debug
+            preset: dev_debug
             slug: -Debug
           - name: Dev
-            preset: experimental
+            preset: development
             slug: -Dev
         dynarec:
           - name: ODR
@@ -138,10 +138,10 @@ jobs:
 #          - name: Regular
 #            preset: regular
           - name: Debug
-            preset: debug
+            preset: dev_debug
             slug: -Debug
           - name: Dev
-            preset: experimental
+            preset: development
             slug: -Dev
         dynarec:
 #          - name: ODR

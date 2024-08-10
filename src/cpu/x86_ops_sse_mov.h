@@ -765,15 +765,15 @@ opMOVMSKPS_l_xmm_a16(uint32_t fetchdat)
     ILLEGAL_ON(cpu_mod != 3);
     if (cpu_mod == 3) {
         uint32_t result = 0;
-        if (XMM[cpu_reg].l[0] & (1 << 31))
+        if (XMM[cpu_rm].l[0] & (1 << 31))
             result |= 1;
-        if (XMM[cpu_reg].l[1] & (1 << 31))
+        if (XMM[cpu_rm].l[1] & (1 << 31))
             result |= 2;
-        if (XMM[cpu_reg].l[2] & (1 << 31))
+        if (XMM[cpu_rm].l[2] & (1 << 31))
             result |= 4;
-        if (XMM[cpu_reg].l[3] & (1 << 31))
+        if (XMM[cpu_rm].l[3] & (1 << 31))
             result |= 8;
-        setr32(cpu_rm, result);
+        setr32(cpu_reg, result);
         CLOCK_CYCLES(1);
     }
 
@@ -790,15 +790,15 @@ opMOVMSKPS_l_xmm_a32(uint32_t fetchdat)
     ILLEGAL_ON(cpu_mod != 3);
     if (cpu_mod == 3) {
         uint32_t result = 0;
-        if (XMM[cpu_reg].l[0] & (1 << 31))
+        if (XMM[cpu_rm].l[0] & (1 << 31))
             result |= 1;
-        if (XMM[cpu_reg].l[1] & (1 << 31))
+        if (XMM[cpu_rm].l[1] & (1 << 31))
             result |= 2;
-        if (XMM[cpu_reg].l[2] & (1 << 31))
+        if (XMM[cpu_rm].l[2] & (1 << 31))
             result |= 4;
-        if (XMM[cpu_reg].l[3] & (1 << 31))
+        if (XMM[cpu_rm].l[3] & (1 << 31))
             result |= 8;
-        setr32(cpu_rm, result);
+        setr32(cpu_reg, result);
         CLOCK_CYCLES(1);
     }
 
@@ -820,7 +820,7 @@ opPSHUFW_mm_mm_a16(uint32_t fetchdat)
     if (cpu_state.abrt)
         return 1;
 
-    src = MMX_GETREG(cpu_rm);
+    MMX_GETSRC();
     dst = MMX_GETREGP(cpu_reg);
 
     dst->w[0] = src.w[imm & 3];
@@ -828,6 +828,7 @@ opPSHUFW_mm_mm_a16(uint32_t fetchdat)
     dst->w[2] = src.w[(imm >> 4) & 3];
     dst->w[3] = src.w[(imm >> 6) & 3];
     CLOCK_CYCLES(1);
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -847,7 +848,7 @@ opPSHUFW_mm_mm_a32(uint32_t fetchdat)
     if (cpu_state.abrt)
         return 1;
 
-    src = MMX_GETREG(cpu_rm);
+    MMX_GETSRC();
     dst = MMX_GETREGP(cpu_reg);
 
     dst->w[0] = src.w[imm & 3];
@@ -855,6 +856,7 @@ opPSHUFW_mm_mm_a32(uint32_t fetchdat)
     dst->w[2] = src.w[(imm >> 4) & 3];
     dst->w[3] = src.w[(imm >> 6) & 3];
     CLOCK_CYCLES(1);
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -875,6 +877,7 @@ opPINSRW_xmm_w_a16(uint32_t fetchdat)
             MMX_REG *dst;
             dst = MMX_GETREGP(cpu_reg);
             dst->w[imm & 3] = rm;
+            MMX_SETEXP(cpu_reg);
         }
         CLOCK_CYCLES(1);
     } else {
@@ -891,6 +894,7 @@ opPINSRW_xmm_w_a16(uint32_t fetchdat)
             MMX_REG *dst;
             dst = MMX_GETREGP(cpu_reg);
             dst->w[imm & 3] = src;
+            MMX_SETEXP(cpu_reg);
         }
         CLOCK_CYCLES(2);
     }
@@ -914,6 +918,7 @@ opPINSRW_xmm_w_a32(uint32_t fetchdat)
             MMX_REG *dst;
             dst = MMX_GETREGP(cpu_reg);
             dst->w[imm & 3] = rm;
+            MMX_SETEXP(cpu_reg);
         }
         CLOCK_CYCLES(1);
     } else {
@@ -930,10 +935,10 @@ opPINSRW_xmm_w_a32(uint32_t fetchdat)
             MMX_REG *dst;
             dst = MMX_GETREGP(cpu_reg);
             dst->w[imm & 3] = src;
+            MMX_SETEXP(cpu_reg);
         }
         CLOCK_CYCLES(2);
     }
-
     return 0;
 }
 
@@ -947,16 +952,17 @@ opPEXTRW_xmm_w_a16(uint32_t fetchdat)
     ILLEGAL_ON(cpu_mod != 3);
     if (cpu_mod == 3) {
         if (sse_xmm)
-            setr32(cpu_rm, XMM[cpu_reg].w[imm & 7]);
+            setr32(cpu_reg, XMM[cpu_rm].w[imm & 7]);
         else {
             MMX_ENTER();
             MMX_REG src;
-            src = MMX_GETREG(cpu_reg);
-            setr32(cpu_rm, src.w[imm & 3]);
+            src = MMX_GETREG(cpu_rm);
+            setr32(cpu_reg, src.w[imm & 3]);
+            MMX_SETEXP(cpu_rm);
         }
         CLOCK_CYCLES(1);
     }
-
+    
     return 0;
 }
 
@@ -970,16 +976,17 @@ opPEXTRW_xmm_w_a32(uint32_t fetchdat)
     ILLEGAL_ON(cpu_mod != 3);
     if (cpu_mod == 3) {
         if (sse_xmm)
-            setr32(cpu_rm, XMM[cpu_reg].w[imm & 7]);
+            setr32(cpu_reg, XMM[cpu_rm].w[imm & 7]);
         else {
             MMX_ENTER();
             MMX_REG src;
-            src = MMX_GETREG(cpu_reg);
-            setr32(cpu_rm, src.w[imm & 3]);
+            src = MMX_GETREG(cpu_rm);
+            setr32(cpu_reg, src.w[imm & 3]);
+            MMX_SETEXP(cpu_rm);
         }
         CLOCK_CYCLES(1);
     }
-
+    
     return 0;
 }
 

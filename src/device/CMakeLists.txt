@@ -23,8 +23,10 @@ add_library(dev OBJECT bugger.c cassette.c cartridge.c hasp.c hwm.c hwm_lm75.c h
     kbc_at.c kbc_at_dev.c
     keyboard_at.c
     mouse.c mouse_bus.c mouse_serial.c mouse_ps2.c nec_mate_unk.c phoenix_486_jumper.c
-    serial_passthrough.c tco.c
-    novell_cardkey.c)
+    serial_passthrough.c
+    novell_cardkey.c
+    mouse_microtouch_touchscreen.c
+    tco.c)
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_link_libraries(PCBox atomic)
@@ -44,4 +46,13 @@ endif()
 
 if(LASERXT)
     target_compile_definitions(dev PRIVATE USE_LASERXT)
+endif()
+
+if(PCL)
+    target_compile_definitions(dev PRIVATE USE_PCL)
+endif()
+
+if(WACOM)
+    target_compile_definitions(dev PRIVATE USE_WACOM)
+    target_sources(dev PRIVATE mouse_wacom_tablet.c)
 endif()

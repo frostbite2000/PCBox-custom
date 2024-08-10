@@ -330,11 +330,11 @@ extern const device_t ati28800k_device;
 extern const device_t ati28800k_spc4620p_device;
 extern const device_t ati28800k_spc6033p_device;
 extern const device_t compaq_ati28800_device;
-#    if defined(DEV_BRANCH) && defined(USE_XL24)
+#    ifdef USE_XL24
 extern const device_t ati28800_wonderxl24_device;
-#    endif
+#    endif /* USE_XL24 */
 
-#if defined(DEV_BRANCH) && defined(USE_R100)
+#ifdef USE_R100
 extern const device_t ati_r100_device;
 #endif
 /* Bochs */
@@ -449,15 +449,17 @@ extern const device_t millennium_device;
 extern const device_t mystique_device;
 extern const device_t mystique_220_device;
 extern const device_t millennium_ii_device;
+#ifdef USE_G100
 extern const device_t productiva_g100_device;
+#endif /* USE_G100 */
 
 /* nVidia RIVA 128 */
-#if defined(DEV_BRANCH) && defined(USE_RIVA128)
+#ifdef USE_RIVA128
 extern const device_t riva128_pci_device;
 #endif
 
 /* nVidia RIVA TNT */
-#if defined(DEV_BRANCH) && defined(USE_RIVATNT)
+#ifdef USE_RIVATNT
 extern const device_t rivatnt_pci_device;
 #endif
 

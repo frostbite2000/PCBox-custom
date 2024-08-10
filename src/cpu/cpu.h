@@ -121,6 +121,8 @@ enum {
 #define CPU_ALTERNATE_XTAL   4
 #define CPU_FIXED_MULTIPLIER 8
 
+#define EFER_NXE (1 << 11)
+
 #if (defined __amd64__ || defined _M_X64)
 #    define LOOKUP_INV -1LL
 #else
@@ -144,11 +146,11 @@ typedef struct cpu_t {
     uint32_t    cpuid_model;
     uint16_t    cyrix_id;
     uint8_t     cpu_flags;
-    int8_t      mem_read_cycles;
-    int8_t      mem_write_cycles;
-    int8_t      cache_read_cycles;
-    int8_t      cache_write_cycles;
-    int8_t      atclk_div;
+    uint16_t    mem_read_cycles;
+    uint16_t    mem_write_cycles;
+    uint16_t    cache_read_cycles;
+    uint16_t    cache_write_cycles;
+    uint16_t    atclk_div;
 } CPU;
 
 typedef struct {
@@ -180,16 +182,17 @@ typedef struct {
 #define EM_FLAG    0x00004 /* in CR0 */
 #define WP_FLAG    0x10000 /* in CR0 */
 
-#define CR4_VME    (1 << 0) /* Virtual 8086 Mode Extensions */
-#define CR4_PVI    (1 << 1) /* Protected-mode Virtual Interrupts */
-#define CR4_TSD    (1 << 2) /* Time Stamp Disable */
-#define CR4_DE     (1 << 3) /* Debugging Extensions */
-#define CR4_PSE    (1 << 4) /* Page Size Extension */
-#define CR4_PAE    (1 << 5) /* Physical Address Extension */
-#define CR4_MCE    (1 << 6) /* Machine Check Exception */
-#define CR4_PGE    (1 << 7) /* Page Global Enabled */
-#define CR4_PCE    (1 << 8) /* Performance-Monitoring Counter enable */
-#define CR4_OSFXSR (1 << 9) /* Operating system support for FXSAVE and FXRSTOR instructions */
+#define CR4_VME        (1 << 0)  /* Virtual 8086 Mode Extensions */
+#define CR4_PVI        (1 << 1)  /* Protected-mode Virtual Interrupts */
+#define CR4_TSD        (1 << 2)  /* Time Stamp Disable */
+#define CR4_DE         (1 << 3)  /* Debugging Extensions */
+#define CR4_PSE        (1 << 4)  /* Page Size Extension */
+#define CR4_PAE        (1 << 5)  /* Physical Address Extension */
+#define CR4_MCE        (1 << 6)  /* Machine Check Exception */
+#define CR4_PGE        (1 << 7)  /* Page Global Enabled */
+#define CR4_PCE        (1 << 8)  /* Performance-Monitoring Counter enable */
+#define CR4_OSFXSR     (1 << 9)  /* Operating system support for FXSAVE and FXRSTOR instructions */
+#define CR4_OSXMMEXCPT (1 << 10) /* Operating system support for unmasked SIMD floating-point exceptions */
 
 #define CPL        ((cpu_state.seg_cs.access >> 5) & 3)
 
@@ -255,6 +258,11 @@ typedef struct {
     uint64_t fcr3;     /* 0x00000108 (IDT), 0x00001108 (VIA) */
     uint64_t mcr[8];   /* 0x00000110 - 0x00000117 (IDT) */
     uint32_t mcr_ctrl; /* 0x00000120 (IDT) */
+    uint32_t bcr2;     /* 0x00001147 - also on C3 Samuel 2 and Ezra */
+
+    /* VIA C3 MSRs */
+    uint64_t longhaul;    /* 0x0000110a - Samuel 2 and later */
+    uint32_t padlock_rng; /* 0x0000110b - Nehemiah and later */
 
     /* AMD K5/K6 MSRs */
     uint64_t amd_aar;    /* 0x00000082 - all K5 */
@@ -327,8 +335,9 @@ typedef struct {
     uint64_t mtrr_fix4k[8];    /* 0x00000268 - 0x0000026f */
     uint64_t mtrr_deftype;     /* 0x000002ff */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t pat; /* 0x00000277 */
+    uint64_t pat;        /* 0x00000277 - Pentium II Deschutes and later */
+    uint64_t mca_ctl[5]; /* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 - Machine Check Architecture */
+    uint64_t ecx570;     /* 0x00000570 */
 
     /* Pentium II/III/IV MSR's needed for late BIOS */
     uint64_t ecx1a0; /* 0x000001a0 */
@@ -336,20 +345,16 @@ typedef struct {
     uint64_t ecx19a; /* 0x0000019a */
     uint64_t ecx19d; /* 0x0000019d */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t mca_ctl[5]; /* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 - Machine Check Architecture */
-    uint64_t ecx570;     /* 0x00000570 */
-
     /* K7 MSRs */
     uint64_t amd_syscfg; /* 0xc0010010 */
 
-    uint64_t amd_hwcr_athlon;      /* 0xc0010015 */
-    uint64_t amd_iorrbase1; /* 0xc0010016 */
-    uint64_t amd_iorrmask1; /* 0xc0010017 */
-    uint64_t amd_iorrbase2; /* 0xc0010018 */
-    uint64_t amd_iorrmask2; /* 0xc0010019 */
-    uint64_t amd_topmem;    /* 0xc001001a */
-    uint64_t amd_clkctl;    /* 0xc001001b */
+    uint64_t amd_hwcr_athlon; /* 0xc0010015 */
+    uint64_t amd_iorrbase1;   /* 0xc0010016 */
+    uint64_t amd_iorrmask1;   /* 0xc0010017 */
+    uint64_t amd_iorrbase2;   /* 0xc0010018 */
+    uint64_t amd_iorrmask2;   /* 0xc0010019 */
+    uint64_t amd_topmem;      /* 0xc001001a */
+    uint64_t amd_clkctl;      /* 0xc001001b */
 
     uint64_t ecxc001001c; /* 0xc001001c */
 
@@ -582,6 +587,7 @@ extern int hasfpu;
 #define CPU_FEATURE_PGE     (1 << 10)
 #define CPU_FEATURE_SSE2    (1 << 11)
 #define CPU_FEATURE_CLFLUSH (1 << 12)
+#define CPU_FEATURE_NX      (1 << 13)
 
 extern uint32_t cpu_features;
 
@@ -740,7 +746,6 @@ extern void cpu_set_agp_speed(int speed);
 extern void cpu_CPUID(void);
 extern void cpu_RDMSR(void);
 extern void cpu_WRMSR(void);
-extern void cpu_INVD(uint8_t wb);
 
 extern int  checkio(uint32_t port, int mask);
 extern void codegen_block_end(void);
@@ -867,5 +872,9 @@ extern int in_lock;
 extern int cpu_override_interpreter;
 
 extern int is_lock_legal(uint32_t fetchdat);
+
+extern int is_repe;
+extern int is_repne;
+extern void cpu_INVD(uint8_t wb);
 
 #endif /*EMU_CPU_H*/

@@ -1292,7 +1292,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                 break;
 
             case 0x82:
-            {
+                ; /* Empty statement to make compilers happy about the following variable declaration. */
                 /* The Interrupt status register, addressed as register 82h on the Mixer register map,
                    is used by the ISR to determine whether the interrupt is meant for it or for some
                    other ISR, in which case it should chain to the previous routine. */
@@ -1308,7 +1308,6 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                 else
                     ret  = temp | 0x40;
                 break;
-            }
 
             case 0x83:
                 /* Interrupt mask. */
@@ -1373,6 +1372,70 @@ sb_ct1745_mixer_reset(sb_t *sb)
         sb_ct1745_mixer_write(4, 0, sb);
         sb_ct1745_mixer_write(5, 0, sb);
     }
+}
+
+static void
+ess_base_write(uint16_t addr, uint8_t val, void *priv)
+{
+    sb_t *       ess   = (sb_t *) priv;
+
+    switch (addr & 0x000f) {
+        case 0x0002:
+        case 0x0003:
+        case 0x0006:
+        case 0x000c:
+            ess->dsp.activity &= 0xdf;
+            break;
+        case 0x0008:
+        case 0x0009:
+            ess->dsp.activity &= 0x7f;
+            break;
+    }
+}
+
+static uint8_t
+ess_base_read(uint16_t addr, void *priv)
+{
+    sb_t *       ess   = (sb_t *) priv;
+
+    switch (addr & 0x000f) {
+        case 0x0002:
+        case 0x0003:
+        case 0x0004: /* Undocumented but tested by the LBA 2 ES688 driver. */
+        case 0x000a:
+            ess->dsp.activity &= 0xdf;
+            break;
+        case 0x0008:
+        case 0x0009:
+            ess->dsp.activity &= 0x7f;
+            break;
+        case 0x000c:
+        case 0x000e:
+            ess->dsp.activity &= 0xbf;
+            break;
+    }
+
+    sb_log("ess_base_read(%04X): %04X, activity now: %02X\n", addr, addr & 0x000f, ess->dsp.activity);
+
+    return 0xff;
+}
+
+static void
+ess_fm_midi_write(uint16_t addr, uint8_t val, void *priv)
+{
+    sb_t *       ess   = (sb_t *) priv;
+
+    ess->dsp.activity &= 0x7f;
+}
+
+static uint8_t
+ess_fm_midi_read(uint16_t addr, void *priv)
+{
+    sb_t *       ess   = (sb_t *) priv;
+
+    ess->dsp.activity &= 0x7f;
+
+    return 0xff;
 }
 
 void
@@ -1501,6 +1564,12 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     {
                         uint16_t mpu401_base_addr = 0x300 | ((mixer->regs[0x40] << 1) & 0x30);
                         sb_log("mpu401_base_addr = %04X\n", mpu401_base_addr);
+
+                        io_removehandler(ess->midi_addr, 0x0002,
+                                         ess_fm_midi_read, NULL, NULL,
+                                         ess_fm_midi_write, NULL, NULL,
+                                         ess);
+
                         gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
 
                         if (ess->dsp.sb_subtype != SB_SUBTYPE_ESS_ES1688) {
@@ -1520,7 +1589,8 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                             default:
                                 break;
                             case 0:
-                                mpu401_change_addr(ess->mpu, 0x00);
+                                mpu401_base_addr = 0x0000;
+                                mpu401_change_addr(ess->mpu, mpu401_base_addr);
                                 mpu401_setirq(ess->mpu, -1);
                                 break;
                             case 1:
@@ -1552,6 +1622,11 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                 mpu401_setirq(ess->mpu, 10);
                                 break;
                         }
+                        ess->midi_addr = mpu401_base_addr;
+                        io_sethandler(addr, 0x0002,
+                                      ess_fm_midi_read, NULL, NULL,
+                                      ess_fm_midi_write, NULL, NULL,
+                                      ess);
                         break;
                     }
 
@@ -2171,9 +2246,26 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                              ess->opl.read, NULL, NULL,
                              ess->opl.write, NULL, NULL,
                              ess->opl.priv);
+            io_removehandler(addr + 8, 0x0002,
+                             ess_fm_midi_read, NULL, NULL,
+                             ess_fm_midi_write, NULL, NULL,
+                             ess);
             io_removehandler(addr + 4, 0x0002,
                              ess_mixer_read, NULL, NULL,
                              ess_mixer_write, NULL, NULL,
+                             ess);
+
+            io_removehandler(addr + 2, 0x0004,
+                             ess_base_read, NULL, NULL,
+                             ess_base_write, NULL, NULL,
+                             ess);
+            io_removehandler(addr + 6, 0x0001,
+                             ess_base_read, NULL, NULL,
+                             ess_base_write, NULL, NULL,
+                             ess);
+            io_removehandler(addr + 0x0a, 0x0006,
+                             ess_base_read, NULL, NULL,
+                             ess_base_write, NULL, NULL,
                              ess);
 
             ess->mixer_ess.ess_id_str[2] = 0x00;
@@ -2186,10 +2278,23 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                                  ess->opl.read, NULL, NULL,
                                  ess->opl.write, NULL, NULL,
                                  ess->opl.priv);
+                io_removehandler(addr, 0x0004,
+                                 ess_fm_midi_read, NULL, NULL,
+                                 ess_fm_midi_write, NULL, NULL,
+                                 ess);
             }
 
-            if (ess->pnp == 3)
-                mpu401_change_addr(ess->mpu, 0);
+            if (ess->pnp == 3) {
+                addr = ess->midi_addr;
+                if (addr) {
+                    ess->midi_addr = 0;
+                    mpu401_change_addr(ess->mpu, 0);
+                    io_removehandler(addr, 0x0002,
+                                     ess_fm_midi_read, NULL, NULL,
+                                     ess_fm_midi_write, NULL, NULL,
+                                     ess);
+                }
+            }
 
             sb_dsp_setaddr(&ess->dsp, 0);
             sb_dsp_setirq(&ess->dsp, 0);
@@ -2209,12 +2314,28 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                                   ess->opl.read, NULL, NULL,
                                   ess->opl.write, NULL, NULL,
                                   ess->opl.priv);
+                    io_sethandler(addr + 8, 0x0002,
+                                  ess_fm_midi_read, NULL, NULL,
+                                  ess_fm_midi_write, NULL, NULL,
+                                  ess);
                     io_sethandler(addr + 4, 0x0002,
                                   ess_mixer_read, NULL, NULL,
                                   ess_mixer_write, NULL, NULL,
                                   ess);
 
                     sb_dsp_setaddr(&ess->dsp, addr);
+                    io_sethandler(addr + 2, 0x0004,
+                                  ess_base_read, NULL, NULL,
+                                  ess_base_write, NULL, NULL,
+                                  ess);
+                    io_sethandler(addr + 6, 0x0001,
+                                  ess_base_read, NULL, NULL,
+                                  ess_base_write, NULL, NULL,
+                                  ess);
+                    io_sethandler(addr + 0x0a, 0x0006,
+                                  ess_base_read, NULL, NULL,
+                                  ess_base_write, NULL, NULL,
+                                  ess);
 
                     ess->mixer_ess.ess_id_str[2] = (addr >> 8) & 0xff;
                     ess->mixer_ess.ess_id_str[3] = addr & 0xff;
@@ -2227,12 +2348,21 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
                                   ess->opl.read, NULL, NULL,
                                   ess->opl.write, NULL, NULL,
                                   ess->opl.priv);
+                    io_sethandler(addr, 0x0004,
+                                  ess_fm_midi_read, NULL, NULL,
+                                  ess_fm_midi_write, NULL, NULL,
+                                  ess);
                 }
 
                 if (ess->pnp == 3) {
                     addr = config->io[2].base;
-                    if (addr != ISAPNP_IO_DISABLED)
+                    if (addr != ISAPNP_IO_DISABLED) {
                         mpu401_change_addr(ess->mpu, addr);
+                        io_sethandler(addr, 0x0002,
+                                      ess_fm_midi_read, NULL, NULL,
+                                      ess_fm_midi_write, NULL, NULL,
+                                      ess);
+                    }
                 }
 
                 val = config->irq[0].irq;
@@ -2317,13 +2447,34 @@ ess_soundpiper_mca_write(const int port, const uint8_t val, void *priv)
                          ess->opl.read, NULL, NULL,
                          ess->opl.write, NULL, NULL,
                          ess->opl.priv);
+        io_removehandler(ess->dsp.sb_addr + 8, 0x0002,
+                         ess_fm_midi_read, NULL, NULL,
+                         ess_fm_midi_write, NULL, NULL,
+                         ess);
         io_removehandler(0x0388, 0x0004,
                          ess->opl.read, NULL, NULL,
                          ess->opl.write, NULL, NULL,
                          ess->opl.priv);
+        io_removehandler(0x0388, 0x0004,
+                         ess_fm_midi_read, NULL, NULL,
+                         ess_fm_midi_write, NULL, NULL,
+                         ess);
         io_removehandler(ess->dsp.sb_addr + 4, 0x0002,
                          ess_mixer_read, NULL, NULL,
                          ess_mixer_write, NULL, NULL,
+                         ess);
+
+        io_removehandler(ess->dsp.sb_addr + 2, 0x0004,
+                         ess_base_read, NULL, NULL,
+                         ess_base_write, NULL, NULL,
+                         ess);
+        io_removehandler(ess->dsp.sb_addr + 6, 0x0001,
+                         ess_base_read, NULL, NULL,
+                         ess_base_write, NULL, NULL,
+                         ess);
+        io_removehandler(ess->dsp.sb_addr + 0x0a, 0x0006,
+                         ess_base_read, NULL, NULL,
+                         ess_base_write, NULL, NULL,
                          ess);
     }
 
@@ -2331,8 +2482,14 @@ ess_soundpiper_mca_write(const int port, const uint8_t val, void *priv)
     sb_dsp_setaddr(&ess->dsp, 0);
     gameport_remap(ess->gameport, 0);
 
-    if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688)
+    if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) {
         mpu401_change_addr(ess->mpu, 0);
+
+        io_removehandler(0x0330, 0x0002,
+                         ess_fm_midi_read, NULL, NULL,
+                         ess_fm_midi_write, NULL, NULL,
+                         ess);
+    }
 
     ess->pos_regs[port & 7] = val;
 
@@ -2358,16 +2515,44 @@ ess_soundpiper_mca_write(const int port, const uint8_t val, void *priv)
                           ess->opl.read, NULL, NULL,
                           ess->opl.write, NULL, NULL,
                           ess->opl.priv);
+            io_sethandler(ess->dsp.sb_addr + 8, 0x0002,
+                          ess_fm_midi_read, NULL, NULL,
+                          ess_fm_midi_write, NULL, NULL,
+                          ess);
             io_sethandler(0x0388, 0x0004,
                           ess->opl.read, NULL, NULL,
                           ess->opl.write, NULL, NULL, ess->opl.priv);
+            io_sethandler(0x0388, 0x0004,
+                          ess_fm_midi_read, NULL, NULL,
+                          ess_fm_midi_write, NULL, NULL,
+                          ess);
             io_sethandler(ess->dsp.sb_addr + 4, 0x0002,
                           ess_mixer_read, NULL, NULL,
                           ess_mixer_write, NULL, NULL,
                           ess);
 
-            if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688)
+            io_sethandler(ess->dsp.sb_addr + 2, 0x0004,
+                          ess_base_read, NULL, NULL,
+                          ess_base_write, NULL, NULL,
+                          ess);
+            io_sethandler(ess->dsp.sb_addr + 6, 0x0001,
+                          ess_base_read, NULL, NULL,
+                          ess_base_write, NULL, NULL,
+                          ess);
+            io_sethandler(ess->dsp.sb_addr + 0x0a, 0x0006,
+                          ess_base_read, NULL, NULL,
+                          ess_base_write, NULL, NULL,
+                          ess);
+
+            if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) {
                 mpu401_change_addr(ess->mpu, ess->pos_regs[3] & 0x02 ? 0x0330 : 0);
+
+                if (ess->pos_regs[3] & 0x02)
+                    io_sethandler(0x0330, 0x0002,
+                                  ess_fm_midi_read, NULL, NULL,
+                                  ess_fm_midi_write, NULL, NULL,
+                                  ess);
+            }
         }
 
         /* DSP I/O handler is activated in sb_dsp_setaddr */
@@ -2425,13 +2610,34 @@ ess_chipchat_mca_write(int port, uint8_t val, void *priv)
                          ess->opl.read, NULL, NULL,
                          ess->opl.write, NULL, NULL,
                          ess->opl.priv);
+        io_removehandler(ess->dsp.sb_addr + 8, 0x0002,
+                         ess_fm_midi_read, NULL, NULL,
+                         ess_fm_midi_write, NULL, NULL,
+                         ess);
         io_removehandler(0x0388, 0x0004,
                          ess->opl.read, NULL, NULL,
                          ess->opl.write, NULL, NULL,
                          ess->opl.priv);
+        io_removehandler(0x0388, 0x0004,
+                         ess_fm_midi_read, NULL, NULL,
+                         ess_fm_midi_write, NULL, NULL,
+                         ess);
         io_removehandler(ess->dsp.sb_addr + 4, 0x0002,
                          ess_mixer_read, NULL, NULL,
                          ess_mixer_write, NULL, NULL,
+                         ess);
+
+        io_removehandler(ess->dsp.sb_addr + 2, 0x0004,
+                         ess_base_read, NULL, NULL,
+                         ess_base_write, NULL, NULL,
+                         ess);
+        io_removehandler(ess->dsp.sb_addr + 6, 0x0001,
+                         ess_base_read, NULL, NULL,
+                         ess_base_write, NULL, NULL,
+                         ess);
+        io_removehandler(ess->dsp.sb_addr + 0x0a, 0x0006,
+                         ess_base_read, NULL, NULL,
+                         ess_base_write, NULL, NULL,
                          ess);
     }
 
@@ -2439,7 +2645,14 @@ ess_chipchat_mca_write(int port, uint8_t val, void *priv)
     sb_dsp_setaddr(&ess->dsp, 0);
     gameport_remap(ess->gameport, 0);
 
-    mpu401_change_addr(ess->mpu, 0);
+    if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) {
+        mpu401_change_addr(ess->mpu, 0);
+
+        io_removehandler(0x0330, 0x0002,
+                         ess_fm_midi_read, NULL, NULL,
+                         ess_fm_midi_write, NULL, NULL,
+                         ess);
+    }
 
     ess->pos_regs[port & 7] = val;
 
@@ -2455,16 +2668,44 @@ ess_chipchat_mca_write(int port, uint8_t val, void *priv)
                           ess->opl.read, NULL, NULL,
                           ess->opl.write, NULL, NULL,
                           ess->opl.priv);
+            io_sethandler(ess->dsp.sb_addr + 8, 0x0002,
+                          ess_fm_midi_read, NULL, NULL,
+                          ess_fm_midi_write, NULL, NULL,
+                          ess);
             io_sethandler(0x0388, 0x0004,
                           ess->opl.read, NULL, NULL,
                           ess->opl.write, NULL, NULL, ess->opl.priv);
-            io_sethandler(ess->dsp.sb_addr + 4, 0x0002,
+            io_sethandler(0x0388, 0x0004,
+                          ess_fm_midi_read, NULL, NULL,
+                          ess_fm_midi_write, NULL, NULL,
+                          ess);
+            io_sethandler(ess->dsp.sb_addr + 4, 0x0004,
                           ess_mixer_read, NULL, NULL,
                           ess_mixer_write, NULL, NULL,
                           ess);
 
-            if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688)
+            io_sethandler(ess->dsp.sb_addr + 2, 0x0004,
+                          ess_base_read, NULL, NULL,
+                          ess_base_write, NULL, NULL,
+                          ess);
+            io_sethandler(ess->dsp.sb_addr + 6, 0x0001,
+                          ess_base_read, NULL, NULL,
+                          ess_base_write, NULL, NULL,
+                          ess);
+            io_sethandler(ess->dsp.sb_addr + 0x0a, 0x0006,
+                          ess_base_read, NULL, NULL,
+                          ess_base_write, NULL, NULL,
+                          ess);
+
+            if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) {
                 mpu401_change_addr(ess->mpu, (ess->pos_regs[2] == 0x51) ? 0x0330 : 0);
+
+                if (ess->pos_regs[2] == 0x51)
+                    io_sethandler(0x0330, 0x0002,
+                                  ess_fm_midi_read, NULL, NULL,
+                                  ess_fm_midi_write, NULL, NULL,
+                                  ess);
+            }
         }
 
         /* DSP I/O handler is activated in sb_dsp_setaddr */
@@ -2949,7 +3190,8 @@ sb_16_init(UNUSED(const device_t *info))
     if (mpu_addr) {
         sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
         memset(sb->mpu, 0, sizeof(mpu_t));
-        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART, device_get_config_int("receive_input401"));
+        mpu401_init(sb->mpu, device_get_config_hex16("base401"), 0, M_UART,
+                    device_get_config_int("receive_input401"));
     } else
         sb->mpu = NULL;
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
@@ -3293,7 +3535,8 @@ sb_awe32_init(UNUSED(const device_t *info))
     if (mpu_addr) {
         sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
         memset(sb->mpu, 0, sizeof(mpu_t));
-        mpu401_init(sb->mpu, device_get_config_hex16("base401"), device_get_config_int("irq"), M_UART, device_get_config_int("receive_input401"));
+        mpu401_init(sb->mpu, device_get_config_hex16("base401"), 0, M_UART,
+                    device_get_config_int("receive_input401"));
     } else
         sb->mpu = NULL;
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
@@ -3453,20 +3696,39 @@ ess_x688_init(UNUSED(const device_t *info))
     ess_mixer_reset(ess);
 
     /* DSP I/O handler is activated in sb_dsp_setaddr */
-    {
-        io_sethandler(addr, 0x0004,
-                      ess->opl.read, NULL, NULL,
-                      ess->opl.write, NULL, NULL,
-                      ess->opl.priv);
-        io_sethandler(addr + 8, 0x0002,
-                      ess->opl.read, NULL, NULL,
-                      ess->opl.write, NULL, NULL,
-                      ess->opl.priv);
-        io_sethandler(0x0388, 0x0004,
-                      ess->opl.read, NULL, NULL,
-                      ess->opl.write, NULL, NULL,
-                      ess->opl.priv);
-    }
+    io_sethandler(addr, 0x0004,
+                  ess->opl.read, NULL, NULL,
+                  ess->opl.write, NULL, NULL,
+                  ess->opl.priv);
+    io_sethandler(addr + 8, 0x0002,
+                  ess->opl.read, NULL, NULL,
+                  ess->opl.write, NULL, NULL,
+                  ess->opl.priv);
+    io_sethandler(addr + 8, 0x0002,
+                  ess_fm_midi_read, NULL, NULL,
+                  ess_fm_midi_write, NULL, NULL,
+                  ess);
+    io_sethandler(0x0388, 0x0004,
+                  ess->opl.read, NULL, NULL,
+                  ess->opl.write, NULL, NULL,
+                  ess->opl.priv);
+    io_sethandler(0x0388, 0x0004,
+                  ess_fm_midi_read, NULL, NULL,
+                  ess_fm_midi_write, NULL, NULL,
+                  ess);
+
+    io_sethandler(addr + 2, 0x0004,
+                  ess_base_read, NULL, NULL,
+                  ess_base_write, NULL, NULL,
+                  ess);
+    io_sethandler(addr + 6, 0x0001,
+                  ess_base_read, NULL, NULL,
+                  ess_base_write, NULL, NULL,
+                  ess);
+    io_sethandler(addr + 0x0a, 0x0006,
+                  ess_base_read, NULL, NULL,
+                  ess_base_write, NULL, NULL,
+                  ess);
 
     ess->mixer_enabled = 1;
     ess->mixer_ess.regs[0x40] = 0x0a;
@@ -3791,7 +4053,7 @@ static const device_config_t sb_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -3901,7 +4163,7 @@ static const device_config_t sb15_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4030,7 +4292,7 @@ static const device_config_t sb2_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4096,7 +4358,7 @@ static const device_config_t sb_mcv_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4186,7 +4448,7 @@ static const device_config_t sb_pro_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4197,7 +4459,7 @@ static const device_config_t sb_pro_config[] = {
 static const device_config_t sb_pro_mcv_config[] = {
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4350,7 +4612,7 @@ static const device_config_t sb_16_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4375,7 +4637,7 @@ static const device_config_t sb_16_pnp_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4432,7 +4694,7 @@ static const device_config_t sb_32_pnp_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4652,7 +4914,7 @@ static const device_config_t sb_awe32_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4709,7 +4971,7 @@ static const device_config_t sb_awe32_pnp_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4786,7 +5048,7 @@ static const device_config_t sb_awe64_value_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4859,7 +5121,7 @@ static const device_config_t sb_awe64_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -4924,7 +5186,7 @@ static const device_config_t sb_awe64_gold_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -5054,7 +5316,7 @@ static const device_config_t ess_688_config[] = {
     },
     {
         .name           = "receive_input",
-        .description    = "Receive input (SB MIDI)",
+        .description    = "Receive input (DSP MIDI)",
         .type           = CONFIG_BINARY,
         .default_string = "",
         .default_int    = 1
@@ -5185,7 +5447,7 @@ static const device_config_t ess_1688_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -5204,7 +5466,7 @@ static const device_config_t ess_1688_config[] = {
 static const device_config_t ess_688_pnp_config[] = {
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
@@ -5223,7 +5485,7 @@ static const device_config_t ess_1688_pnp_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive input (DSP MIDI)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1

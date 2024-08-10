@@ -1176,7 +1176,7 @@ static const device_config_t ibmat_config[] = {
         .description = "Start Address",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 512,
+        .default_int = 1024,
         .file_filter = "",
         .spinner = {
             .min = 0,
@@ -1224,7 +1224,7 @@ static const device_config_t genericat_config[] = {
         .description = "Start Address",
         .type = CONFIG_SPINNER,
         .default_string = "",
-        .default_int = 512,
+        .default_int = 1024,
         .file_filter = "",
         .spinner = {
             .min = 0,
@@ -1699,7 +1699,7 @@ static const device_t brxt_device = {
     .config        = brxt_config
 };
 
-#if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
+#ifdef USE_ISAMEM_BRAT
 static const device_config_t brat_config[] = {
   // clang-format off
     {
@@ -1804,7 +1804,7 @@ static const device_t brat_device = {
     .force_redraw  = NULL,
     .config        = brat_config
 };
-#endif
+#endif /* USE_ISAMEM_BRAT */
 
 static const device_config_t lotech_config[] = {
 // clang-format off
@@ -1871,7 +1871,7 @@ static const device_t lotech_device = {
     .config = lotech_config
 };
 
-#if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
+#ifdef USE_ISAMEM_RAMPAGE
 // TODO: Dual Paging support
 // TODO: Conventional memory suppport
 static const device_config_t rampage_config[] = {
@@ -1939,9 +1939,9 @@ static const device_t rampage_device = {
     .force_redraw  = NULL,
     .config        = rampage_config
 };
-#endif
+#endif /* USE_ISAMEM_RAMPAGE */
 
-#if defined(DEV_BRANCH) && defined(USE_ISAMEM_IAB)
+#ifdef USE_ISAMEM_IAB
 static const device_config_t iab_config[] = {
   // clang-format off
     {
@@ -2038,27 +2038,13 @@ static const device_t iab_device = {
     .force_redraw  = NULL,
     .config        = iab_config
 };
-#endif
-
-static const device_t isa_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
+#endif /* USE_ISAMEM_IAB */
 
 static const struct {
     const device_t *dev;
 } boards[] = {
     // clang-format off
-    { &isa_none_device     },
+    { &device_none         },
     // XT Ram Expansion Cards
     { &ibmxt_32k_device    },
     { &ibmxt_64k_device    },
@@ -2077,15 +2063,15 @@ static const struct {
     { &ev159_device        },
     { &ev165a_device       },
     { &brxt_device         },
-#if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
+#ifdef USE_ISAMEM_BRAT
     { &brat_device         },
-#endif
-#if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
+#endif /* USE_ISAMEM_BRAT */
+#ifdef USE_ISAMEM_RAMPAGE
     { &rampage_device      },
-#endif
-#if defined(DEV_BRANCH) && defined(USE_ISAMEM_IAB)
+#endif /* USE_ISAMEM_RAMPAGE */
+#ifdef USE_ISAMEM_IAB
     { &iab_device          },
-#endif
+#endif /* USE_ISAMEM_IAB */
     { &lotech_device       },
     { NULL                 }
     // clang-format on

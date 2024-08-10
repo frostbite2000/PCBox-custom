@@ -352,6 +352,7 @@ extern void     writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t v
 
 extern void     do_mmutranslate_2386(uint32_t addr, uint32_t *a64, int num, int write);
 
+extern uint8_t *getpccache_execute(uint32_t a);
 extern uint8_t *getpccache(uint32_t a);
 extern uint64_t mmutranslatereal(uint32_t addr, int rw);
 extern uint32_t mmutranslatereal32(uint32_t addr, int rw);
@@ -390,6 +391,11 @@ extern void mem_mapping_set_handler(mem_mapping_t *,
                                     void (*write_b)(uint32_t addr, uint8_t val, void *priv),
                                     void (*write_w)(uint32_t addr, uint16_t val, void *priv),
                                     void (*write_l)(uint32_t addr, uint32_t val, void *priv));
+
+extern void mem_mapping_set_write_handler(mem_mapping_t *,
+                                          void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                                          void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                                          void (*write_l)(uint32_t addr, uint32_t val, void *priv));
 
 extern void mem_mapping_set_p(mem_mapping_t *, void *priv);
 
@@ -451,6 +457,7 @@ extern void mem_a20_recalc(void);
 extern void mem_init(void);
 extern void mem_close(void);
 extern void mem_reset(void);
+extern void mem_remap_top_ex(int kb, uint32_t start);
 extern void mem_remap_top(int kb);
 
 extern void umc_smram_recalc(uint32_t start, int set);

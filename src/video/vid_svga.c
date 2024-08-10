@@ -223,7 +223,8 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 xga->on = (val & 0x01) ? 0 : 1;
             if (ibm8514_active && dev) {
                 dev->on[0] = (val & 0x01) ? 0 : 1;
-                dev->on[1] = dev->on[0];
+                if (dev->local & 0xff)
+                    dev->on[1] = dev->on[0];
             }
 
             svga_log("3C3: VGA ON = %d.\n", val & 0x01);
@@ -684,9 +685,10 @@ svga_recalctimings(svga_t *svga)
                     else
                         svga->render = svga_render_4bpp_highres;
                 } else if ((svga->gdcreg[5] & 0x60) == 0x20) {
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                    if (svga->seqregs[1] & 8) { /*Low res (320)*/
                         svga->render = svga_render_2bpp_lowres;
-                    else
+                        pclog("2 bpp low res\n");
+                    } else
                         svga->render = svga_render_2bpp_highres;
                 } else {
                     svga->map8 = svga->pallook;
@@ -1339,11 +1341,11 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->dispontime        = 1000ULL << 32;
     svga->dispofftime       = 1000ULL << 32;
     svga->bpp               = 8;
-    svga->vram              = calloc(memsize, 1);
+    svga->vram              = calloc(memsize + 8, 1);
     svga->vram_max          = memsize;
     svga->vram_display_mask = svga->vram_mask = memsize - 1;
     svga->decode_mask                         = 0x7fffff;
-    svga->changedvram                         = calloc(memsize >> 12, 1);
+    svga->changedvram                         = calloc((memsize >> 12) + 1, 1);
     svga->recalctimings_ex                    = recalctimings_ex;
     svga->video_in                            = video_in;
     svga->video_out                           = video_out;

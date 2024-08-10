@@ -449,6 +449,7 @@ get_ram_ptr(uint32_t a)
     }
 }
 
+extern int opcode_has_modrm[256];
 extern int opcode_length[256];
 
 #ifdef OPS_286_386
@@ -515,7 +516,7 @@ fastreadw_fetch(uint32_t a)
 #    else
         return *((uint16_t *) &pccache2[a]);
 #    endif
-    t = getpccache(a);
+    t = getpccache_execute(a);
     if (cpu_state.abrt)
         return 0;
 
@@ -543,7 +544,7 @@ fastreadl_fetch(uint32_t a)
 #    endif
     if ((a & 0xFFF) < 0xFFD) {
         if ((a >> 12) != pccache) {
-            t = getpccache(a);
+            t = getpccache_execute(a);
             if (cpu_state.abrt)
                 return 0;
             pccache2 = t;

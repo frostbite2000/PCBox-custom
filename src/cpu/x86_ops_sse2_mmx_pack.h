@@ -150,13 +150,13 @@ opPUNPCKLWD_xmm_a16(uint32_t fetchdat)
         src[3] = readmeml(easeg, cpu_state.eaaddr + 12);
         if (cpu_state.abrt)
             return 1;
-        XMM[cpu_reg].w[7] = (src[0] >> 16);
+        XMM[cpu_reg].w[7] = (src[1] >> 16);
         XMM[cpu_reg].w[6] = XMM[cpu_reg].w[3];
-        XMM[cpu_reg].w[5] = (src[0] >> 16);
+        XMM[cpu_reg].w[5] = (src[1] & 0xffff);
         XMM[cpu_reg].w[4] = XMM[cpu_reg].w[2];
-        XMM[cpu_reg].w[3] = src[0] & 0xffff;
+        XMM[cpu_reg].w[3] = (src[0] >> 16);
         XMM[cpu_reg].w[2] = XMM[cpu_reg].w[1];
-        XMM[cpu_reg].w[1] = src[0] & 0xffff;
+        XMM[cpu_reg].w[1] = (src[0] & 0xffff);
         XMM[cpu_reg].w[0] = XMM[cpu_reg].w[0];
         CLOCK_CYCLES(2);
     }
@@ -194,13 +194,13 @@ opPUNPCKLWD_xmm_a32(uint32_t fetchdat)
         src[3] = readmeml(easeg, cpu_state.eaaddr + 12);
         if (cpu_state.abrt)
             return 1;
-        XMM[cpu_reg].w[7] = (src[0] >> 16);
+        XMM[cpu_reg].w[7] = (src[1] >> 16);
         XMM[cpu_reg].w[6] = XMM[cpu_reg].w[3];
-        XMM[cpu_reg].w[5] = (src[0] >> 16);
+        XMM[cpu_reg].w[5] = (src[1] & 0xffff);
         XMM[cpu_reg].w[4] = XMM[cpu_reg].w[2];
-        XMM[cpu_reg].w[3] = src[0] & 0xffff;
+        XMM[cpu_reg].w[3] = (src[0] >> 16);
         XMM[cpu_reg].w[2] = XMM[cpu_reg].w[1];
-        XMM[cpu_reg].w[1] = src[0] & 0xffff;
+        XMM[cpu_reg].w[1] = (src[0] & 0xffff);
         XMM[cpu_reg].w[0] = XMM[cpu_reg].w[0];
         CLOCK_CYCLES(2);
     }
@@ -235,9 +235,9 @@ opPUNPCKLDQ_xmm_a16(uint32_t fetchdat)
         if (cpu_state.abrt)
             return 1;
         XMM[cpu_reg].l[3] = src[1];
-        XMM[cpu_reg].l[2] = XMM[cpu_reg].w[1];
+        XMM[cpu_reg].l[2] = XMM[cpu_reg].l[1];
         XMM[cpu_reg].l[1] = src[0];
-        XMM[cpu_reg].l[0] = XMM[cpu_reg].w[0];
+        XMM[cpu_reg].l[0] = XMM[cpu_reg].l[0];
         CLOCK_CYCLES(2);
     }
     return 0;
@@ -271,9 +271,9 @@ opPUNPCKLDQ_xmm_a32(uint32_t fetchdat)
         if (cpu_state.abrt)
             return 1;
         XMM[cpu_reg].l[3] = src[1];
-        XMM[cpu_reg].l[2] = XMM[cpu_reg].w[1];
+        XMM[cpu_reg].l[2] = XMM[cpu_reg].l[1];
         XMM[cpu_reg].l[1] = src[0];
-        XMM[cpu_reg].l[0] = XMM[cpu_reg].w[0];
+        XMM[cpu_reg].l[0] = XMM[cpu_reg].l[0];
         CLOCK_CYCLES(2);
     }
     return 0;
@@ -293,10 +293,18 @@ opPACKSSWB_xmm_a16(uint32_t fetchdat)
     XMM[cpu_reg].sb[1] = SSATB(dst.sw[1]);
     XMM[cpu_reg].sb[2] = SSATB(dst.sw[2]);
     XMM[cpu_reg].sb[3] = SSATB(dst.sw[3]);
-    XMM[cpu_reg].sb[4] = SSATB(src.sw[0]);
-    XMM[cpu_reg].sb[5] = SSATB(src.sw[1]);
-    XMM[cpu_reg].sb[6] = SSATB(src.sw[2]);
-    XMM[cpu_reg].sb[7] = SSATB(src.sw[3]);
+    XMM[cpu_reg].sb[4] = SSATB(dst.sw[4]);
+    XMM[cpu_reg].sb[5] = SSATB(dst.sw[5]);
+    XMM[cpu_reg].sb[6] = SSATB(dst.sw[6]);
+    XMM[cpu_reg].sb[7] = SSATB(dst.sw[7]);
+    XMM[cpu_reg].sb[8] = SSATB(src.sw[0]);
+    XMM[cpu_reg].sb[9] = SSATB(src.sw[1]);
+    XMM[cpu_reg].sb[10] = SSATB(src.sw[2]);
+    XMM[cpu_reg].sb[11] = SSATB(src.sw[3]);
+    XMM[cpu_reg].sb[12] = SSATB(src.sw[4]);
+    XMM[cpu_reg].sb[13] = SSATB(src.sw[5]);
+    XMM[cpu_reg].sb[14] = SSATB(src.sw[6]);
+    XMM[cpu_reg].sb[15] = SSATB(src.sw[7]);
 
     return 0;
 }
@@ -315,10 +323,18 @@ opPACKSSWB_xmm_a32(uint32_t fetchdat)
     XMM[cpu_reg].sb[1] = SSATB(dst.sw[1]);
     XMM[cpu_reg].sb[2] = SSATB(dst.sw[2]);
     XMM[cpu_reg].sb[3] = SSATB(dst.sw[3]);
-    XMM[cpu_reg].sb[4] = SSATB(src.sw[0]);
-    XMM[cpu_reg].sb[5] = SSATB(src.sw[1]);
-    XMM[cpu_reg].sb[6] = SSATB(src.sw[2]);
-    XMM[cpu_reg].sb[7] = SSATB(src.sw[3]);
+    XMM[cpu_reg].sb[4] = SSATB(dst.sw[4]);
+    XMM[cpu_reg].sb[5] = SSATB(dst.sw[5]);
+    XMM[cpu_reg].sb[6] = SSATB(dst.sw[6]);
+    XMM[cpu_reg].sb[7] = SSATB(dst.sw[7]);
+    XMM[cpu_reg].sb[8] = SSATB(src.sw[0]);
+    XMM[cpu_reg].sb[9] = SSATB(src.sw[1]);
+    XMM[cpu_reg].sb[10] = SSATB(src.sw[2]);
+    XMM[cpu_reg].sb[11] = SSATB(src.sw[3]);
+    XMM[cpu_reg].sb[12] = SSATB(src.sw[4]);
+    XMM[cpu_reg].sb[13] = SSATB(src.sw[5]);
+    XMM[cpu_reg].sb[14] = SSATB(src.sw[6]);
+    XMM[cpu_reg].sb[15] = SSATB(src.sw[7]);
 
     return 0;
 }
@@ -333,14 +349,22 @@ opPACKUSWB_xmm_a16(uint32_t fetchdat)
     SSE_GETSRC();
     dst = XMM[cpu_reg];
 
-    XMM[cpu_reg].sb[0] = USATB(dst.sw[0]);
-    XMM[cpu_reg].sb[1] = USATB(dst.sw[1]);
-    XMM[cpu_reg].sb[2] = USATB(dst.sw[2]);
-    XMM[cpu_reg].sb[3] = USATB(dst.sw[3]);
-    XMM[cpu_reg].sb[4] = USATB(src.sw[0]);
-    XMM[cpu_reg].sb[5] = USATB(src.sw[1]);
-    XMM[cpu_reg].sb[6] = USATB(src.sw[2]);
-    XMM[cpu_reg].sb[7] = USATB(src.sw[3]);
+    XMM[cpu_reg].b[0] = USATB(dst.sw[0]);
+    XMM[cpu_reg].b[1] = USATB(dst.sw[1]);
+    XMM[cpu_reg].b[2] = USATB(dst.sw[2]);
+    XMM[cpu_reg].b[3] = USATB(dst.sw[3]);
+    XMM[cpu_reg].b[4] = USATB(dst.sw[4]);
+    XMM[cpu_reg].b[5] = USATB(dst.sw[5]);
+    XMM[cpu_reg].b[6] = USATB(dst.sw[6]);
+    XMM[cpu_reg].b[7] = USATB(dst.sw[7]);
+    XMM[cpu_reg].b[8] = USATB(src.sw[0]);
+    XMM[cpu_reg].b[9] = USATB(src.sw[1]);
+    XMM[cpu_reg].b[10] = USATB(src.sw[2]);
+    XMM[cpu_reg].b[11] = USATB(src.sw[3]);
+    XMM[cpu_reg].b[12] = USATB(src.sw[4]);
+    XMM[cpu_reg].b[13] = USATB(src.sw[5]);
+    XMM[cpu_reg].b[14] = USATB(src.sw[6]);
+    XMM[cpu_reg].b[15] = USATB(src.sw[7]);
 
     return 0;
 }
@@ -355,14 +379,22 @@ opPACKUSWB_xmm_a32(uint32_t fetchdat)
     SSE_GETSRC();
     dst = XMM[cpu_reg];
 
-    XMM[cpu_reg].sb[0] = USATB(dst.sw[0]);
-    XMM[cpu_reg].sb[1] = USATB(dst.sw[1]);
-    XMM[cpu_reg].sb[2] = USATB(dst.sw[2]);
-    XMM[cpu_reg].sb[3] = USATB(dst.sw[3]);
-    XMM[cpu_reg].sb[4] = USATB(src.sw[0]);
-    XMM[cpu_reg].sb[5] = USATB(src.sw[1]);
-    XMM[cpu_reg].sb[6] = USATB(src.sw[2]);
-    XMM[cpu_reg].sb[7] = USATB(src.sw[3]);
+    XMM[cpu_reg].b[0] = USATB(dst.sw[0]);
+    XMM[cpu_reg].b[1] = USATB(dst.sw[1]);
+    XMM[cpu_reg].b[2] = USATB(dst.sw[2]);
+    XMM[cpu_reg].b[3] = USATB(dst.sw[3]);
+    XMM[cpu_reg].b[4] = USATB(dst.sw[4]);
+    XMM[cpu_reg].b[5] = USATB(dst.sw[5]);
+    XMM[cpu_reg].b[6] = USATB(dst.sw[6]);
+    XMM[cpu_reg].b[7] = USATB(dst.sw[7]);
+    XMM[cpu_reg].b[8] = USATB(src.sw[0]);
+    XMM[cpu_reg].b[9] = USATB(src.sw[1]);
+    XMM[cpu_reg].b[10] = USATB(src.sw[2]);
+    XMM[cpu_reg].b[11] = USATB(src.sw[3]);
+    XMM[cpu_reg].b[12] = USATB(src.sw[4]);
+    XMM[cpu_reg].b[13] = USATB(src.sw[5]);
+    XMM[cpu_reg].b[14] = USATB(src.sw[6]);
+    XMM[cpu_reg].b[15] = USATB(src.sw[7]);
 
     return 0;
 }
