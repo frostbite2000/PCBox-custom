@@ -2876,7 +2876,7 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
+                EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_LAPIC;
             } else if (EAX == 2) {
                 EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
                                      Instruction TLB: 4 MB pages, fully associative, 2 entries
@@ -3248,6 +3248,7 @@ cpu_ven_reset(void)
         case CPU_PENTIUM3:
         case CPU_GENERICINTEL:
             msr.mtrr_cap = 0x00000508ULL;
+            msr.apic_base = 0xFEE000000;
             break;
 
         case CPU_CYRIX3S:
