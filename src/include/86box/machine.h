@@ -691,7 +691,7 @@ extern int machine_at_8500tuc_init(const machine_t *);
 extern int machine_at_p55t2s_init(const machine_t *);
 
 extern int machine_at_p5vxb_init(const machine_t *);
-extern int machine_at_gw2kte_init(const machine_t *);
+extern int machine_at_gw2kma_init(const machine_t *);
 
 extern int machine_at_ap5s_init(const machine_t *);
 extern int machine_at_pc140_6260_init(const machine_t *);
@@ -726,13 +726,14 @@ extern int machine_at_pb680_init(const machine_t *);
 extern int machine_at_pb810_init(const machine_t *);
 extern int machine_at_mb520n_init(const machine_t *);
 extern int machine_at_i430vx_init(const machine_t *);
+extern int machine_at_gw2kte_init(const machine_t *);
 
 extern int machine_at_ma23c_init(const machine_t *);
 extern int machine_at_nupro592_init(const machine_t *);
 extern int machine_at_tx97_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_AN430TX)
+#ifdef USE_AN430TX
 extern int machine_at_an430tx_init(const machine_t *);
-#endif
+#endif /* USE_AN430TX */
 extern int machine_at_ym430tx_init(const machine_t *);
 extern int machine_at_thunderbolt_init(const machine_t *);
 extern int machine_at_mb540n_init(const machine_t *);
@@ -862,6 +863,9 @@ extern int machine_at_vpc2007_init(const machine_t *);
 /* m_at_t3100e.c */
 extern int machine_at_t3100e_init(const machine_t *);
 
+/* m_at_grid.c */
+extern int machine_at_grid1520_init(const machine_t *);
+
 /* m_elt.c */
 extern int machine_elt_init(const machine_t *);
 
@@ -956,10 +960,10 @@ extern int machine_xt_compaq_deskpro_init(const machine_t *);
 extern int machine_xt_compaq_portable_init(const machine_t *);
 
 /* m_xt_laserxt.c */
-#if defined(DEV_BRANCH) && defined(USE_LASERXT)
+#ifdef USE_LASERXT
 extern int machine_xt_laserxt_init(const machine_t *);
 extern int machine_xt_lxt3_init(const machine_t *);
-#endif
+#endif /* USE_LASERXT */
 
 /* m_xt_philips.c */
 extern int machine_xt_p3105_init(const machine_t *);

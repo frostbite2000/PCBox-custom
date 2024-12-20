@@ -657,12 +657,12 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
         
         case GDB_REG_XMM0 ... GDB_REG_XMM7:
             width                          = 16;
-            XMM[index - GDB_REG_XMM0].q[0] = *((uint64_t *) &buf[0]);
-            XMM[index - GDB_REG_XMM0].q[1] = *((uint64_t *) &buf[8]);
+            cpu_state_high.XMM[index - GDB_REG_XMM0].q[0] = *((uint64_t *) &buf[0]);
+            cpu_state_high.XMM[index - GDB_REG_XMM0].q[1] = *((uint64_t *) &buf[8]);
             break;
 
         case GDB_REG_MXCSR:
-            mxcsr = *((uint32_t *) buf);
+            cpu_state_high.mxcsr = *((uint32_t *) buf);
             break;
 
         default:
@@ -796,12 +796,12 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
 
         case GDB_REG_XMM0 ... GDB_REG_XMM7:
             width                   = 16;
-            *((uint64_t *) &buf[0]) = XMM[index - GDB_REG_XMM0].q[0];
-            *((uint64_t *) &buf[8]) = XMM[index - GDB_REG_XMM0].q[1];
+            *((uint64_t *) &buf[0]) = cpu_state_high.XMM[index - GDB_REG_XMM0].q[0];
+            *((uint64_t *) &buf[8]) = cpu_state_high.XMM[index - GDB_REG_XMM0].q[1];
             break;
 
         case GDB_REG_MXCSR:
-            *((uint32_t *) buf) = mxcsr;
+            *((uint32_t *) buf) = cpu_state_high.mxcsr;
             break;
 
         default:
@@ -1589,6 +1589,7 @@ gdbstub_client_thread(void *priv)
                 case '$': /* packet start */
                     /* Wait for any existing packets to be processed. */
                     thread_wait_event(client->processed_event, -1);
+                    thread_set_event(client->processed_event);
 
                     client->packet_pos = 0;
                     break;
@@ -1606,6 +1607,7 @@ gdbstub_client_thread(void *priv)
                 case 0x03: /* break */
                     /* Wait for any existing packets to be processed. */
                     thread_wait_event(client->processed_event, -1);
+                    thread_set_event(client->processed_event);
 
                     /* Break immediately. */
                     gdbstub_log("GDB Stub: Break requested\n");
@@ -1615,6 +1617,7 @@ gdbstub_client_thread(void *priv)
                 default:
                     /* Wait for any existing packets to be processed, just in case. */
                     thread_wait_event(client->processed_event, -1);
+                    thread_set_event(client->processed_event);
 
                     if (client->packet_pos < (sizeof(client->packet) - 1)) {
                         /* Append byte to the packet. */

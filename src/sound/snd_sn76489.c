@@ -189,12 +189,6 @@ void
 sn74689_set_extra_divide(sn76489_t *sn76489, int enable)
 {
     sn76489->extra_divide = enable;
-
-    if (!enable) {
-        for (uint8_t c = 1; c < 4; c++)
-            sn76489->latch[c] &= ~(0x400 << 6);
-        sn76489->latch[0] &= ~(0x400 << 6);
-    }
 }
 
 void
@@ -324,7 +318,7 @@ const device_t sn76489_device = {
     .init          = sn76489_device_init,
     .close         = sn76489_device_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -338,7 +332,7 @@ const device_t ncr8496_device = {
     .init          = ncr8496_device_init,
     .close         = sn76489_device_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -352,7 +346,7 @@ const device_t tndy_device = {
     .init          = tndy_device_init,
     .close         = sn76489_device_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = tndy_config

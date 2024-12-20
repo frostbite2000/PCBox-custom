@@ -231,6 +231,19 @@ flushmmucache(void)
 }
 
 void
+flushmmucache_pc(void)
+{
+    mmuflush++;
+
+    pccache  = (uint32_t) 0xffffffff;
+    pccache2 = (uint8_t *) 0xffffffff;
+
+#ifdef USE_DYNAREC
+    codegen_flush();
+#endif
+}
+
+void
 flushmmucache_nopc(void)
 {
     for (uint16_t c = 0; c < 256; c++) {
@@ -282,7 +295,6 @@ mem_flush_write_page(uint32_t addr, uint32_t virt)
 
 #define mmutranslate_read(addr)  mmutranslatereal(addr, 0)
 #define mmutranslate_write(addr) mmutranslatereal(addr, 1)
-#define mmutranslate_execute(addr)  mmutranslatereal(addr, 2)
 #define rammap(x)                ((uint32_t *) (_mem_exec[(x) >> MEM_GRANULARITY_BITS]))[((x) >> 2) & MEM_GRANULARITY_QMASK]
 #define rammap64(x)              ((uint64_t *) (_mem_exec[(x) >> MEM_GRANULARITY_BITS]))[((x) >> 3) & MEM_GRANULARITY_PMASK]
 
@@ -313,7 +325,8 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
         /*4MB page*/
-        if (((CPL == 3) && !(temp & 4) && !cpl_override) || ((rw == 1) && !(temp & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
+        uint64_t ret = temp & ~0x3fffff;
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || ((rw == 1) && !cpl_override && !(temp & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
             cr2 = addr;
             temp &= 1;
             if (CPL == 3)
@@ -329,12 +342,14 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         mmu_perm = temp & 4;
         rammap(addr2) |= ((rw == 1) ? 0x60 : 0x20);
 
-        return (temp & ~0x3fffff) + (addr & 0x3fffff);
+        if(cpu_features & CPU_FEATURE_PSE36) ret |= (uint64_t)(temp & 0x1e000) << 32;
+
+        return ret + (addr & 0x3fffff);
     }
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
     temp3 = temp & temp2;
-    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || ((rw == 1) && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || ((rw == 1) && !cpl_override && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
         cr2 = addr;
         temp &= 1;
         if (CPL == 3)
@@ -384,7 +399,6 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 
     addr3 = (temp & ~0xfffULL) + ((addr >> 18) & 0xff8);
     temp = temp4 = rammap64(addr3) & 0x000000ffffffffffULL;
-    nxbit = rammap64(addr3) & 0x8000000000000000ULL;
     temp3        = temp & temp2;
     if (!(temp & 1)) {
         cr2 = addr;
@@ -398,23 +412,9 @@ mmutranslatereal_pae(uint32_t addr, int rw)
         return 0xffffffffffffffffULL;
     }
 
-    if(nxbit && (rw == 2) && (cpu_features & CPU_FEATURE_NX) && (msr.amd_efer & EFER_NXE))
-    {
-        cr2 = addr;
-        temp &= 1;
-        if (CPL == 3)
-            temp |= 4;
-        if (rw == 1)
-            temp |= 2;
-        temp |= 0x10;
-        cpu_state.abrt = ABRT_PF;
-        abrt_error     = temp;
-        return 0xffffffffffffffffULL;
-    }
-
     if (temp & 0x80) {
         /*2MB page*/
-        if (((CPL == 3) && !(temp & 4) && !cpl_override) || ((rw == 1) && !(temp & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || ((rw == 1) && !cpl_override && !(temp & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
             cr2 = addr;
             temp &= 1;
             if (CPL == 3)
@@ -432,31 +432,17 @@ mmutranslatereal_pae(uint32_t addr, int rw)
         return ((temp & ~0x1fffffULL) + (addr & 0x1fffffULL)) & 0x000000ffffffffffULL;
     }
 
-    addr4 = (temp & ~0xfffULL) + ((addr >> 9) & 0xff8);
+    addr4 = (temp & ~0x8000000000000fffULL) + ((addr >> 9) & 0xff8);
     temp  = rammap64(addr4) & 0x000000ffffffffffULL;
     nxbit = rammap64(addr4) & 0x8000000000000000ULL;
     temp3 = temp & temp4;
-    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || ((rw == 1) && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || ((rw == 1) && !cpl_override && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
         cr2 = addr;
         temp &= 1;
         if (CPL == 3)
             temp |= 4;
-        if (rw == 1)
+        if (rw)
             temp |= 2;
-        cpu_state.abrt = ABRT_PF;
-        abrt_error     = temp;
-        return 0xffffffffffffffffULL;
-    }
-
-    if(nxbit && (rw == 2) && (cpu_features & CPU_FEATURE_NX) && (msr.amd_efer & EFER_NXE))
-    {
-        cr2 = addr;
-        temp &= 1;
-        if (CPL == 3)
-            temp |= 4;
-        if (rw == 1)
-            temp |= 2;
-        temp |= 0x10;
         cpu_state.abrt = ABRT_PF;
         abrt_error     = temp;
         return 0xffffffffffffffffULL;
@@ -466,7 +452,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     rammap64(addr3) |= 0x20;
     rammap64(addr4) |= ((rw == 1) ? 0x60 : 0x20);
 
-    return ((temp & ~0xfffULL) + ((uint64_t) (addr & 0xfff))) & 0x000000ffffffffffULL;
+    return ((temp & ~0x8000000000000fffULL) + ((uint64_t) (addr & 0xfff))) & 0x000000ffffffffffULL;
 }
 
 uint64_t
@@ -512,16 +498,19 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
         /*4MB page*/
-        if (((CPL == 3) && !(temp & 4) && !cpl_override) || ((rw == 1) && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
+        uint64_t ret = temp & ~0x3fffff;
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || ((rw == 1) && !cpl_override && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
             return 0xffffffffffffffffULL;
 
-        return (temp & ~0x3fffff) + (addr & 0x3fffff);
+        if(cpu_features & CPU_FEATURE_PSE36) ret |= (uint64_t)(temp & 0x1e000) << 32;
+
+        return ret + (addr & 0x3fffff);
     }
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
     temp3 = temp & temp2;
 
-    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || ((rw == 1) && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || ((rw == 1) && !cpl_override && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
         return 0xffffffffffffffffULL;
 
     return (uint64_t) ((temp & ~0xfff) + (addr & 0xfff));
@@ -537,6 +526,7 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
     uint64_t addr2;
     uint64_t addr3;
     uint64_t addr4;
+    uint64_t nxbit;
 
     if (cpu_state.abrt)
         return 0xffffffffffffffffULL;
@@ -556,7 +546,7 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 
     if (temp & 0x80) {
         /*2MB page*/
-        if (((CPL == 3) && !(temp & 4) && !cpl_override) || ((rw == 1) && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
             return 0xffffffffffffffffULL;
 
         return ((temp & ~0x1fffffULL) + (addr & 0x1fffff)) & 0x000000ffffffffffULL;
@@ -567,7 +557,7 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 
     temp3 = temp & temp4;
 
-    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || ((rw == 1) && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !cpl_override && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
         return 0xffffffffffffffffULL;
 
     return ((temp & ~0xfffULL) + ((uint64_t) (addr & 0xfff))) & 0x000000ffffffffffULL;
@@ -707,7 +697,7 @@ getpccache_execute(uint32_t a)
     a2 = a;
 
     if (cr0 >> 31) {
-        a64 = mmutranslate_execute(a64);
+        a64 = mmutranslate_read(a64);
 
         if (a64 == 0xffffffffffffffffULL)
             return ram;
@@ -2542,41 +2532,47 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
         /* In range? */
         if (map->enable && (uint64_t) map->base < ((uint64_t) base + (uint64_t) size) &&
             ((uint64_t) map->base + (uint64_t) map->size) > (uint64_t) base) {
+            uint64_t i_a   = (~map->base_ignore) + 0x00000001ULL;
+            uint64_t i_s   = 0x00000000ULL;
+            uint64_t i_e   = map->base_ignore;
+            uint64_t i_c   = 0x00000000ULL;
             uint64_t start = (map->base < base) ? map->base : base;
             uint64_t end   = (((uint64_t) map->base + (uint64_t) map->size) < (base + size)) ?
                              ((uint64_t) map->base + (uint64_t) map->size) : (base + size);
             if (start < map->base)
                 start = map->base;
 
-            for (c = start; c < end; c += MEM_GRANULARITY_SIZE) {
-                /* CPU */
-                n = !!in_smm;
-                wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
+            for (i_c = i_s; i_c <= i_e; i_c += i_a) {
+                for (c = (start + i_c); c < (end + i_c); c += MEM_GRANULARITY_SIZE) {
+                    /* CPU */
+                    n = !!in_smm;
+                    wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
 
-                if (map->exec && mem_mapping_access_allowed(map->flags,
-                                 _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
-                    _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
-                if (!wp && (map->write_b || map->write_w || map->write_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
-                    write_mapping[c >> MEM_GRANULARITY_BITS] = map;
-                if ((map->read_b || map->read_w || map->read_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
-                    read_mapping[c >> MEM_GRANULARITY_BITS] = map;
+                    if (map->exec && mem_mapping_access_allowed(map->flags,
+                                                                _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
+                        _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
+                    if (!wp && (map->write_b || map->write_w || map->write_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+                        write_mapping[c >> MEM_GRANULARITY_BITS] = map;
+                    if ((map->read_b || map->read_w || map->read_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+                        read_mapping[c >> MEM_GRANULARITY_BITS] = map;
 
-                /* Bus */
-                n |= STATE_BUS;
-                wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
+                    /* Bus */
+                    n |= STATE_BUS;
+                    wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
 
-                if (!wp && (map->write_b || map->write_w || map->write_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
-                    write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
-                if ((map->read_b || map->read_w || map->read_l) &&
-                    mem_mapping_access_allowed(map->flags,
-                                               _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
-                    read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                    if (!wp && (map->write_b || map->write_w || map->write_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+                        write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                    if ((map->read_b || map->read_w || map->read_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+                        read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                }
             }
         }
         map = map->next;
@@ -2784,6 +2780,20 @@ mem_mapping_set_addr(mem_mapping_t *map, uint32_t base, uint32_t size)
     map->enable = 1;
     map->base   = base;
     map->size   = size;
+
+    mem_mapping_recalc(map->base, map->size);
+}
+
+void
+mem_mapping_set_base_ignore(mem_mapping_t *map, uint32_t base_ignore)
+{
+    /* Remove old mapping. */
+    map->enable      = 0;
+    mem_mapping_recalc(map->base, map->size);
+
+    /* Set new mapping. */
+    map->enable      = 1;
+    map->base_ignore = base_ignore;
 
     mem_mapping_recalc(map->base, map->size);
 }

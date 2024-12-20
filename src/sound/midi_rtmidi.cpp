@@ -234,7 +234,7 @@ static const device_config_t system_midi_config[] = {
   // clang-format off
     {
         .name = "midi",
-        .description = "MIDI out device",
+        .description = "MIDI Output Device",
         .type = CONFIG_MIDI_OUT,
         .default_string = "",
         .default_int = 0
@@ -247,7 +247,7 @@ static const device_config_t midi_input_config[] = {
   // clang-format off
     {
         .name = "midi_input",
-        .description = "MIDI in device",
+        .description = "MIDI Input Device",
         .type = CONFIG_MIDI_IN,
         .default_string = "",
         .default_int = 0
@@ -285,7 +285,7 @@ const device_t rtmidi_output_device = {
     .init          = rtmidi_output_init,
     .close         = rtmidi_output_close,
     .reset         = NULL,
-    { .available = rtmidi_out_get_num_devs },
+    .available     = rtmidi_out_get_num_devs,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = system_midi_config
@@ -299,7 +299,7 @@ const device_t rtmidi_input_device = {
     .init          = rtmidi_input_init,
     .close         = rtmidi_input_close,
     .reset         = NULL,
-    { .available = rtmidi_in_get_num_devs },
+    .available     = rtmidi_in_get_num_devs,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = midi_input_config

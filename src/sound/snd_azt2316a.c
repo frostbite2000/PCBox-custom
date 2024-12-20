@@ -1443,14 +1443,14 @@ static const device_config_t azt1605_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -1564,14 +1564,14 @@ static const device_config_t azt2316a_config[] = {
     },
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -1588,7 +1588,7 @@ const device_t azt2316a_device = {
     .init          = azt_init,
     .close         = azt_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = azt_speed_changed,
     .force_redraw  = NULL,
     .config        = azt2316a_config
@@ -1602,7 +1602,7 @@ const device_t azt1605_device = {
     .init          = azt_init,
     .close         = azt_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = azt_speed_changed,
     .force_redraw  = NULL,
     .config        = azt1605_config

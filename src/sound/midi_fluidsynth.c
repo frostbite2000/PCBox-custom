@@ -321,7 +321,7 @@ static const device_config_t fluidsynth_config[] = {
   // clang-format off
     {
         .name = "sound_font",
-        .description = "Sound Font",
+        .description = "SoundFont",
         .type = CONFIG_FNAME,
         .default_string = "",
         .file_filter = "SF2 Sound Fonts (*.sf2)|*.sf2"
@@ -491,7 +491,7 @@ const device_t fluidsynth_device = {
     .init          = fluidsynth_init,
     .close         = fluidsynth_close,
     .reset         = NULL,
-    { .available = fluidsynth_available },
+    .available     = fluidsynth_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = fluidsynth_config

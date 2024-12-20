@@ -23,7 +23,7 @@
 
 #define SSE_GETSRC()                                      \
     if (cpu_mod == 3) {                                   \
-        src = XMM[cpu_rm];                                \
+        src = cpu_state_high.XMM[cpu_rm];                                \
         CLOCK_CYCLES(1);                                  \
     } else {                                              \
         SEG_CHECK_READ(cpu_state.ea_seg);                 \
@@ -65,28 +65,19 @@ opEMMS(uint32_t fetchdat)
     return 0;
 }
 
-static inline int
-check_sse_exceptions(double result)
+static struct softfloat_status_t mxcsr_to_softfloat_status_word(void)
 {
-    int fperaised = fetestexcept(FE_ALL_EXCEPT);
-    if (fperaised & FE_INVALID)
-        mxcsr |= 1;
-    if (fpclassify(result) == FP_SUBNORMAL)
-        mxcsr |= 2;
-    if (fperaised & FE_DIVBYZERO)
-        mxcsr |= 4;
-    if (fperaised & FE_OVERFLOW)
-        mxcsr |= 8;
-    if (fperaised & FE_UNDERFLOW)
-        mxcsr |= 0x10;
-    if (fperaised & FE_INEXACT)
-        mxcsr |= 0x20;
+    struct softfloat_status_t status;
+    status.softfloat_exceptionFlags             = 0; // clear exceptions before execution
+    status.softfloat_roundingMode               = (cpu_state_high.mxcsr >> 13) & 3;
+    status.softfloat_flush_underflow_to_zero    = (cpu_state_high.mxcsr >> 15) & 1;
+    status.softfloat_suppressException          = 0;
+    status.softfloat_exceptionMasks             = (cpu_state_high.mxcsr >> 7) & 0x3f;
+    status.softfloat_denormals_are_zeros        = (cpu_state_high.mxcsr >> 6) & 1;
+    return status;
+}
 
-    int unmasked = (~mxcsr >> 7) & 0x3f;
-    if ((mxcsr & 0x3f) & (unmasked & 0x3f)) {
-        if (cr4 & CR4_OSXMMEXCPT)
-            x86_doabrt(0x13);
-        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }
-    return 0;
+static void softfloat_status_word_to_mxcsr(struct softfloat_status_t status)
+{
+    cpu_state_high.mxcsr |= status.softfloat_exceptionFlags & 0x3f;
 }

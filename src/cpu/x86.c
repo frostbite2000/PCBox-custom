@@ -277,7 +277,7 @@ reset_common(int hard)
         cr0 = 0;
     if (is386 && !is486 && (fpu_type == FPU_387))
         cr0 |= 0x10;
-    cpu_cache_int_enabled = 0;
+    cpu_cache_int_enabled = 0;  
     cpu_update_waitstates();
     cr4              = 0;
     cpu_state.eflags = 0;
@@ -325,6 +325,8 @@ reset_common(int hard)
     if (hard)
         codegen_reset();
 #endif
+    cpu_flush_pending = 0;
+    cpu_old_paging = 0;
     if (!hard)
         flushmmucache();
     x86_was_reset = 1;
@@ -361,10 +363,24 @@ reset_common(int hard)
     if (!is286)
         reset_808x(hard);
 
-    mxcsr = 0x1f80;
+    cpu_state_high.mxcsr = 0x1f80;
     in_lock    = 0;
 
     cpu_cpurst_on_sr = 0;
+
+    for(int i = 0; i < 16; i++)
+    {
+        cpu_state_high.XMM[i].q[0] = 0;
+        cpu_state_high.XMM[i].q[1] = 0;
+        cpu_state_high.regs_high[i] = 0;
+    }
+
+    for(int i = 0; i < 8; i++)
+    {
+        cpu_state_high.regs64[i].l = 0;
+    }
+    
+    cpu_state_high.pc_high = cpu_state_high.oldpc_high = 0;
 }
 
 /* Hard reset. */
@@ -382,9 +398,6 @@ softresetx86(void)
 {
     if (soft_reset_mask)
         return;
-
-    if (ibm8514_active || xga_active)
-        vga_on = 1;
 
     reset_common(0);
 }

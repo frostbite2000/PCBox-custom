@@ -60,6 +60,8 @@
 		    (((x) & 0x00ff000000000000ull) >> 40) |		\
 		    (((x) & 0xff00000000000000ull) >> 56)))
 
+#ifndef __NetBSD__
+
 static __inline uint16_t
 bswap16(uint16_t x)
 {
@@ -89,6 +91,7 @@ bswap64(uint64_t x)
     return bswap_16(x);
 #endif
 }
+#endif
 
 static __inline void
 bswap16s(uint16_t *s)

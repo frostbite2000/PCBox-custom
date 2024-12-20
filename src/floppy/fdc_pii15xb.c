@@ -75,7 +75,7 @@ MiniMicro 4 also won't work with the XT FDC which the Zilog claims to be.
 #include <86box/fdc_ext.h>
 
 #define DTK_VARIANT  ((info->local == 158) ? ROM_PII_158B : ROM_PII_151B)
-#define DTK_CHIP     ((info->local == 158) ? &fdc_xt_device : &fdc_dp8473_device)
+#define DTK_CHIP     ((info->local == 158) ? &fdc_xt_device : &fdc_at_nsc_dp8473_device)
 #define BIOS_ADDR    (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 #define ROM_PII_151B "roms/floppy/dtk/pii-151b.rom"
 #define ROM_PII_158B "roms/floppy/dtk/pii-158b.rom"
@@ -124,7 +124,7 @@ static const device_config_t pii_config[] = {
   // clang-format off
     {
         .name = "bios_addr",
-        .description = "BIOS Address:",
+        .description = "BIOS Address",
         .type = CONFIG_HEX20,
         .default_string = "",
         .default_int = 0xce000,

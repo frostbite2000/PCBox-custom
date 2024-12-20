@@ -879,6 +879,10 @@ opINVD(uint32_t fetchdat)
 static int
 opWBINVD(uint32_t fetchdat)
 {
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
+        x86gpf(NULL, 0);
+        return 1;
+    }
     cpu_INVD(1);
     CLOCK_CYCLES(10000);
     CPU_BLOCK_END();

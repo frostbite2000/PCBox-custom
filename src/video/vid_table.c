@@ -60,6 +60,7 @@ video_cards[] = {
     { &ati18800_vga88_device                           },
     { &ati28800_device                                 },
     { &compaq_ati28800_device                          },
+    { &ati28800_wonder1024d_xl_plus_device             },
 #ifdef USE_XL24
     { &ati28800_wonderxl24_device                      },
 #endif /* USE_XL24 */
@@ -180,6 +181,7 @@ video_cards[] = {
     { &s3_trio64v2_dx_pci_device                       },
     { &s3_virge_325_pci_device                         },
     { &s3_diamond_stealth_2000_pci_device              },
+    { &s3_mirocrystal_3d_pci_device                    },
     { &s3_diamond_stealth_3000_pci_device              },
     { &s3_stb_velocity_3d_pci_device                   },
     { &s3_virge_375_pci_device                         },

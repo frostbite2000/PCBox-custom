@@ -220,6 +220,8 @@ typedef struct {
     int      checked; /*Non-zero if selector is known to be valid*/
 } x86seg;
 
+#include "softfloat3e/softfloat_types.h"
+
 typedef union {
     uint64_t q;
     int64_t  sq;
@@ -241,8 +243,10 @@ typedef union {
     int16_t  sw[8];
     uint8_t  b[16];
     int8_t   sb[16];
-    float    f[4];
-    double   d[2];
+    float32   f[4];
+    float64   d[2];
+    float f2[4];
+    double d2[2];
 } SSE_REG;
 
 typedef struct {
@@ -453,6 +457,22 @@ typedef struct {
     uint32_t _smbase;
 } cpu_state_t;
 
+typedef struct
+{
+    x86reg regs64[8];
+    uint32_t regs_high[16];
+    uint32_t pc_high;
+    uint32_t oldpc_high;
+    uint32_t mxcsr;
+    SSE_REG XMM[16];
+    uint64_t cr8;
+    uint32_t cr2_high;
+    uint32_t cr3_high;
+    uint8_t rex_byte;
+    int rex_present;
+} cpu_state_high_t;
+
+
 #define in_smm   cpu_state._in_smm
 #define smi_line cpu_state._smi_line
 
@@ -535,6 +555,7 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
 /* Global variables. */
 extern cpu_state_t cpu_state;
+extern cpu_state_high_t cpu_state_high;
 
 extern const cpu_family_t         cpu_families[];
 extern cpu_family_t              *cpu_f;
@@ -583,14 +604,16 @@ extern int hasfpu;
 #define CPU_FEATURE_3DNOW   (1 << 6)
 #define CPU_FEATURE_SYSCALL (1 << 7)
 #define CPU_FEATURE_3DNOWE  (1 << 8)
-#define CPU_FEATURE_SSE     (1 << 9)
-#define CPU_FEATURE_PGE     (1 << 10)
-#define CPU_FEATURE_SSE2    (1 << 11)
-#define CPU_FEATURE_CLFLUSH (1 << 12)
-#define CPU_FEATURE_NX      (1 << 13)
-#define CPU_FEATURE_LAPIC   (1 << 14)
+#define CPU_FEATURE_PSE36   (1 << 9)
+#define CPU_FEATURE_LAPIC   (1 << 10)
+#define CPU_FEATURE_SSE     (1 << 11)
+#define CPU_FEATURE_PGE     (1 << 12)
+#define CPU_FEATURE_SSE2    (1 << 13)
+#define CPU_FEATURE_CLFLUSH (1 << 14)
+#define CPU_FEATURE_NX      (1 << 15)
+#define CPU_FEATURE_SSE3    (1 << 16)
 
-extern uint32_t cpu_features;
+extern uint64_t cpu_features;
 
 extern int smi_latched;
 extern int smm_in_hlt;
@@ -627,8 +650,9 @@ extern uint16_t temp_seg_data[4];
 extern uint16_t cs_msr;
 extern uint32_t esp_msr;
 extern uint32_t eip_msr;
-extern SSE_REG  XMM[8];
-extern uint32_t mxcsr;
+
+#define MXCSR_DAZ 0x0040
+#define MXCSR_FTZ 0x8000
 
 /* For the AMD K6. */
 extern uint64_t amd_efer;
@@ -677,6 +701,8 @@ extern int cpu_prefetch_width;
 extern int cpu_mem_prefetch_cycles;
 extern int cpu_rom_prefetch_cycles;
 extern int cpu_waitstates;
+extern int cpu_flush_pending;
+extern int cpu_old_paging;
 extern int cpu_cache_int_enabled;
 extern int cpu_cache_ext_enabled;
 extern int cpu_isa_speed;

@@ -31,6 +31,7 @@ x87_emms(void)
         fpu_state.tag = 0xffff;
         fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
     } else {
+        cpu_state.TOP = 0;
         p  = (uint64_t *) cpu_state.tag;
         *p = 0;
     }
@@ -228,13 +229,10 @@ FPU_save_regi_tag(extFloat80_t reg, int tag, int stnr)
 #define FPU_check_pending_exceptions()        \
     do {                                      \
         if (fpu_state.swd & FPU_SW_Summary) { \
-            pclog("SW Summary.\n"); \
-            if (cr0 & 0x20) {                 \
+            if (is486 && (cr0 & 0x20))        \
                 x86_int(16);                  \
-                return 1;                     \
-            } else {                          \
+            else                              \
                 picint(1 << 13);              \
-                return 1;                     \
-            }                                 \
+            return 1;                         \
         }                                     \
     } while (0)

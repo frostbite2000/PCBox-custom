@@ -254,7 +254,7 @@ riva128_pci_read(int func, int addr, void *p)
 		return 0x02; /*Fast DEVSEL timing*/
 
 	case 0x08:
-		return 0x00; /*Revision ID*/
+		return 0x10; /*Revision ID*/
 	case 0x09:
 		return 0x00; /*Programming interface*/
 
@@ -549,7 +549,7 @@ riva128_pmc_read(uint32_t addr, void *p)
 
 	switch(addr) {
 	case 0x000000:
-		return 0x00030100; /* ID register. */
+		return 0x00030110; /* ID register. */
 	case 0x000100:
 		pci_clear_irq(riva128->pci_slot, PCI_INTA, &riva128->irq_state);
 		return riva128_pmc_recompute_intr(0, riva128);
@@ -2683,7 +2683,7 @@ static void
 	io_sethandler(0x03c0, 0x0020, riva128_in, NULL, NULL, riva128_out,
 			NULL, NULL, riva128);
 
-	pci_add_card(PCI_ADD_VIDEO, riva128_pci_read,
+	pci_add_card(PCI_ADD_NORMAL, riva128_pci_read,
 			riva128_pci_write, riva128, &riva128->pci_slot);
 
 	riva128->pci_regs[0x04] = 0x08;

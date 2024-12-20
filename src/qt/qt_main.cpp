@@ -93,7 +93,7 @@ main_thread_fn()
 {
     int      frames;
 
-    QThread::currentThread()->setPriority(QThread::HighestPriority);
+    //QThread::currentThread()->setPriority(QThread::HighestPriority);
     plat_set_thread_name(nullptr, "main_thread_fn");
     framecountx = 0;
     // title_update = 1;
@@ -138,8 +138,17 @@ main_thread_fn()
             }
         } else {
             /* Just so we dont overload the host OS. */
+
+            /* Trigger a hard reset if one is pending. */
+            if (hard_reset_pending) {
+                hard_reset_pending = 0;
+                pc_reset_hard_close();
+                pc_reset_hard_init();
+            }
+
             if (dopause)
                 ack_pause();
+
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
@@ -360,7 +369,7 @@ main(int argc, char *argv[])
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {
         pc_onesec();
     });
-    onesec.setTimerType(Qt::PreciseTimer);
+    onesec.setTimerType(Qt::CoarseTimer);
     onesec.start(1000);
 
 #ifdef DISCORD
@@ -387,7 +396,7 @@ main(int argc, char *argv[])
 
         /* Set the PAUSE mode depending on the renderer. */
 #ifdef USE_VNC
-        if (vnc_enabled && vid_api != 5)
+        if (vid_api == 5)
             plat_pause(1);
         else
 #endif

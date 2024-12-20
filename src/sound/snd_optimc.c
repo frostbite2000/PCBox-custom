@@ -458,14 +458,14 @@ static const device_config_t optimc_config[] = {
   // clang-format off
     {
         .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
+        .description = "Receive MIDI input",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 1
     },
     {
         .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
+        .description = "Receive MIDI input (MPU-401)",
         .type = CONFIG_BINARY,
         .default_string = "",
         .default_int = 0
@@ -482,7 +482,7 @@ const device_t acermagic_s20_device = {
     .init          = optimc_init,
     .close         = optimc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = optimc_speed_changed,
     .force_redraw  = NULL,
     .config        = optimc_config
@@ -496,7 +496,7 @@ const device_t mirosound_pcm10_device = {
     .init          = optimc_init,
     .close         = optimc_close,
     .reset         = NULL,
-    { .available = mirosound_pcm10_available },
+    .available     = mirosound_pcm10_available,
     .speed_changed = optimc_speed_changed,
     .force_redraw  = NULL,
     .config        = optimc_config
