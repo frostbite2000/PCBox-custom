@@ -2363,53 +2363,6 @@ emu8k_init_standalone(emu8k_t *emu8k, int nvoices, int freq)
     int    c;
     double out;
 
-    fp = rom_fopen(EMU8K_ROM_PATH, "rb");
-    if (!fp)
-        fatal("AWE32.RAW not found\n");
-
-    emu8k->rom = malloc(1024 * 1024);
-    if (fread(emu8k->rom, 1, 1048576, fp) != 1048576)
-        fatal("emu8k_init(): Error reading data\n");
-    fclose(fp);
-    /*AWE-DUMP creates ROM images offset by 2 bytes, so if we detect this
-      then correct it*/
-    if (emu8k->rom[3] == 0x314d && emu8k->rom[4] == 0x474d) {
-        memmove(&emu8k->rom[0], &emu8k->rom[1], (1024 * 1024) - 2);
-        emu8k->rom[0x7ffff] = 0;
-    }
-
-    emu8k->empty = malloc(2 * BLOCK_SIZE_WORDS);
-    memset(emu8k->empty, 0, 2 * BLOCK_SIZE_WORDS);
-
-    int j = 0;
-    for (; j < 0x8; j++) {
-        emu8k->ram_pointers[j] = emu8k->rom + (j * BLOCK_SIZE_WORDS);
-    }
-    for (; j < 0x20; j++) {
-        emu8k->ram_pointers[j] = emu8k->empty;
-    }
-
-    if (onboard_ram) {
-        /*Clip to 28MB, since that's the max that we can address. */
-        if (onboard_ram > 0x7000)
-            onboard_ram = 0x7000;
-        emu8k->ram = malloc(onboard_ram * 1024);
-        memset(emu8k->ram, 0, onboard_ram * 1024);
-        const int i_end = onboard_ram >> 7;
-        int       i     = 0;
-        for (; i < i_end; i++, j++) {
-            emu8k->ram_pointers[j] = emu8k->ram + (i * BLOCK_SIZE_WORDS);
-        }
-        emu8k->ram_end_addr = EMU8K_RAM_MEM_START + (onboard_ram << 9);
-    } else {
-        emu8k->ram          = 0;
-        emu8k->ram_end_addr = EMU8K_RAM_MEM_START;
-    }
-    for (; j < 0x100; j++) {
-        emu8k->ram_pointers[j] = emu8k->empty;
-    }
-
-    emu8k_change_addr(emu8k, emu_addr);
     emu8k->nvoices = nvoices;
     emu8k->freq    = freq;
 

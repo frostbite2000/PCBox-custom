@@ -453,10 +453,6 @@ typedef struct emu8k_t {
     int16_t out_l;
     int16_t out_r;
 
-    emu8k_chorus_eng_t chorus_engine;
-    int32_t            chorus_in_buffer[WTBUFLEN];
-    emu8k_reverb_eng_t reverb_engine;
-    int32_t            reverb_in_buffer[WTBUFLEN];
     /* EMU10K1 */
     uint64_t *clie;
     uint64_t *clip;
