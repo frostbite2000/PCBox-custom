@@ -425,8 +425,7 @@ smbus_piix4_setclock(smbus_piix4_t *dev, int clock)
 static void *
 smbus_piix4_init(const device_t *info)
 {
-    smbus_piix4_t *dev = (smbus_piix4_t *) malloc(sizeof(smbus_piix4_t));
-    memset(dev, 0, sizeof(smbus_piix4_t));
+    smbus_piix4_t *dev = (smbus_piix4_t *) calloc(1, sizeof(smbus_piix4_t));
 
     dev->local = info->local;
     /* We save the I2C bus handle on dev but use i2c_smbus for all operations because
@@ -470,12 +469,12 @@ smbus_piix4_close(void *priv)
 const device_t piix4_smbus_device = {
     .name          = "PIIX4-compatible SMBus Host Controller",
     .internal_name = "piix4_smbus",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = SMBUS_PIIX4,
     .init          = smbus_piix4_init,
     .close         = smbus_piix4_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -484,12 +483,12 @@ const device_t piix4_smbus_device = {
 const device_t intel_ich2_smbus_device = {
     .name          = "Intel ICH2 SMBus Host Controller",
     .internal_name = "intel_ich2_smbus",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = SMBUS_INTEL_ICH2,
     .init          = smbus_piix4_init,
     .close         = smbus_piix4_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -498,12 +497,12 @@ const device_t intel_ich2_smbus_device = {
 const device_t via_smbus_device = {
     .name          = "VIA VT82C686B SMBus Host Controller",
     .internal_name = "via_smbus",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = SMBUS_VIA,
     .init          = smbus_piix4_init,
     .close         = smbus_piix4_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

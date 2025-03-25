@@ -11,7 +11,7 @@
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
-#          Copyright 2021-2024 Jasmine Iwanek.
+#          Copyright 2021-2025 Jasmine Iwanek.
 #
 
 cmake_minimum_required(VERSION 3.16)
@@ -132,12 +132,29 @@ option(RTMIDI       "RtMidi"                                                    
 option(FLUIDSYNTH   "FluidSynth"                                                 ON)
 option(MUNT         "MUNT"                                                       ON)
 option(VNC          "VNC renderer"                                               OFF)
-option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"              OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library" OFF)
 option(GDBSTUB      "Enable GDB stub server for debugging"                       OFF)
 option(DEV_BRANCH   "Development branch"                                         OFF)
 option(DISCORD      "Discord Rich Presence support"                              ON)
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
+
+if((ARCH STREQUAL "arm64") OR (ARCH STREQUAL "arm"))
+    set(NEW_DYNAREC ON)
+else()
+    option(NEW_DYNAREC "Use the PCem v15 (\"new\") dynamic recompiler" OFF)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
+    option(AUDIO4 "Use audio(4) as sound backend" ON)
+else()
+    set(AUDIO4 OFF)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+    option(SNDIO "Use sndio as sound backend" ON)
+else()
+    set(SNDIO OFF)
+endif()
 
 if(WIN32)
     set(QT ON)
@@ -158,7 +175,6 @@ endif()
 cmake_dependent_option(AMD_K5         "AMD K5"                                      ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(AN430TX        "Intel AN430TX"                               ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(CDROM_MITSUMI  "Mitsumi CDROM"                               ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(CYRIX_6X86     "Cyrix 6x86"                                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(G100           "Matrox Productiva G100"                      ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(GENERIC_INTEL  "Generic Intel CPU type"                      ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(GUSMAX         "Gravis UltraSound MAX"                       ON      "DEV_BRANCH"    OFF)

@@ -103,15 +103,20 @@ typedef const struct {
 
 static fdc_cards_t fdc_cards[] = {
     // clang-format off
-    { &device_none        },
-    { &device_internal    },
-    { &fdc_xt_device      },
-    { &fdc_at_device      },
-    { &fdc_b215_device    },
-    { &fdc_pii151b_device },
-    { &fdc_pii158b_device },
-    { &fdc_monster_device },
-    { NULL                }
+    { &device_none               },
+    { &device_internal           },
+    { &fdc_xt_device             },
+    { &fdc_at_device             },
+    { &fdc_b215_device           },
+    { &fdc_pii151b_device        },
+    { &fdc_pii158b_device        },
+    { &fdc_compaticard_i_device  },
+    { &fdc_compaticard_ii_device },
+#if 0
+    { &fdc_compaticard_iv_device },
+#endif
+    { &fdc_monster_device        },
+    { NULL                       }
     // clang-format on
 };
 
@@ -737,6 +742,18 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 drive = real_drive(fdc, fdc->dor & 3);
                 fdc_update_rwc(fdc, drive, (val & 0x30) >> 4);
             }
+            /* Bit 2: FIFO test mode (PS/55 5550-S,T only. Undocumented) 
+               The Power-on Self Test of PS/55 writes and verifies 8 bytes of FIFO buffer through I/O 3F5h.
+               If it fails, then floppy drives will be treated as DD drives. */
+            if (fdc->flags & FDC_FLAG_PS2_MCA) {
+                if (val & 0x04) {
+                    fdc->tfifo      = 8;
+                    fdc->fifointest = 1;
+                } else {
+                    fdc->tfifo      = 1;
+                    fdc->fifointest = 0;
+                }
+            }
             return;
         case 4: /* DSR */
             if (!(fdc->flags & FDC_FLAG_NO_DSR_RESET)) {
@@ -750,6 +767,14 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             fdc->dsr = val;
             return;
         case 5: /*Command register*/
+            if (fdc->fifointest) {
+                /* Write FIFO buffer in the test mode (PS/55) */
+                fdc_log("FIFO buffer position = %X\n", ((fifo_t *) fdc->fifo_p)->end);
+                fifo_write(val, fdc->fifo_p);
+                if (fifo_get_full(fdc->fifo_p))
+                    fdc->stat &= ~0x80;
+                break;
+            }
             if ((fdc->stat & 0xf0) == 0xb0) {
                 if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
                     fdc->dat = val;
@@ -1332,6 +1357,7 @@ fdc_read(uint16_t addr, void *priv)
                     ret = 0x10;
                 else
                     ret = 0x00;
+                /* PS/55 POST throws an error and halt if ret = 1 or 2, somehow. */
             } else if (!fdc->enh_mode)
                 ret = 0x20;
             else
@@ -1341,6 +1367,11 @@ fdc_read(uint16_t addr, void *priv)
             ret = fdc->stat;
             break;
         case 5: /*Data*/
+            if (fdc->fifointest) {
+                /* Read FIFO buffer in the test mode (PS/55) */
+                ret = fifo_read(fdc->fifo_p);
+                break;
+            }
             if ((fdc->stat & 0xf0) == 0xf0) {
                 fdc->stat &= ~0x80;
                 if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
@@ -2246,6 +2277,7 @@ fdc_reset(void *priv)
 
     fdc->fifo  = 0;
     fdc->tfifo = 1;
+    fdc->fifointest = 0;
 
     if (fdc->flags & FDC_FLAG_PCJR) {
         fdc->dma        = 0;
@@ -2311,8 +2343,7 @@ fdc_close(void *priv)
 static void *
 fdc_init(const device_t *info)
 {
-    fdc_t *fdc = (fdc_t *) malloc(sizeof(fdc_t));
-    memset(fdc, 0, sizeof(fdc_t));
+    fdc_t *fdc = (fdc_t *) calloc(1, sizeof(fdc_t));
 
     fdc->flags = info->local;
 
@@ -2368,7 +2399,7 @@ const device_t fdc_xt_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2382,7 +2413,7 @@ const device_t fdc_xt_sec_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2396,7 +2427,7 @@ const device_t fdc_xt_ter_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2410,7 +2441,7 @@ const device_t fdc_xt_qua_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2424,7 +2455,7 @@ const device_t fdc_xt_t1x00_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2438,7 +2469,7 @@ const device_t fdc_xt_amstrad_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2452,7 +2483,7 @@ const device_t fdc_xt_tandy_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2466,7 +2497,7 @@ const device_t fdc_xt_umc_um8398_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2480,7 +2511,7 @@ const device_t fdc_pcjr_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2494,7 +2525,7 @@ const device_t fdc_at_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2508,7 +2539,7 @@ const device_t fdc_at_sec_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2522,7 +2553,7 @@ const device_t fdc_at_ter_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2536,7 +2567,7 @@ const device_t fdc_at_qua_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2550,7 +2581,7 @@ const device_t fdc_at_actlow_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2564,7 +2595,7 @@ const device_t fdc_at_smc_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2578,7 +2609,7 @@ const device_t fdc_at_ali_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2592,7 +2623,7 @@ const device_t fdc_at_winbond_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2606,7 +2637,7 @@ const device_t fdc_at_nsc_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2620,7 +2651,7 @@ const device_t fdc_at_nsc_dp8473_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2635,7 +2666,7 @@ const device_t fdc_ps2_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2650,7 +2681,7 @@ const device_t fdc_ps2_mca_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

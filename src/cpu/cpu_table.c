@@ -263,6 +263,50 @@ const cpu_family_t cpu_families[] = {
         }
     },
     {
+        .package       = CPU_PKG_8088_VTECH,
+        .manufacturer  = "Intel",
+        .name          = "8088",
+        .internal_name = "8088_vtech",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "4.77",
+                .cpu_type           = CPU_8088,
+                .fpus               = fpus_8088,
+                .rspeed             = 4772728,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
+            },
+
+            {
+                .name               = "10",
+                .cpu_type           = CPU_8088,
+                .fpus               = fpus_8088,
+                .rspeed             = 10000000,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
         .package       = CPU_PKG_8086,
         .manufacturer  = "Intel",
         .name          = "8086",
@@ -369,6 +413,75 @@ const cpu_family_t cpu_families[] = {
                 .cache_read_cycles  = 0,
                 .cache_write_cycles = 0,
                 .atclk_div          = 2
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
+        .package       = CPU_PKG_8086_MAZOVIA,
+        .manufacturer  = "Kyiv Research Institute of Microdevices",
+        .name          = "K1810VM86",
+        .internal_name = "8086_mazovia",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "4.77",
+                .cpu_type           = CPU_8086_MAZOVIA,
+                .fpus               = fpus_8088,
+                .rspeed             = 4772728,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = CPU_ALTERNATE_XTAL,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
+        .package       = CPU_PKG_8086_VTECH,
+        .manufacturer  = "Intel",
+        .name          = "8086",
+        .internal_name = "8086_vtech",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "4.77",
+                .cpu_type           = CPU_8086,
+                .fpus               = fpus_8088,
+                .rspeed             = 4772728,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
+            },
+            {
+                .name               = "10",
+                .cpu_type           = CPU_8086,
+                .fpus               = fpus_8088,
+                .rspeed             = 10000000,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
             },
             { .name = "", 0 }
         }
@@ -6044,8 +6157,7 @@ const cpu_family_t cpu_families[] = {
         }
     },
 #endif
-#ifdef USE_CYRIX_6X86
-    {
+        {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "Cyrix",
         .name          = "Cx6x86",
@@ -6317,6 +6429,74 @@ const cpu_family_t cpu_families[] = {
         .internal_name = "mii",
         .cpus          = (const CPU[]) {
             {
+                .name               = "IBM 133 (PR166)",
+                .cpu_type           = CPU_Cx6x86MX,
+                .fpus               = fpus_internal,
+                .rspeed             = 133333333,
+                .multi              = 2.0,
+                .voltage            = 2900,
+                .edx_reset          = 0x601,
+                .cpuid_model        = 0x601,
+                .cyrix_id           = 0x0851,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 12,
+                .mem_write_cycles   = 12,
+                .cache_read_cycles  = 6,
+                .cache_write_cycles = 6,
+                .atclk_div          = 16
+            },
+            {
+                .name               = "166 (PR200)",
+                .cpu_type           = CPU_Cx6x86MX,
+                .fpus               = fpus_internal,
+                .rspeed             = 166666666,
+                .multi              = 2.5,
+                .voltage            = 2900,
+                .edx_reset          = 0x601,
+                .cpuid_model        = 0x601,
+                .cyrix_id           = 0x0852,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 15,
+                .mem_write_cycles   = 15,
+                .cache_read_cycles  = 7,
+                .cache_write_cycles = 7,
+                .atclk_div          = 20
+            },
+            {
+                .name               = "187.5 (PR233)",
+                .cpu_type           = CPU_Cx6x86MX,
+                .fpus               = fpus_internal,
+                .rspeed             = 187500000,
+                .multi              = 2.5,
+                .voltage            = 2900,
+                .edx_reset          = 0x601,
+                .cpuid_model        = 0x601,
+                .cyrix_id           = 0x0852,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 15,
+                .mem_write_cycles   = 15,
+                .cache_read_cycles  = 7,
+                .cache_write_cycles = 7,
+                .atclk_div          = 45/2
+            },
+            {
+                .name               = "208.3 (PR266)",
+                .cpu_type           = CPU_Cx6x86MX,
+                .fpus               = fpus_internal,
+                .rspeed             = 208333333,
+                .multi              = 2.5,
+                .voltage            = 2700,
+                .edx_reset          = 0x601,
+                .cpuid_model        = 0x601,
+                .cyrix_id           = 0x0852,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 17,
+                .mem_write_cycles   = 17,
+                .cache_read_cycles  = 7,
+                .cache_write_cycles = 7,
+                .atclk_div          = 25
+            },
+            {
                 .name               = "233 (PR300)",
                 .cpu_type           = CPU_Cx6x86MX,
                 .fpus               = fpus_internal,
@@ -6325,7 +6505,7 @@ const cpu_family_t cpu_families[] = {
                 .voltage            = 2900,
                 .edx_reset          = 0x601,
                 .cpuid_model        = 0x601,
-                .cyrix_id           = 0x0852,
+                .cyrix_id           = 0x0854,
                 .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
                 .mem_read_cycles    = 21,
                 .mem_write_cycles   = 21,
@@ -6359,13 +6539,30 @@ const cpu_family_t cpu_families[] = {
                 .voltage            = 2900,
                 .edx_reset          = 0x601,
                 .cpuid_model        = 0x601,
-                .cyrix_id           = 0x0853,
+                .cyrix_id           = 0x0852,
                 .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
                 .mem_read_cycles    = 23,
                 .mem_write_cycles   = 23,
                 .cache_read_cycles  = 7,
                 .cache_write_cycles = 7,
                 .atclk_div          = 30
+            },
+            {
+                .name               = "270 (PR350)",
+                .cpu_type           = CPU_Cx6x86MX,
+                .fpus               = fpus_internal,
+                .rspeed             = 270000000,
+                .multi              = 3.0,
+                .voltage            = 2900,
+                .edx_reset          = 0x601,
+                .cpuid_model        = 0x601,
+                .cyrix_id           = 0x0853,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 25,
+                .mem_write_cycles   = 25,
+                .cache_read_cycles  = 8,
+                .cache_write_cycles = 8,
+                .atclk_div          = 32
             },
             {
                 .name               = "285 (PR400)",
@@ -6404,7 +6601,6 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
-#endif /* USE_CYRIX_6X86 */
     {
         .package       = CPU_PKG_SOCKET8,
         .manufacturer  = "Intel",
@@ -10487,6 +10683,32 @@ const cpu_family_t cpu_families[] = {
         }
     },
 //#ifdef USE_GENERICINTEL
+#ifdef USE_NEW_DYNAREC
+    {
+        .package       = CPU_PKG_SOCKET370 | CPU_PKG_SLOT1 | CPU_PKG_SLOT2,
+        .manufacturer  = "Intel",
+        .name          = "Generic",
+        .internal_name = "generic_intel",
+        .cpus          = (const CPU[]) {
+            { "100",  CPU_GENERICINTEL, fpus_internal,  100000000,  1.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC,  9,  9,  3,  3, 12 },
+            { "200",  CPU_GENERICINTEL, fpus_internal,  200000000,  2.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 18, 18,  9,  9, 24 },
+            { "300",  CPU_GENERICINTEL, fpus_internal,  300000000,  3.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 27, 27,  9,  9, 36 },
+            { "400",  CPU_GENERICINTEL, fpus_internal,  400000000,  4.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 36, 36, 12, 12, 48 },
+            { "500",  CPU_GENERICINTEL, fpus_internal,  500000000,  5.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 45, 45, 15, 15, 60 },
+            { "600",  CPU_GENERICINTEL, fpus_internal,  600000000,  6.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 54, 54, 18, 18, 72 },
+            { "700",  CPU_GENERICINTEL, fpus_internal,  700000000,  7.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 63, 63, 21, 21, 84 },
+            { "800",  CPU_GENERICINTEL, fpus_internal,  800000000,  8.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 72, 72, 24, 24, 96 },
+            { "900",  CPU_GENERICINTEL, fpus_internal,  900000000,  9.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 81, 81, 27, 27, 108 },
+            { "1000", CPU_GENERICINTEL, fpus_internal, 1000000000, 10.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 90, 90, 30, 30, 120 },
+            { "1100", CPU_GENERICINTEL, fpus_internal, 1100000000, 11.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 99, 99, 33, 33, 132 },
+            { "1200", CPU_GENERICINTEL, fpus_internal, 1200000000, 12.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 108, 108, 36, 36, 144 },
+            { "1300", CPU_GENERICINTEL, fpus_internal, 1300000000, 13.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 117, 117, 39, 39, 156 },
+            { "1400", CPU_GENERICINTEL, fpus_internal, 1400000000, 14.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 126, 126, 42, 42, 168 },
+            { "1500", CPU_GENERICINTEL, fpus_internal, 1500000000, 15.0, 1800, 0x6B4, 0x6B4, 0, CPU_SUPPORTS_DYNAREC, 135, 135, 45, 45, 180 },
+            { .name = "", 0 }
+        }
+    },
+#else
     {
         .package       = CPU_PKG_SOCKET370 | CPU_PKG_SLOT1 | CPU_PKG_SLOT2,
         .manufacturer  = "Intel",
@@ -10511,6 +10733,7 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
+#endif
 //#endif
     { .package = 0, 0 }
   // clang-format on

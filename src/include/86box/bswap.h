@@ -40,6 +40,7 @@
 
 #include <stdint.h>
 
+#ifndef __NetBSD__
 #define bswap_16(x)					\
 	((uint16_t)((((x) & 0x00ffu) << 8) |		\
 		    (((x) & 0xff00u) >> 8)))
@@ -59,8 +60,6 @@
 		    (((x) & 0x0000ff0000000000ull) >> 24) |		\
 		    (((x) & 0x00ff000000000000ull) >> 40) |		\
 		    (((x) & 0xff00000000000000ull) >> 56)))
-
-#ifndef __NetBSD__
 
 static __inline uint16_t
 bswap16(uint16_t x)
@@ -134,12 +133,12 @@ bswap64s(uint64_t *s)
         return endian##_bswap(v, size);                            \
     }                                                              \
                                                                    \
-    static __inline void endian##size##_to_cpus(type *p)           \
+    static __inline void endian##size##_to_cpus(UNUSED(type *p))   \
     {                                                              \
         endian##_bswaps(p, size)                                   \
     }                                                              \
                                                                    \
-    static __inline void cpu_to_##endian##size##s(type *p)         \
+    static __inline void cpu_to_##endian##size##s(UNUSED(type *p)) \
     {                                                              \
         endian##_bswaps(p, size)                                   \
     }                                                              \

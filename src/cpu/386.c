@@ -29,6 +29,7 @@
 #include <86box/plat_fallthrough.h>
 #include <86box/device.h>
 #include <86box/apic.h>
+#include <86box/plat_unused.h>
 #include <86box/gdbstub.h>
 #ifndef OPS_286_386
 #    define OPS_286_386
@@ -265,17 +266,20 @@ exec386_2386(int32_t cycs)
             ol = opcode_length[fetchdat & 0xff];
             if ((ol == 3) && opcode_has_modrm[fetchdat & 0xff] && (((fetchdat >> 14) & 0x03) == 0x03))
                 ol = 2;
-            if (cpu_16bitbus) {
+
+            if (is386)
+                ins_fetch_fault = cpu_386_check_instruction_fault();
+
+            /* Breakpoint fault has priority over other faults. */
+            if ((cpu_state.abrt == 0) & ins_fetch_fault) {
+                x86gen();
+                ins_fetch_fault = 0;
+                /* No instructions executed at this point. */
+                goto block_ended;
+            } else if (cpu_16bitbus) {
                 CHECK_READ_CS(MIN(ol, 2));
             } else {
                 CHECK_READ_CS(MIN(ol, 4));
-            }
-            ins_fetch_fault = cpu_386_check_instruction_fault();
-
-            /* Breakpoint fault has priority over other faults. */
-            if (ins_fetch_fault) {
-                ins_fetch_fault = 0;
-                cpu_state.abrt = 1;
             }
 
             if (!cpu_state.abrt) {
@@ -288,11 +292,10 @@ exec386_2386(int32_t cycs)
                 trap |= !!(cpu_state.flags & T_FLAG);
 
                 cpu_state.pc++;
-                cpu_state.eflags &= ~(RF_FLAG);
                 if (opcode == 0xf0)
                     in_lock = 1;
                 x86_2386_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
-                sse_xmm = 0;
+                cpu_state.sse_xmm = 0;
                 in_lock = 0;
                 if (x86_was_reset)
                     break;
@@ -317,6 +320,7 @@ exec386_2386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
+block_ended:
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
@@ -339,6 +343,17 @@ exec386_2386(int32_t cycs)
 #endif
                     }
                 }
+
+                if (is386 && !x86_was_reset  && ins_fetch_fault)
+                    x86gen();
+            } else if (new_ne) {
+                flags_rebuild();
+                new_ne = 0;
+#ifndef USE_NEW_DYNAREC
+                oldcs = CS;
+#endif
+                cpu_state.oldpc = cpu_state.pc;
+                x86_int(16);
             } else if (trap) {
                 flags_rebuild();
                 if (trap & 2) dr[6] |= 0x8000;

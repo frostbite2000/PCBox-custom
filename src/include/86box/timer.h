@@ -1,9 +1,7 @@
 #ifndef _TIMER_H_
 #define _TIMER_H_
 
-#ifndef EMU_CPU_H
-#include "cpu.h"
-#endif
+extern uint64_t tsc;
 
 /* Maximum period, currently 1 second. */
 #define MAX_USEC64    1000000ULL

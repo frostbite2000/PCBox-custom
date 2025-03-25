@@ -8,17 +8,22 @@
  *
  *          Main include file for the application.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2021 Laci bá'
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
+
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+/* Doesn't compile on NetBSD/OpenBSD without this include */
+#include <stdarg.h>
+#endif
 
 /* Configuration values. */
 #define GFXCARD_MAX  2
@@ -33,7 +38,7 @@
 #define SCREENSHOT_PATH "screenshots"
 
 /* Recently used images */
-#define MAX_PREV_IMAGES    4
+#define MAX_PREV_IMAGES    10
 #define MAX_IMAGE_PATH_LEN 2048
 
 /* Max UUID Length */
@@ -107,6 +112,7 @@ extern uint64_t instru_run_ms;
 #define window_y monitor_settings[0].mon_window_y
 #define window_w monitor_settings[0].mon_window_w
 #define window_h monitor_settings[0].mon_window_h
+extern int      inhibit_multimedia_keys;    /* (C) Inhibit multimedia keys on Windows. */
 extern int      window_remember;
 extern int      vid_resize;                 /* (C) allow resizing */
 extern int      invert_display;             /* (C) invert the display */
@@ -126,17 +132,18 @@ extern int      video_filter_method;        /* (C) video */
 extern int      video_vsync;                /* (C) video */
 extern int      video_framerate;            /* (C) video */
 extern int      gfxcard[GFXCARD_MAX];       /* (C) graphics/video card */
-extern char     video_shader[512];          /* (C) video */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
 extern int      unittester_enabled;         /* (C) enable unit tester device */
+extern int      gameport_type[];            /* (C) enable gameports */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */
 extern int      sound_is_float;             /* (C) sound uses FP values */
 extern int      voodoo_enabled;             /* (C) video option */
 extern int      ibm8514_standalone_enabled; /* (C) video option */
 extern int      xga_standalone_enabled;     /* (C) video option */
+extern int      da2_standalone_enabled;     /* (C) video option */
 extern uint32_t mem_size;                   /* (C) memory size (Installed on system board) */
 extern uint32_t isa_mem_size;               /* (C) memory size (ISA Memory Cards) */
 extern int      cpu;                        /* (C) cpu type */
@@ -156,6 +163,7 @@ extern int      other_scsi_present;         /* SCSI controllers from non-SCSI ca
 extern int    hard_reset_pending;
 extern int    fixed_size_x;
 extern int    fixed_size_y;
+extern int    sound_muted;                  /* (C) Is sound muted? */
 extern int    do_auto_pause;                /* (C) Auto-pause the emulator on focus loss */
 extern int    auto_paused;
 extern double mouse_sensitivity;            /* (C) Mouse sensitivity scale */
@@ -165,6 +173,7 @@ extern _Atomic double mouse_y_error;        /* Mouse error accumulator - Y */
 #endif
 extern int    pit_mode;                     /* (C) force setting PIT mode */
 extern int    fm_driver;                    /* (C) select FM sound driver */
+extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 
 /* Keyboard variables for future key combination redefinition. */
 extern uint16_t key_prefix_1_1;
@@ -184,14 +193,18 @@ extern FILE *stdlog; /* file to log output to */
 #endif
 extern int config_changed; /* config has changed */
 
+extern __thread int is_cpu_thread; /* Is this the CPU thread? */
+
 /* Function prototypes. */
 #ifdef HAVE_STDARG_H
-extern void pclog_ex(const char *fmt, va_list);
-extern void fatal_ex(const char *fmt, va_list);
+extern void pclog_ex(const char *fmt, va_list ap);
+extern void fatal_ex(const char *fmt, va_list ap);
+extern void warning_ex(const char *fmt, va_list ap);
 #endif
 extern void pclog_toggle_suppr(void);
 extern void pclog(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void fatal(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+extern void warning(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void set_screen_size(int x, int y);
 extern void set_screen_size_monitor(int x, int y, int monitor_index);
 extern void reset_screen_size(void);

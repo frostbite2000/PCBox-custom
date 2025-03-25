@@ -232,12 +232,12 @@ ioapic_i82093aa_close(void *priv)
 const device_t i82093aa_ioapic_device = {
     .name          = "Intel 82093AA I/O Advanced Programmable Interrupt Controller",
     .internal_name = "ioapic_82093aa",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = ioapic_i82093aa_init,
     .close         = ioapic_i82093aa_close,
     .reset         = (void (*)(void*))ioapic_i82093aa_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

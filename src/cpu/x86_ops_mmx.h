@@ -23,7 +23,7 @@
 
 #define SSE_GETSRC()                                      \
     if (cpu_mod == 3) {                                   \
-        src = cpu_state_high.XMM[cpu_rm];                                \
+        src = cpu_state.XMM[cpu_rm];                                \
         CLOCK_CYCLES(1);                                  \
     } else {                                              \
         SEG_CHECK_READ(cpu_state.ea_seg);                 \
@@ -48,8 +48,14 @@
     }                                        \
     x87_set_mmx()
 
+#define SSE_ENTER()  \
+    if (cr0 & 0x8) { \
+        x86_int(7);  \
+        return 1;    \
+    }
+
 static int
-opEMMS(uint32_t fetchdat)
+opEMMS(UNUSED(uint32_t fetchdat))
 {
     if (!cpu_has_feature(CPU_FEATURE_MMX)) {
         cpu_state.pc = cpu_state.oldpc;
@@ -69,15 +75,15 @@ static struct softfloat_status_t mxcsr_to_softfloat_status_word(void)
 {
     struct softfloat_status_t status;
     status.softfloat_exceptionFlags             = 0; // clear exceptions before execution
-    status.softfloat_roundingMode               = (cpu_state_high.mxcsr >> 13) & 3;
-    status.softfloat_flush_underflow_to_zero    = (cpu_state_high.mxcsr >> 15) & 1;
+    status.softfloat_roundingMode               = (cpu_state.mxcsr >> 13) & 3;
+    status.softfloat_flush_underflow_to_zero    = (cpu_state.mxcsr >> 15) & 1;
     status.softfloat_suppressException          = 0;
-    status.softfloat_exceptionMasks             = (cpu_state_high.mxcsr >> 7) & 0x3f;
-    status.softfloat_denormals_are_zeros        = (cpu_state_high.mxcsr >> 6) & 1;
+    status.softfloat_exceptionMasks             = (cpu_state.mxcsr >> 7) & 0x3f;
+    status.softfloat_denormals_are_zeros        = (cpu_state.mxcsr >> 6) & 1;
     return status;
 }
 
 static void softfloat_status_word_to_mxcsr(struct softfloat_status_t status)
 {
-    cpu_state_high.mxcsr |= status.softfloat_exceptionFlags & 0x3f;
+    cpu_state.mxcsr |= status.softfloat_exceptionFlags & 0x3f;
 }

@@ -138,6 +138,7 @@ typedef struct ibm8514_t {
         int      output2;
 
         int      ssv_len;
+        int      ssv_len_back;
         uint8_t  ssv_dir;
         uint8_t  ssv_draw;
         int      odd_in;
@@ -212,7 +213,7 @@ typedef struct ibm8514_t {
     int     vdisp2;
     int     disp_cntl;
     int     interlace;
-    uint8_t subsys_cntl;
+    uint16_t subsys_cntl;
     uint8_t subsys_stat;
 
     atomic_int fifo_idx;

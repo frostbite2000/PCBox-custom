@@ -125,7 +125,7 @@ add_to_block_list(codeblock_t *block)
 }
 
 static void
-remove_from_block_list(codeblock_t *block, uint32_t pc)
+remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
 {
     if (!block->page_mask)
         return;
@@ -501,12 +501,12 @@ int opcode_0f_modrm[256] = {
     1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 1, 0, 1, /*00*/
     1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*10*/
     1, 1, 1, 1,  1, 1, 0, 0,  1, 1, 1, 1,  1, 1, 1, 1, /*20*/
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 1, /*30*/
+    0, 0, 0, 0,  0, 0, 1, 1,  0, 0, 0, 0,  0, 0, 0, 1, /*30*/
 
     1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*40*/
     1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*50*/
     1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*60*/
-    1, 1, 1, 1,  1, 1, 1, 0,  0, 0, 0, 0,  0, 0, 1, 1, /*70*/
+    1, 1, 1, 1,  1, 1, 1, 0,  1, 1, 1, 1,  1, 1, 1, 1, /*70*/
 
     0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*80*/
     1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*90*/
@@ -819,6 +819,8 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          pc_off          = 0;
     int          test_modrm      = 1;
     int          c;
+    int is_repe = 0;
+    int is_repne = 0;
 
     op_ea_seg = &cpu_state.seg_ds;
     op_ssegs  = 0;

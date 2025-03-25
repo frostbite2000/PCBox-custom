@@ -23,6 +23,7 @@
 #include <stdatomic.h>
 #include <86box/86box.h>
 #include <86box/io.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
@@ -427,8 +428,7 @@ enum {
     DMA_STATE_SEC
 };
 
-typedef struct
-{
+typedef struct {
     uint32_t addr_type;
     uint32_t val;
 } fifo_entry_t;
@@ -484,13 +484,11 @@ typedef struct mystique_t {
 
     event_t *wake_fifo_thread, *fifo_not_full_event;
 
-    struct
-    {
+    struct {
         int m, n, p, s;
     } xpixpll[3];
 
-    struct
-    {
+    struct {
         uint8_t funcnt : 7, stylelen,
             dmamod;
 
@@ -521,27 +519,23 @@ typedef struct mystique_t {
 
         uint64_t extended_dr[4];
 
-        struct
-        {
+        struct {
             int sdydxl, scanleft, sdxl, sdy,
                 sdxr;
         } sgn;
     } dwgreg;
 
-    struct
-    {
+    struct {
         uint8_t r, g, b;
     } lut[256];
 
-    struct
-    {
+    struct {
         uint16_t pos_x, pos_y,
             addr;
         uint32_t col[3];
     } cursor;
 
-    struct
-    {
+    struct {
         atomic_int pri_state, sec_state, iload_state, state;
 
         atomic_uint primaddress, primend, secaddress, secend,
@@ -4684,6 +4678,7 @@ blit_trap(mystique_t *mystique)
     int       err_l = (int32_t)mystique->dwgreg.ar[1];
     int       err_r = (int32_t)mystique->dwgreg.ar[4];
     const int trans_sel = (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANS_MASK) >> DWGCTRL_TRANS_SHIFT;
+    bool transc = !!(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC);
 
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK) {
         case DWGCTRL_ATYPE_BLK:
@@ -4706,6 +4701,7 @@ blit_trap(mystique_t *mystique)
                         int      pattern = mystique->dwgreg.pattern[yoff][xoff];
                         uint32_t dst;
 
+                        if (!transc || (transc && pattern))
                         switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
                             case MACCESS_PWIDTH_8:
                                 svga->vram[(mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask]                = (pattern ? mystique->dwgreg.fcol : mystique->dwgreg.bcol) & 0xff;
@@ -4777,6 +4773,7 @@ blit_trap(mystique_t *mystique)
                         uint32_t dst;
                         uint32_t old_dst;
 
+                        if (!transc || (transc && pattern))
                         switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
                             case MACCESS_PWIDTH_8:
                                 dst = svga->vram[(mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask];
@@ -5558,6 +5555,7 @@ blit_bitblt(mystique_t *mystique)
                                 mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
                                 mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
                                 src_addr = mystique->dwgreg.ar[3];
+                                break;
                             } else
                                 src_addr += x_dir;
 
@@ -5670,6 +5668,7 @@ blit_bitblt(mystique_t *mystique)
                                 mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
                                 mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
                                 src_addr = mystique->dwgreg.ar[3];
+                                break;
                             } else
                                 src_addr += x_dir;
 
@@ -5756,6 +5755,7 @@ blit_bitblt(mystique_t *mystique)
                                 mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
                                 mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
                                 src_addr = mystique->dwgreg.ar[3];
+                                break;
                             } else
                                 src_addr += x_dir;
 
@@ -5852,6 +5852,7 @@ blit_bitblt(mystique_t *mystique)
                                 mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
                                 mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
                                 src_addr = mystique->dwgreg.ar[3];
+                                break;
                             } else
                                 src_addr += x_dir;
 
@@ -6170,7 +6171,7 @@ mystique_hwcursor_draw(svga_t *svga, int displine)
 }
 
 static uint8_t
-mystique_tvp3026_gpio_read(uint8_t cntl, void *priv)
+mystique_tvp3026_gpio_read(UNUSED(uint8_t cntl), void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
 
@@ -6521,6 +6522,7 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             mystique->pci_regs[addr] = val;
             if (addr == 0x30)
                 mystique->pci_regs[addr] &= 1;
+
             if (mystique->pci_regs[0x30] & 0x01) {
                 uint32_t biosaddr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
                 mem_mapping_set_addr(&mystique->bios_rom.mapping, biosaddr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
@@ -6533,26 +6535,24 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             return;
 
         case 0x40:
-            mystique->pci_regs[addr] = val & 0x3f;
+            mystique->pci_regs[0x40] = val & 0x3f;
             break;
         case 0x41:
-            mystique->pci_regs[addr] = val;
+            mystique->pci_regs[0x41] = val;
             break;
         case 0x42:
-            mystique->pci_regs[addr] = val & 0x1f;
+            mystique->pci_regs[0x42] = val & 0x1f;
             break;
         case 0x43:
-            mystique->pci_regs[addr] = val;
-            if (addr == 0x43) {
-                if (val & 0x40) {
-                    if (mystique->pci_regs[0x30] & 0x01) {
-                        uint32_t biosaddr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
-                        mem_mapping_set_addr(&mystique->bios_rom.mapping, biosaddr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
-                    } else
-                        mem_mapping_disable(&mystique->bios_rom.mapping);
+            mystique->pci_regs[0x43] = val;
+            if (val & 0x40) {
+                if (mystique->pci_regs[0x30] & 0x01) {
+                    uint32_t biosaddr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
+                    mem_mapping_set_addr(&mystique->bios_rom.mapping, biosaddr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
                 } else
-                    mem_mapping_set_addr(&mystique->bios_rom.mapping, 0x000c0000, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
-            }
+                    mem_mapping_disable(&mystique->bios_rom.mapping);
+            } else
+                mem_mapping_set_addr(&mystique->bios_rom.mapping, 0x000c0000, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
             break;
 
         case 0x4c:
@@ -6580,17 +6580,17 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             mystique_ctrl_write_b(addr, val, mystique);
             break;
 
-            case 0xf8:
-                mystique->pci_regs[0xf8] = val & 0x7;
-                break;
+        case 0xf8:
+            mystique->pci_regs[0xf8] = val & 0x7;
+            break;
 
-            case 0xf9:
-                mystique->pci_regs[0xf9] = val & 0x3;
-                break;
+        case 0xf9:
+            mystique->pci_regs[0xf9] = val & 0x3;
+            break;
 
-            case 0xfb:
-                mystique->pci_regs[0xfb] = val;
-                break;
+        case 0xfb:
+            mystique->pci_regs[0xfb] = val;
+            break;
 
         default:
             break;
@@ -6677,6 +6677,7 @@ mystique_init(const device_t *info)
         mystique->svga.conv_16to32       = tvp3026_conv_16to32;
         if (mystique->type == MGA_2164W)
             mystique->svga.decode_mask = 0xffffff;
+
         tvp3026_gpio(mystique_tvp3026_gpio_read, mystique_tvp3026_gpio_write, mystique, mystique->svga.ramdac);
     } else {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_matrox_mystique);
@@ -6848,64 +6849,44 @@ mystique_force_redraw(void *priv)
 static const device_config_t mystique_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .selection =
-        {
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = ""
-            }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
         },
-        .default_int = 8
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
 static const device_config_t millennium_ii_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .selection =
-        {
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = "16 MB",
-                .value = 16
-            },
-            {
-                .description = ""
-            }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "4 MB", .value =  4 },
+            { .description =  "8 MB", .value =  8 },
+            { .description = "16 MB", .value = 16 },
+            { .description = ""                   }
         },
-        .default_int = 8
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -6917,7 +6898,7 @@ const device_t millennium_device = {
     .init          = mystique_init,
     .close         = mystique_close,
     .reset         = NULL,
-    { .available = millennium_available },
+    .available     = millennium_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = mystique_config
@@ -6931,7 +6912,7 @@ const device_t mystique_device = {
     .init          = mystique_init,
     .close         = mystique_close,
     .reset         = NULL,
-    { .available = mystique_available },
+    .available     = mystique_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = mystique_config
@@ -6945,7 +6926,7 @@ const device_t mystique_220_device = {
     .init          = mystique_init,
     .close         = mystique_close,
     .reset         = NULL,
-    { .available = mystique_220_available },
+    .available     = mystique_220_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = mystique_config
@@ -6959,7 +6940,7 @@ const device_t millennium_ii_device = {
     .init          = mystique_init,
     .close         = mystique_close,
     .reset         = NULL,
-    { .available = millennium_ii_available },
+    .available     = millennium_ii_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = millennium_ii_config
@@ -6974,7 +6955,7 @@ const device_t productiva_g100_device = {
     .init          = mystique_init,
     .close         = mystique_close,
     .reset         = NULL,
-    { .available = matrox_g100_available },
+    .available     = matrox_g100_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = millennium_ii_config

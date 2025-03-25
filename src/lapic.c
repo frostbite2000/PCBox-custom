@@ -601,12 +601,12 @@ lapic_speed_changed(void* priv)
 const device_t lapic_device = {
     .name          = "Local Advanced Programmable Interrupt Controller",
     .internal_name = "lapic",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = lapic_init,
     .close         = lapic_close,
     .reset         = (void (*)(void*))lapic_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = lapic_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL

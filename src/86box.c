@@ -11,6 +11,7 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
@@ -18,7 +19,7 @@
  *          Copyright 2021      Laci bá'
  *          Copyright 2021      dob205
  *          Copyright 2021      Andreas J. Reichel.
- *          Copyright 2021-2022 Jasmine Iwanek.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -31,6 +32,7 @@
 #include <wchar.h>
 #include <stdatomic.h>
 #include <unistd.h>
+#include <math.h>
 
 #ifndef _WIN32
 #    include <pwd.h>
@@ -104,6 +106,7 @@
 #include <86box/apm.h>
 #include <86box/acpi.h>
 #include <86box/apic.h>
+#include <86box/nv/vid_nv_rivatimer.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -171,13 +174,13 @@ int      force_43                               = 0;              /* (C) video *
 int      video_filter_method                    = 1;              /* (C) video */
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
-char     video_shader[512]                      = { '\0' };       /* (C) video */
 bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0, 0, 0, 0 }; /* (C) activation and kind of
                                                                                   pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
 int      novell_keycard_enabled                 = 0;              /* (C) enable Novell NetWare 2.x key card emulation. */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
 int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
+int      gameport_type[GAMEPORT_MAX]            = { 0, 0 };       /* (C) enable gameports */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
 int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
 int      gfxcard[GFXCARD_MAX]                   = { 0, 0 };       /* (C) graphics/video card */
@@ -187,6 +190,7 @@ int      voodoo_enabled                         = 0;              /* (C) video o
 int      lba_enhancer_enabled                   = 0;              /* (C) enable Vision Systems LBA Enhancer */
 int      ibm8514_standalone_enabled             = 0;              /* (C) video option */
 int      xga_standalone_enabled                 = 0;              /* (C) video option */
+int      da2_standalone_enabled                 = 0;              /* (C) video option */
 uint32_t mem_size                               = 0;              /* (C) memory size (Installed on
                                                                          system board)*/
 uint32_t isa_mem_size                           = 0;              /* (C) memory size (ISA Memory Cards) */
@@ -207,7 +211,11 @@ int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether
                                                                          also apply when maximized. */
 int      do_auto_pause                          = 0;              /* (C) Auto-pause the emulator on focus
                                                                          loss */
+int      hook_enabled                           = 1;              /* (C) Keyboard hook is enabled */
+int      test_mode                              = 0;              /* (C) Test mode */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
+int      sound_muted                            = 0;              /* (C) Is sound muted? */
+int      inhibit_multimedia_keys;                                 /* (C) Inhibit multimedia keys on Windows. */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
                                                                      present */
@@ -226,6 +234,8 @@ int framecount;
 extern int CPUID;
 extern int output;
 int        atfullspeed;
+
+extern double exp_pow_table[0x800];
 
 char  exe_path[2048]; /* path (dir) of executable */
 char  usr_path[1024]; /* path (dir) of user data */
@@ -246,17 +256,43 @@ int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
 int efscrnsz_y = SCREEN_RES_Y;
 #endif
 
+__thread int is_cpu_thread = 0;
+
 static wchar_t mouse_msg[3][200];
 
 static volatile atomic_int do_pause_ack = 0;
 static volatile atomic_int pause_ack = 0;
 
 #ifndef RELEASE_BUILD
-static char buff[1024];
-static int  seen = 0;
+
+#define LOG_SIZE_BUFFER 1024            /* Log size buffer */
+
+static char buff[LOG_SIZE_BUFFER];
+
+static int seen = 0;
 
 static int suppr_seen = 1;
+
+// Functions only used in this translation unit
+void pclog_ensure_stdlog_open(void);
 #endif
+
+/* 
+    Ensures STDLOG is open for pclog_ex and pclog_ex_cyclic
+*/
+void pclog_ensure_stdlog_open(void)
+{
+#ifndef RELEASE_BUILD
+    if (stdlog == NULL) {
+        if (log_path[0] != '\0') {
+            stdlog = plat_fopen(log_path, "w");
+            if (stdlog == NULL)
+                stdlog = stdout;
+        } else
+            stdlog = stdout;
+    }
+#endif
+}
 
 /*
  * Log something to the logfile or stdout.
@@ -266,22 +302,15 @@ static int suppr_seen = 1;
  * being logged, and catch repeating entries.
  */
 void
-pclog_ex(const char *fmt, va_list ap)
+pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
 {
 #ifndef RELEASE_BUILD
-    char temp[1024];
+    char temp[LOG_SIZE_BUFFER];
 
     if (strcmp(fmt, "") == 0)
         return;
 
-    if (stdlog == NULL) {
-        if (log_path[0] != '\0') {
-            stdlog = plat_fopen(log_path, "w");
-            if (stdlog == NULL)
-                stdlog = stdout;
-        } else
-            stdlog = stdout;
-    }
+    pclog_ensure_stdlog_open();
 
     vsprintf(temp, fmt, ap);
     if (suppr_seen && !strcmp(buff, temp))
@@ -298,6 +327,8 @@ pclog_ex(const char *fmt, va_list ap)
 #endif
 }
 
+
+
 void
 pclog_toggle_suppr(void)
 {
@@ -308,7 +339,7 @@ pclog_toggle_suppr(void)
 
 /* Log something. We only do this in non-release builds. */
 void
-pclog(const char *fmt, ...)
+pclog(UNUSED(const char *fmt), ...)
 {
 #ifndef RELEASE_BUILD
     va_list ap;
@@ -410,6 +441,75 @@ fatal_ex(const char *fmt, va_list ap)
     fflush(stdlog);
 }
 
+/* Log a warning error, and display a UI message without exiting. */
+void
+warning(const char *fmt, ...)
+{
+    char    temp[1024];
+    va_list ap;
+    char   *sp;
+
+    va_start(ap, fmt);
+
+    if (stdlog == NULL) {
+        if (log_path[0] != '\0') {
+            stdlog = plat_fopen(log_path, "w");
+            if (stdlog == NULL)
+                stdlog = stdout;
+        } else
+            stdlog = stdout;
+    }
+
+    vsprintf(temp, fmt, ap);
+    fprintf(stdlog, "%s", temp);
+    fflush(stdlog);
+    va_end(ap);
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL)
+        *sp = '\0';
+
+    do_pause(2);
+
+    ui_msgbox(MBX_ERROR | MBX_ANSI, temp);
+
+    fflush(stdlog);
+
+    do_pause(0);
+}
+
+void
+warning_ex(const char *fmt, va_list ap)
+{
+    char  temp[1024];
+    char *sp;
+
+    if (stdlog == NULL) {
+        if (log_path[0] != '\0') {
+            stdlog = plat_fopen(log_path, "w");
+            if (stdlog == NULL)
+                stdlog = stdout;
+        } else
+            stdlog = stdout;
+    }
+
+    vsprintf(temp, fmt, ap);
+    fprintf(stdlog, "%s", temp);
+    fflush(stdlog);
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL)
+        *sp = '\0';
+
+    do_pause(2);
+
+    ui_msgbox(MBX_ERROR | MBX_ANSI, temp);
+
+    fflush(stdlog);
+
+    do_pause(0);
+}
+
 #ifdef ENABLE_PC_LOG
 int pc_do_log = ENABLE_PC_LOG;
 
@@ -435,7 +535,7 @@ delete_nvr_file(uint8_t flash)
     int c;
 
     /* Set up the NVR file's name. */
-    c       = strlen(machine_get_internal_name()) + 5;
+    c       = strlen(machine_get_nvr_name()) + 5;
     fn      = (char *) malloc(c + 1);
 
     if (fn == NULL)
@@ -443,15 +543,17 @@ delete_nvr_file(uint8_t flash)
               flash ? "BIOS flash" : "CMOS");
 
     if (flash)
-        sprintf(fn, "%s.bin", machine_get_internal_name());
+        sprintf(fn, "%s.bin", machine_get_nvr_name());
     else
-        sprintf(fn, "%s.nvr", machine_get_internal_name());
+        sprintf(fn, "%s.nvr", machine_get_nvr_name());
 
     remove(nvr_path(fn));
 
     free(fn);
     fn = NULL;
 }
+
+extern void  device_find_all_descs(void);
 
 /*
  * Perform initial startup of the PC.
@@ -561,7 +663,9 @@ usage:
 #ifndef USE_SDL_UI
             printf("-S or --settings        - show only the settings dialog\n");
 #endif
+            printf("-T or --testmode        - test mode: execute the test mode entry point on init/hard reset\n");
             printf("-V or --vmname name     - overrides the name of the running VM\n");
+            printf("-W or --nohook          - disables keyboard hook (compatibility-only outside Windows)\n");
             printf("-X or --clear what      - clears the 'what' (cmos/flash/both)\n");
             printf("-Y or --donothing       - do not show any UI or run the emulation\n");
             printf("-Z or --lastvmpath      - the last parameter is VM path rather than config\n");
@@ -631,12 +735,16 @@ usage:
         } else if (!strcasecmp(argv[c], "--settings") || !strcasecmp(argv[c], "-S")) {
             settings_only = 1;
 #endif
+        } else if (!strcasecmp(argv[c], "--testmode") || !strcasecmp(argv[c], "-T")) {
+            test_mode = 1;
         } else if (!strcasecmp(argv[c], "--noconfirm") || !strcasecmp(argv[c], "-N")) {
             confirm_exit_cmdl = 0;
         } else if (!strcasecmp(argv[c], "--missing") || !strcasecmp(argv[c], "-M")) {
             dump_missing = 1;
         } else if (!strcasecmp(argv[c], "--donothing") || !strcasecmp(argv[c], "-Y")) {
             do_nothing = 1;
+        } else if (!strcasecmp(argv[c], "--nohook") || !strcasecmp(argv[c], "-W")) {
+            hook_enabled = 0;
         } else if (!strcasecmp(argv[c], "--keycodes") || !strcasecmp(argv[c], "-K")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -1051,6 +1159,11 @@ pc_init_modules(void)
 
     machine_status_init();
 
+    for (c = 0; c <= 0x7ff; c++) {
+        int64_t exp = c - 1023; /* 1023 = BIAS64 */
+        exp_pow_table[c] = pow(2.0, (double) exp);
+    }
+
     if (do_nothing) {
         do_nothing = 0;
         exit(-1);
@@ -1062,13 +1175,24 @@ pc_init_modules(void)
 void
 pc_send_ca(uint16_t sc)
 {
-    keyboard_input(1, 0x1D); /* Ctrl key pressed */
-    keyboard_input(1, 0x38); /* Alt key pressed */
-    keyboard_input(1, sc);
-    usleep(50000);
-    keyboard_input(0, sc);
-    keyboard_input(0, 0x38); /* Alt key released */
-    keyboard_input(0, 0x1D); /* Ctrl key released */
+    if (keyboard_mode >= 0x81) {
+        /* Use R-Alt because PS/55 DOS and OS/2 assign L-Alt Kanji */
+        keyboard_input(1, 0x1D);  /*  Ctrl key pressed */
+        keyboard_input(1, 0x138); /* R-Alt key pressed */
+        keyboard_input(1, sc);
+        usleep(50000);
+        keyboard_input(0, sc);
+        keyboard_input(0, 0x138); /* R-Alt key released */
+        keyboard_input(0, 0x1D);  /*  Ctrl key released */
+    } else {
+        keyboard_input(1, 0x1D); /* Ctrl key pressed */
+        keyboard_input(1, 0x38); /* Alt key pressed */
+        keyboard_input(1, sc);
+        usleep(50000);
+        keyboard_input(0, sc);
+        keyboard_input(0, 0x38); /* Alt key released */
+        keyboard_input(0, 0x1D); /* Ctrl key released */
+    }
 }
 
 /* Send the machine a Control-Alt-DEL sequence. */
@@ -1083,6 +1207,27 @@ void
 pc_send_cae(void)
 {
     pc_send_ca(1);
+}
+
+/*
+   Currently available API:
+
+   extern void     resetx86(void);
+   extern void     softresetx86(void);
+   extern void     hardresetx86(void);
+
+   extern void     prefetch_queue_set_pos(int pos);
+   extern void     prefetch_queue_set_ip(uint16_t ip);
+   extern void     prefetch_queue_set_prefetching(int p);
+   extern int      prefetch_queue_get_pos(void);
+   extern uint16_t prefetch_queue_get_ip(void);
+   extern int      prefetch_queue_get_prefetching(void);
+   extern int      prefetch_queue_get_size(void);
+ */
+static void
+pc_test_mode_entry_point(void)
+{
+    pclog("Test mode entry point\n=====================\n");
 }
 
 void
@@ -1290,6 +1435,9 @@ pc_reset_hard_init(void)
 
     update_mouse_msg();
 
+    if (test_mode)
+        pc_test_mode_entry_point();
+
     ui_hard_reset_completed();
 }
 
@@ -1425,6 +1573,9 @@ pc_run(void)
         pc_reset_hard_close();
         pc_reset_hard_init();
     }
+
+    /* Update the guest-CPU independent timer for devices with independent clock speed */
+    rivatimer_update_all();
 
     /* Run a block of code. */
     startblit();

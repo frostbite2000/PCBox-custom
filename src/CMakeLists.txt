@@ -23,8 +23,6 @@ endif()
 add_executable(PCBox
     86box.c
     config.c
-    log.c
-    random.c
     timer.c
     io.c
     acpi.c
@@ -41,17 +39,13 @@ add_executable(PCBox
     pci.c
     mca.c
     usb.c
-    fifo.c
-    fifo8.c
     device.c
     nvr.c
     nvr_at.c
     nvr_ps2.c
     machine_status.c
-    ini.c
     ioapic_82093aa.c
     lapic.c
-    cJSON.c
 )
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -108,7 +102,11 @@ if(INSTRUMENT)
 endif()
 
 target_link_libraries(PCBox cpu chipset mch dev mem fdd game cdrom zip mo hdd
-    net print scsi sio snd vid voodoo plat ui)
+    net print scsi sio snd utils vid voodoo plat ui)
+
+if(HAIKU)
+    target_link_libraries(PCBox be)
+endif()
 
 if(WIN32 AND ARCH STREQUAL "i386")
     if(MINGW)
@@ -225,7 +223,6 @@ elseif(APPLE AND NOT QT)
     COMPONENT Runtime)
 endif()
 
-
 # Install the PDB file on Windows builds
 if(MSVC)
     # CMake fully supports PDB files on MSVC-compatible compilers
@@ -255,7 +252,9 @@ add_subdirectory(printer)
 add_subdirectory(sio)
 add_subdirectory(scsi)
 add_subdirectory(sound)
+add_subdirectory(utils)
 add_subdirectory(video)
+
 if (APPLE)
     add_subdirectory(mac)
 endif()
@@ -265,4 +264,8 @@ if (QT)
 else()
     add_compile_definitions(USE_SDL_UI)
     add_subdirectory(unix)
+endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "NetBSD")
+    add_custom_command(TARGET 86Box POST_BUILD COMMAND paxctl ARGS +m $<TARGET_FILE:86Box> COMMENT "Disable PaX MPROTECT")
 endif()

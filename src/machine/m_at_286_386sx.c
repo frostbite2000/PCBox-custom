@@ -66,7 +66,7 @@ machine_at_mr286_init(const machine_t *model)
 }
 
 static void
-machine_at_headland_common_init(int type)
+machine_at_headland_common_init(const machine_t *model, int type)
 {
     device_add(&keyboard_at_ami_device);
 
@@ -94,7 +94,7 @@ machine_at_tg286m_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    machine_at_headland_common_init(1);
+    machine_at_headland_common_init(model, 1);
 
     return ret;
 }
@@ -115,7 +115,7 @@ machine_at_ama932j_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti067_ama932j_device);
 
-    machine_at_headland_common_init(2);
+    machine_at_headland_common_init(model, 2);
 
     device_add(&ali5105_device);
 
@@ -212,13 +212,16 @@ machine_at_neat_ami_init(const machine_t *model)
     return ret;
 }
 
+// TODO
+// Onboard Paradise PVGA1A-JK VGA Graphics
+// Data Technology Corporation DTC7187 RLL Controller (Optional)
 int
 machine_at_ataripc4_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved("roms/machines/ataripc4/ami_pc4x_1.7_even.bin",
-                                "roms/machines/ataripc4/ami_pc4x_1.7_odd.bin",
+    ret = bios_load_interleaved("roms/machines/ataripc4/AMI_PC4X_1.7_EVEN.BIN",
+                                "roms/machines/ataripc4/AMI_PC4X_1.7_ODD.BIN",
                                 0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -623,9 +626,9 @@ machine_at_cmdsl386sx16_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
-    device_add(&keyboard_at_device);
+    device_add(&keyboard_ps2_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -634,6 +637,31 @@ machine_at_cmdsl386sx16_init(const machine_t *model)
     /* Two serial ports - on the real hardware SL386SX-16, they are on the single UMC UM82C452. */
     device_add_inst(&ns16450_device, 1);
     device_add_inst(&ns16450_device, 2);
+
+    return ret;
+}
+
+int
+machine_at_if386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/if386sx/OKI_IF386SX_odd.bin",
+                                "roms/machines/if386sx/OKI_IF386SX_even.bin",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_phoenix_device);
+
+    device_add(&neat_sx_device);
+
+    device_add(&if386jega_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
 
     return ret;
 }
@@ -739,7 +767,7 @@ machine_at_acer100t_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/acer100t/acer386.bin",
+    ret = bios_load_linear("roms/machines/acer100t/acer386.BIN",
                            0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -747,12 +775,9 @@ machine_at_acer100t_init(const machine_t *model)
 
     machine_at_ps2_ide_init(model);
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-    
     device_add(&ali1409_device);
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&oti077_acer100t_device);   
+        device_add(&oti077_acer100t_device);
      
     device_add(&ali5105_device);
     

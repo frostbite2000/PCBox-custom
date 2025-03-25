@@ -23,34 +23,32 @@
 #define EMU_MACHINE_H
 
 /* Machine feature flags. */
-#define MACHINE_BUS_NONE 0x00000000 /* sys has no bus */
+#define MACHINE_BUS_NONE      0x00000000 /* sys has no bus */
 /* Feature flags for BUS'es. */
-#define MACHINE_BUS_ISA       0x00000001 /* sys has ISA bus */
-#define MACHINE_BUS_CASSETTE  0x00000002 /* sys has cassette port */
-#define MACHINE_BUS_CARTRIDGE 0x00000004 /* sys has two cartridge bays */
-#define MACHINE_BUS_PCJR      0x00000008 /* sys has PCjr sidecar bus */
-#define MACHINE_BUS_DM_KBC    0x00000010 /* system has keyboard controller that supports
-                                            both XT and AT keyboards */
+#define MACHINE_BUS_CASSETTE  0x00000001 /* sys has cassette port */
+#define MACHINE_BUS_SIDECAR   0x00000002 /* sys has PCjr sidecar bus */
+#define MACHINE_BUS_ISA       0x00000004 /* sys has ISA bus */
+#define MACHINE_BUS_XT_KBD    0x00000008 /* sys has an XT keyboard port */
+#define MACHINE_BUS_CBUS      0x00000010 /* sys has C-BUS bus */
 #define MACHINE_BUS_ISA16     0x00000020 /* sys has ISA16 bus - PC/AT architecture */
-#define MACHINE_BUS_CBUS      0x00000040 /* sys has C-BUS bus */
-#define MACHINE_BUS_PCMCIA    0x00000080 /* sys has PCMCIA bus */
-#define MACHINE_BUS_PS2_LATCH 0x00000100 /* system has PS/2 keyboard controller IRQ latch */
+#define MACHINE_BUS_AT_KBD    0x00000040 /* sys has an AT keyboard port */
+#define MACHINE_BUS_MCA       0x00000080 /* sys has MCA bus */
+#define MACHINE_BUS_MCA32     0x00000100 /* sys has MCA32 bus */
 #define MACHINE_BUS_PS2_PORTS 0x00000200 /* system has PS/2 keyboard and mouse ports */
-#define MACHINE_BUS_PS2       (MACHINE_BUS_PS2_LATCH | MACHINE_BUS_PS2_PORTS)
-#define MACHINE_BUS_HIL       0x00000400 /* system has HP HIL keyboard and mouse ports */
-#define MACHINE_BUS_EISA      0x00000800 /* sys has EISA bus */
-#define MACHINE_BUS_AT32      0x00001000 /* sys has Mylex AT/32 local bus */
-#define MACHINE_BUS_OLB       0x00002000 /* sys has OPTi local bus */
-#define MACHINE_BUS_VLB       0x00004000 /* sys has VL bus */
-#define MACHINE_BUS_MCA       0x00008000 /* sys has MCA bus */
+#define MACHINE_BUS_PS2       MACHINE_BUS_PS2_PORTS
+#define MACHINE_BUS_PCMCIA    0x00000400 /* sys has PCMCIA bus */
+#define MACHINE_BUS_HIL       0x00000800 /* system has HP HIL keyboard and mouse ports */
+#define MACHINE_BUS_EISA      0x00001000 /* sys has EISA bus */
+#define MACHINE_BUS_AT32      0x00002000 /* sys has Mylex AT/32 local bus */
+#define MACHINE_BUS_OLB       0x00004000 /* sys has OPTi local bus */
+#define MACHINE_BUS_VLB       0x00008000 /* sys has VL bus */
 #define MACHINE_BUS_PCI       0x00010000 /* sys has PCI bus */
 #define MACHINE_BUS_CARDBUS   0x00020000 /* sys has CardBus bus */
 #define MACHINE_BUS_USB       0x00040000 /* sys has USB bus */
 #define MACHINE_BUS_AGP       0x00080000 /* sys has AGP bus */
 #define MACHINE_BUS_AC97      0x00100000 /* sys has AC97 bus (ACR/AMR/CNR slot) */
 /* Aliases. */
-#define MACHINE_CASSETTE    (MACHINE_BUS_CASSETTE)  /* sys has cassette port */
-#define MACHINE_CARTRIDGE   (MACHINE_BUS_CARTRIDGE) /* sys has two cartridge bays */
+#define MACHINE_CASSETTE    (MACHINE_BUS_CASSETTE) /* sys has cassette port */
 /* Combined flags. */
 #define MACHINE_PC          (MACHINE_BUS_ISA)                     /* sys is PC/XT-compatible (ISA) */
 #define MACHINE_AT          (MACHINE_BUS_ISA | MACHINE_BUS_ISA16) /* sys is AT-compatible (ISA + ISA16) */
@@ -69,18 +67,19 @@
 #define MACHINE_AGP         (MACHINE_BUS_AGP | MACHINE_PCI)       /* sys is AT-compatible with AGP  */
 #define MACHINE_AGP98       (MACHINE_BUS_AGP | MACHINE_PCI98)     /* sys is NEC PC-98x1 series with AGP (did that even exist?) */
 
-#define MACHINE_PC5150      (MACHINE_PC | MACHINE_CASSETTE)                     /* sys is IBM PC 5150 */
-#define MACHINE_PCJR        (MACHINE_PC | MACHINE_CASSETTE | MACHINE_CARTRIDGE) /* sys is PCjr */
-#define MACHINE_PS2         (MACHINE_AT | MACHINE_BUS_PS2)                      /* sys is PS/2 */
-#define MACHINE_PS2_MCA     (MACHINE_MCA | MACHINE_BUS_PS2)                     /* sys is MCA PS/2 */
-#define MACHINE_PS2_VLB     (MACHINE_VLB | MACHINE_BUS_PS2)                     /* sys is VLB PS/2 */
-#define MACHINE_PS2_PCI     (MACHINE_PCI | MACHINE_BUS_PS2)                     /* sys is PCI PS/2 */
-#define MACHINE_PS2_PCIV    (MACHINE_PCIV | MACHINE_BUS_PS2)                    /* sys is VLB/PCI PS/2 */
-#define MACHINE_PS2_AGP     (MACHINE_AGP | MACHINE_BUS_PS2)                     /* sys is AGP PS/2 */
-#define MACHINE_PS2_A97     (MACHINE_PS2_AGP | MACHINE_BUS_AC97)                /* sys is AGP/AC97 PS/2 */
-#define MACHINE_PS2_NOISA   (MACHINE_PS2_AGP & ~MACHINE_AT)                     /* sys is AGP PS/2 without ISA */
-#define MACHINE_PS2_PCIONLY (MACHINE_PS2_NOISA & ~MACHINE_BUS_AGP)              /* sys is PCI PS/2 without ISA */
-#define MACHINE_PS2_NOI97   (MACHINE_PS2_A97 & ~MACHINE_AT)                     /* sys is AGP/AC97 PS/2 without ISA */
+#define MACHINE_PC5150      (MACHINE_CASSETTE | MACHINE_PC)          /* sys is IBM PC 5150 */
+#define MACHINE_PCJR        (MACHINE_CASSETTE | MACHINE_BUS_SIDECAR) /* sys is PCjr */
+#define MACHINE_PS2         (MACHINE_AT | MACHINE_BUS_PS2)           /* sys is PS/2 */
+#define MACHINE_PS2_MCA     (MACHINE_MCA | MACHINE_BUS_PS2)          /* sys is MCA PS/2 */
+#define MACHINE_PS2_VLB     (MACHINE_VLB | MACHINE_BUS_PS2)          /* sys is VLB PS/2 */
+#define MACHINE_PS2_PCI     (MACHINE_PCI | MACHINE_BUS_PS2)          /* sys is PCI PS/2 */
+#define MACHINE_PS2_PCIV    (MACHINE_PCIV | MACHINE_BUS_PS2)         /* sys is VLB/PCI PS/2 */
+#define MACHINE_PS2_AGP     (MACHINE_AGP | MACHINE_BUS_PS2)          /* sys is AGP PS/2 */
+#define MACHINE_PS2_A97     (MACHINE_PS2_AGP | MACHINE_BUS_AC97)     /* sys is AGP/AC97 PS/2 */
+#define MACHINE_PS2_NOISA   (MACHINE_PS2_AGP & ~MACHINE_AT)          /* sys is AGP PS/2 without ISA */
+#define MACHINE_PS2_PCIONLY (MACHINE_PS2_NOISA & ~MACHINE_BUS_AGP)   /* sys is PCI PS/2 without ISA */
+#define MACHINE_PS2_NOI97   (MACHINE_PS2_A97 & ~MACHINE_AT)          /* sys is AGP/AC97 PS/2 without ISA */
+
 /* Feature flags for miscellaneous internal devices. */
 #define MACHINE_FLAGS_NONE        0x00000000 /* sys has no int devices */
 #define MACHINE_SOFTFLOAT_ONLY    0x00000001 /* sys requires SoftFloat FPU */
@@ -93,7 +92,8 @@
 #define MACHINE_LPT_PRI           0x00000080 /* sys has int pri LPT */
 #define MACHINE_LPT_SEC           0x00000100 /* sys has int sec LPT */
 #define MACHINE_LPT_TER           0x00000200 /* sys has int ter LPT */
-#define MACHINE_LPT_QUA           0x00000400 /* sys has int qua LPT */
+#define MACHINE_PS2_KBC           0x00000400 /* sys has a PS/2 keyboard controller */
+                                             /* this is separate from having PS/2 ports */
 #define MACHINE_UART_PRI          0x00000800 /* sys has int pri UART */
 #define MACHINE_UART_SEC          0x00001000 /* sys has int sec UART */
 #define MACHINE_UART_TER          0x00002000 /* sys has int ter UART */
@@ -106,7 +106,7 @@
 #define MACHINE_APM               0x00080000 /* sys has APM */
 #define MACHINE_ACPI              0x00100000 /* sys has ACPI */
 #define MACHINE_HWM               0x00200000 /* sys has hw monitor */
-#define MACHINE_COREBOOT          0x00400000 /* sys has coreboot BIOS */
+#define MACHINE_CARTRIDGE         0x00400000 /* sys has cartridge bays */
 /* Feature flags for internal storage controllers. */
 #define MACHINE_MFM               0x00800000 /* sys has int MFM/RLL */
 #define MACHINE_XTA               0x01000000 /* sys has int XTA */
@@ -117,6 +117,7 @@
 #define MACHINE_IDE_QUA           0x20000000 /* sys has int qua IDE/ATAPI */
 #define MACHINE_SCSI              0x40000000 /* sys has int SCSI */
 #define MACHINE_USB               0x80000000 /* sys has int USB */
+#define MACHINE_COREBOOT         0x100000000 /* sys has coreboot BIOS */
 /* Combined flags. */
 #define MACHINE_LPT               (MACHINE_LPT-PRI | MACHINE_LPT_SEC | \
                                    MACHINE_LPT_TER | MACHINE_LPT_QUA)
@@ -173,21 +174,22 @@ enum {
     MACHINE_TYPE_486        = 8,
     MACHINE_TYPE_486_S2     = 9,
     MACHINE_TYPE_486_S3     = 10,
-    MACHINE_TYPE_486_MISC   = 11,
-    MACHINE_TYPE_SOCKET4    = 12,
-    MACHINE_TYPE_SOCKET5    = 13,
-    MACHINE_TYPE_SOCKET7_3V = 14,
-    MACHINE_TYPE_SOCKET7    = 15,
-    MACHINE_TYPE_SOCKETS7   = 16,
-    MACHINE_TYPE_SOCKET8    = 17,
-    MACHINE_TYPE_SLOT1      = 18,
-    MACHINE_TYPE_SLOT1_2    = 19,
-    MACHINE_TYPE_SLOT1_370  = 20,
-    MACHINE_TYPE_SLOT2      = 21,
-    MACHINE_TYPE_SOCKET370  = 22,
-    MACHINE_TYPE_SLOTA      = 23,
-    MACHINE_TYPE_MISC       = 24,
-    MACHINE_TYPE_MAX        = 25
+    MACHINE_TYPE_486_S3_PCI = 11,
+    MACHINE_TYPE_486_MISC   = 12,
+    MACHINE_TYPE_SOCKET4    = 13,
+    MACHINE_TYPE_SOCKET5    = 14,
+    MACHINE_TYPE_SOCKET7_3V = 15,
+    MACHINE_TYPE_SOCKET7    = 16,
+    MACHINE_TYPE_SOCKETS7   = 17,
+    MACHINE_TYPE_SOCKET8    = 18,
+    MACHINE_TYPE_SLOT1      = 19,
+    MACHINE_TYPE_SLOT1_2    = 20,
+    MACHINE_TYPE_SLOT1_370  = 21,
+    MACHINE_TYPE_SLOT2      = 22,
+    MACHINE_TYPE_SOCKET370  = 23,
+    MACHINE_TYPE_SLOTA      = 24,
+    MACHINE_TYPE_MISC       = 25,
+    MACHINE_TYPE_MAX        = 26
 };
 
 enum {
@@ -209,7 +211,9 @@ enum {
     MACHINE_CHIPSET_ALI_ALADDIN_PRO_II,
     MACHINE_CHIPSET_AMD_750,
     MACHINE_CHIPSET_SCAT,
+    MACHINE_CHIPSET_SCAT_SX,
     MACHINE_CHIPSET_NEAT,
+    MACHINE_CHIPSET_NEAT_SX,
     MACHINE_CHIPSET_CT_386,
     MACHINE_CHIPSET_CT_CS4031,
     MACHINE_CHIPSET_CONTAQ_82C596,
@@ -318,32 +322,34 @@ typedef struct _machine_ {
     uint32_t             (*gpio_acpi_handler)(uint8_t write, uint32_t val);
     const machine_cpu_t    cpu;
     uintptr_t              bus_flags;
-    uintptr_t              flags;
+    uint64_t               flags;
     const machine_memory_t ram;
     int                    ram_granularity;
     int                    nvrmask;
 #ifdef EMU_DEVICE_H
-    const device_t *kbc_device;
+    const device_t        *kbc_device;
 #else
-    void *kbc_device;
+    void                  *kbc_device;
 #endif /* EMU_DEVICE_H */
-    uint8_t  kbc_p1;
-    uint32_t gpio;
-    uint32_t gpio_acpi;
+    uintptr_t              kbc_params;
+    /* Bits 23-16: XOR mask, bits 15-8: OR mask, bits 7-0: AND mask. */
+    uint32_t               kbc_p1;
+    uint32_t               gpio;
+    uint32_t               gpio_acpi;
 #ifdef EMU_DEVICE_H
-    const device_t *device;
-    const device_t *fdc_device;
-    const device_t *sio_device;
-    const device_t *vid_device;
-    const device_t *snd_device;
-    const device_t *net_device;
+    const device_t        *device;
+    const device_t        *fdc_device;
+    const device_t        *sio_device;
+    const device_t        *vid_device;
+    const device_t        *snd_device;
+    const device_t        *net_device;
 #else
-    void *device;
-    void *fdc_device;
-    void *sio_device;
-    void *vid_device;
-    void *snd_device;
-    void *net_device;
+    void                  *device;
+    void                  *fdc_device;
+    void                  *sio_device;
+    void                  *vid_device;
+    void                  *snd_device;
+    void                  *net_device;
 #endif
 } machine_t;
 
@@ -361,6 +367,7 @@ extern int         machine_available(int m);
 extern const char *machine_getname(void);
 extern const char *machine_getname_ex(int m);
 extern const char *machine_get_internal_name(void);
+extern const char *machine_get_nvr_name(void);
 extern int         machine_get_machine_from_internal_name(const char *s);
 extern void        machine_init(void);
 #ifdef EMU_DEVICE_H
@@ -373,6 +380,7 @@ extern const device_t *machine_get_snd_device(int m);
 extern const device_t *machine_get_net_device(int m);
 #endif
 extern const char *machine_get_internal_name_ex(int m);
+extern const char *machine_get_nvr_name_ex(int m);
 extern int         machine_get_nvrmask(int m);
 extern int         machine_has_flags(int m, int flags);
 extern int         machine_has_bus(int m, int bus_flags);
@@ -481,6 +489,7 @@ extern int machine_at_adi386sx_init(const machine_t *);
 extern int machine_at_cmdsl386sx16_init(const machine_t *);
 extern int machine_at_cmdsl386sx25_init(const machine_t *);
 extern int machine_at_dataexpert386sx_init(const machine_t *);
+extern int machine_at_if386sx_init(const machine_t *);
 extern int machine_at_spc6033p_init(const machine_t *);
 extern int machine_at_wd76c10_init(const machine_t *);
 extern int machine_at_arb1374_init(const machine_t *);
@@ -597,6 +606,7 @@ extern int machine_at_pcm5330_init(const machine_t *);
 
 extern int machine_at_ecs486_init(const machine_t *);
 extern int machine_at_hot433a_init(const machine_t *);
+extern int machine_at_pl4600c_init(const machine_t *);
 extern int machine_at_atc1415_init(const machine_t *);
 extern int machine_at_actionpc2600_init(const machine_t *);
 extern int machine_at_actiontower8400_init(const machine_t *);
@@ -635,9 +645,11 @@ extern int machine_at_valuepointp60_init(const machine_t *);
 extern int machine_at_revenge_init(const machine_t *);
 extern int machine_at_586is_init(const machine_t *);
 extern int machine_at_pb520r_init(const machine_t *);
+extern int machine_at_m5pi_init(const machine_t *);
 
 extern int machine_at_excalibur_init(const machine_t *);
 
+extern int machine_at_globalyst330_p5_init(const machine_t *);
 extern int machine_at_p5vl_init(const machine_t *);
 
 extern int machine_at_excaliburpci2_init(const machine_t *);
@@ -647,6 +659,7 @@ extern int machine_at_p5sp4_init(const machine_t *);
 extern int machine_at_plato_init(const machine_t *);
 extern int machine_at_dellplato_init(const machine_t *);
 extern int machine_at_ambradp90_init(const machine_t *);
+extern int machine_at_p54np4_init(const machine_t *);
 extern int machine_at_586ip_init(const machine_t *);
 extern int machine_at_tek932_init(const machine_t *);
 
@@ -745,6 +758,7 @@ extern int machine_at_tomahawk_init(const machine_t *);
 extern int machine_at_ficva502_init(const machine_t *);
 
 extern int machine_at_ficpa2012_init(const machine_t *);
+extern int machine_at_via809ds_init(const machine_t *);
 
 extern int machine_at_r534f_init(const machine_t *);
 extern int machine_at_ms5146_init(const machine_t *);
@@ -809,6 +823,7 @@ extern int machine_at_lgibmx7g_init(const machine_t *);
 extern int machine_at_p3bf_init(const machine_t *);
 extern int machine_at_p3bf_coreboot_init(const machine_t *);
 extern int machine_at_bf6_init(const machine_t *);
+extern int machine_at_bx6_init(const machine_t *);
 extern int machine_at_ax6bc_init(const machine_t *);
 extern int machine_at_atc6310bxii_init(const machine_t *);
 extern int machine_at_686bx_init(const machine_t *);
@@ -848,11 +863,8 @@ extern int machine_at_6via90ap_init(const machine_t *);
 extern int machine_at_s1857_init(const machine_t *);
 extern int machine_at_p6bap_init(const machine_t *);
 extern int machine_at_p6bat_init(const machine_t *);
-extern int machine_at_cusl2c_init(const machine_t *);
-extern int machine_at_j815epda_init(const machine_t *);
-extern int machine_at_m6tsl_init(const machine_t *);
-extern int machine_at_m6tss_init(const machine_t *);
-extern int machine_at_s2080_init(const machine_t *);
+extern int machine_at_prosignias31x_bx_init(const machine_t *);
+extern int machine_at_7sbb_init(const machine_t *);
 
 /* m_at_slota.c */
 extern int machine_at_k7m_init(const machine_t *);
@@ -905,6 +917,8 @@ extern int machine_ps2_model_70_type3_init(const machine_t *);
 extern int machine_ps2_model_80_init(const machine_t *);
 extern int machine_ps2_model_80_axx_init(const machine_t *);
 extern int machine_ps2_model_70_type4_init(const machine_t *);
+extern int machine_ps55_model_50t_init(const machine_t*);
+extern int machine_ps55_model_50v_init(const machine_t*);
 
 /* m_tandy.c */
 extern int tandy1k_eeprom_read(void);
@@ -954,6 +968,7 @@ extern int machine_xt_iskra3104_init(const machine_t *);
 extern int machine_xt_pravetz16_imko4_init(const machine_t *);
 extern int machine_xt_pravetz16s_cpu12p_init(const machine_t *);
 extern int machine_xt_micoms_xl7turbo_init(const machine_t *);
+extern int machine_xt_maz1016_init(const machine_t *);
 
 /* m_xt_compaq.c */
 extern int machine_xt_compaq_deskpro_init(const machine_t *);
