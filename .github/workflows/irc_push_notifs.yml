@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: irc push
-        uses: rectalogic/notify-irc@v1
+        uses: rectalogic/notify-irc@v2
         with:
           channel: "#pcbox"
           server: "irc.libera.chat"
