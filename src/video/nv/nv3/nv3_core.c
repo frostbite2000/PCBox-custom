@@ -49,9 +49,9 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv);
 
 bool nv3_is_svga_redirect_address(uint32_t addr)
 {
-    return (addr >= NV3_PRMVIO_START && addr <= NV3_PRMVIO_END)     // VGA
-    || (addr >= NV3_PRMCIO_START && addr <= NV3_PRMCIO_END)         // CRTC
-    || (addr >= NV3_VGA_DAC_START && addr <= NV3_VGA_DAC_END);      // Legacy RAMDAC support(?)
+    return (addr >= NV3_PRMVIO_START && addr <= NV3_PRMVIO_END)                     // VGA
+    || (addr >= NV3_PRMCIO_START && addr <= NV3_PRMCIO_END)                         // CRTC
+    || (addr >= NV3_USER_DAC_START && addr <= NV3_USER_DAC_END);                  // Note: 6813c6-6813c9 are ignored somewhere else
 }
 
 // All MMIO regs are 32-bit i believe internally
@@ -65,6 +65,14 @@ uint8_t nv3_mmio_read8(uint32_t addr, void* priv)
     // Some of these addresses are Weitek VGA stuff and we need to mask it to this first because the weitek addresses are 8-bit aligned.
     addr &= 0xFFFFFF;
 
+    // We need to specifically exclude this particular set of registers
+    // so we can write the 4/8bpp CLUT
+    if (addr >= NV3_USER_DAC_PALETTE_START && addr <= NV3_USER_DAC_PALETTE_END) 
+    {
+        // Throw directly into PRAMDAC
+        return nv3_mmio_arbitrate_read(addr);
+    }
+        
     if (nv3_is_svga_redirect_address(addr))
     {
         // svga writes are not logged anyway rn
@@ -142,6 +150,15 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
 void nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv)
 {
     addr &= 0xFFFFFF;
+
+    // We need to specifically exclude this particular set of registers
+    // so we can write the 4/8bpp CLUT
+    if (addr >= NV3_USER_DAC_PALETTE_START && addr <= NV3_USER_DAC_PALETTE_END) 
+    {
+        // Throw directly into PRAMDAC
+        nv3_mmio_arbitrate_write(addr, val);
+        return; 
+    }
 
     // This is weitek vga stuff
     // If we need to add more of these we can convert these to a switch statement
@@ -474,7 +491,7 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
             break;
 
         default:
-
+            break;
     }
 }
 
@@ -493,31 +510,6 @@ void nv3_recalc_timings(svga_t* svga)
 
     svga->ma_latch += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16;
 
-    // should these actually use separate values?
-    // i don't we should force the top 2 bits to 1...
-
-    // required for VESA resolutions, force parameters higher
-    // only fuck around with any of this in VGAmode?
-
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) svga->vtotal += 0x400;
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10)) svga->vblankstart += 0x400;
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) svga->vsyncstart += 0x400;
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) svga->hdisp += 0x400; 
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDE10)) svga->dispend += 0x400;
-
-    if (svga->crtc[NV3_CRTC_REGISTER_HEB] & 0x01)
-    svga->hdisp += 0x100; // large screen bit
-
-    /*
-    if (pixel_mode == NV3_CRTC_REGISTER_PIXELMODE_VGA)
-    {
-        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) svga->vtotal += 0x400;
-        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10)) svga->vblankstart += 0x400;
-        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) svga->vsyncstart += 0x400;
-        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) svga->hdisp += 0x400; 
-
-    }
- */
     /* Turn off override if we are in VGA mode */
     svga->override = !(pixel_mode == NV3_CRTC_REGISTER_PIXELMODE_VGA);
 
@@ -698,7 +690,7 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv)
         addr ^= 0x60;
 
     uint8_t crtcreg = nv3->nvbase.svga.crtcreg;
-    uint8_t old_value;
+    uint8_t old_value = 0x00;
 
     // todo:
     // Pixel formats (8bit vs 555 vs 565)
@@ -747,12 +739,33 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv)
                 case NV3_CRTC_REGISTER_RMA:
                     nv3->pbus.rma.mode = val & NV3_CRTC_REGISTER_RMA_MODE_MAX;
                     break;
+                /* Handle some large screen stuff */
+                case NV3_CRTC_REGISTER_PIXELMODE:
+                    if (val & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) 
+                        nv3->nvbase.svga.vtotal += 0x400;
+                    if (val & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10))  
+                        nv3->nvbase.svga.vblankstart += 0x400;
+                    if (val & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) 
+                        nv3->nvbase.svga.vsyncstart += 0x400;
+                    if (val & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) 
+                        nv3->nvbase.svga.hdisp += 0x400; 
+                
+                    /* Make sure dispend and vblankstart are right if we are displaying above 1024 vert */
+                    if (nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDE10)) 
+                        nv3->nvbase.svga.dispend += 0x400;
+
+                    break;
+                case NV3_CRTC_REGISTER_HEB:
+                    if (val & 0x01)
+                        nv3->nvbase.svga.hdisp += 0x100;
+                    break;
                 case NV3_CRTC_REGISTER_I2C_GPIO:
                     uint8_t scl = !!(val & 0x20);
                     uint8_t sda = !!(val & 0x10);
                     // Set an I2C GPIO register
                     i2c_gpio_set(nv3->nvbase.i2c, scl, sda);
                     break;
+
             }
 
             /* Recalculate the timings if we actually changed them 
@@ -763,7 +776,7 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv)
                 // and in the words of an ex-Rendition/3dfx/NVIDIA engineer, "VGA was basically an undocumented bundle of steaming you-know-what.   
                 // And it was essential that any cores the PC 3D startups acquired had to work with all the undocumented modes and timing tweaks (mode X, etc.)"
                 if (nv3->nvbase.svga.crtcreg < 0xE
-                && nv3->nvbase.svga.crtcreg > 0x10)
+                || nv3->nvbase.svga.crtcreg > 0x10)
                 {
                     nv3->nvbase.svga.fullchange = changeframecount;
                     nv3_recalc_timings(&nv3->nvbase.svga);
@@ -1076,10 +1089,22 @@ void nv3_update_mappings(void)
 //
 void* nv3_init(const device_t *info)
 {
+    // set the vram amount and gpu revision
+    
+    /* We don't bother looking these up if they are nonzero. On Riva 128 ZX, they are already set by the init function (always 8 MB VRAM + Revision C0) */
+    if (!nv3->nvbase.vram_amount)
+        nv3->nvbase.vram_amount = device_get_config_int("vram_size");
+
+    if (!nv3->nvbase.gpu_revision)
+        nv3->nvbase.gpu_revision = device_get_config_int("chip_revision");
+    
+    /* Set log device name based on card model */
+    const char* log_device_name = (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00) ? "NV3T" : "NV3";
+
     if (device_get_config_int("nv_debug_fulllog"))
-        nv3->nvbase.log = log_open("NV3");
+        nv3->nvbase.log = log_open(log_device_name);
     else
-        nv3->nvbase.log = log_open_cyclic("NV3");
+        nv3->nvbase.log = log_open_cyclic(log_device_name);
 
 #ifdef ENABLE_NV_LOG
     // Allows nv_log to be used for multiple nvidia devices
@@ -1090,16 +1115,26 @@ void* nv3_init(const device_t *info)
     // this will only be logged if ENABLE_NV_LOG_ULTRA is defined
     nv_log_verbose_only("ULTRA LOGGING enabled");
 
-
     // Figure out which vbios the user selected
+    // This depends on the bus we are using and if the gpu is rev a/b or rev c
     const char* vbios_id = device_get_config_bios("vbios");
     const char* vbios_file = "";
 
-    // depends on the bus we are using
-    if (nv3->nvbase.bus_generation == nv_bus_pci)
-        vbios_file = device_get_bios_file(&nv3_device_pci, vbios_id, 0);
-    else   
-        vbios_file = device_get_bios_file(&nv3_device_agp, vbios_id, 0);
+    if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
+    {
+        if (nv3->nvbase.bus_generation == nv_bus_pci)
+            vbios_file = device_get_bios_file(&nv3t_device_pci, vbios_id, 0);
+        else   
+            vbios_file = device_get_bios_file(&nv3t_device_agp, vbios_id, 0);
+    }
+    else
+    {
+        if (nv3->nvbase.bus_generation == nv_bus_pci)
+            vbios_file = device_get_bios_file(&nv3_device_pci, vbios_id, 0);
+        else   
+            vbios_file = device_get_bios_file(&nv3_device_agp, vbios_id, 0);
+    }
+
 
     int32_t err = rom_init(&nv3->nvbase.vbios, vbios_file, 0xC0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     
@@ -1112,39 +1147,52 @@ void* nv3_init(const device_t *info)
     else    
         nv_log("Successfully loaded VBIOS %s located at %s\n", vbios_id, vbios_file);
 
-    // set the vram amount and gpu revision
-    nv3->nvbase.vram_amount = device_get_config_int("vram_size");
-    nv3->nvbase.gpu_revision = device_get_config_int("chip_revision");
-    
     // set up the bus and start setting up SVGA core
     if (nv3->nvbase.bus_generation == nv_bus_pci)
     {
-        nv_log("using PCI bus\n");
+        nv_log("Using PCI bus\n");
 
         pci_add_card(PCI_ADD_NORMAL, nv3_pci_read, nv3_pci_write, NULL, &nv3->nvbase.pci_slot);
 
-        svga_init(&nv3_device_pci, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
-        nv3_recalc_timings, nv3_svga_read, nv3_svga_write, nv3_draw_cursor, NULL);
-
+        /* Initialise the right revision of the card */
         if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
+        {
+            svga_init(&nv3t_device_pci, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
+                nv3_recalc_timings, nv3_svga_read, nv3_svga_write, nv3_draw_cursor, NULL);
+
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv3t_pci);
-        else 
+        }
+        else
+        {
+            svga_init(&nv3_device_pci, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
+                nv3_recalc_timings, nv3_svga_read, nv3_svga_write, nv3_draw_cursor, NULL);
+
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv3_pci);
+        }
 
     }
-    else if (nv3->nvbase.bus_generation == nv_bus_agp_1x)
+    else if (nv3->nvbase.bus_generation == nv_bus_agp_1x
+    || nv3->nvbase.bus_generation == nv_bus_agp_2x)
     {
-        nv_log("using AGP 1X bus\n");
+        nv_log("Using AGP 1X/2X bus\n");
 
         pci_add_card(PCI_ADD_AGP, nv3_pci_read, nv3_pci_write, NULL, &nv3->nvbase.pci_slot);
 
-        svga_init(&nv3_device_agp, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
-        nv3_recalc_timings, nv3_svga_read, nv3_svga_write, nv3_draw_cursor, NULL);
-
+        /* Initialise the right revision of the card */
         if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
+        {
+            svga_init(&nv3t_device_agp, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
+                nv3_recalc_timings, nv3_svga_read, nv3_svga_write, nv3_draw_cursor, NULL);
+
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv3t_agp);
-        else 
+        }
+        else
+        {
+            svga_init(&nv3_device_agp, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
+                nv3_recalc_timings, nv3_svga_read, nv3_svga_write, nv3_draw_cursor, NULL);
+
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv3_agp);
+        }
     }
 
     // set vram
@@ -1178,7 +1226,7 @@ void* nv3_init(const device_t *info)
     return nv3;
 }
 
-// This function simply allocates ram and sets the bus to pci before initialising.
+// RIVA 128 PCI initialisation function: This function simply allocates the device struct, and sets the bus to PCI before initialising.
 void* nv3_init_pci(const device_t* info)
 {
     nv3 = (nv3_t*)calloc(1, sizeof(nv3_t));
@@ -1187,11 +1235,37 @@ void* nv3_init_pci(const device_t* info)
     return nv3;
 }
 
-// This function simply allocates ram and sets the bus to agp before initialising.
+// RIVA 128 AGP initialisation function: This function simply allocates the device struct, and sets the bus to AGP before initialising.
 void* nv3_init_agp(const device_t* info)
 {
     nv3 = (nv3_t*)calloc(1, sizeof(nv3_t));
     nv3->nvbase.bus_generation = nv_bus_agp_1x;
+    nv3_init(info);
+    return nv3;
+}
+
+// RIVA 128 ZX PCI initialisation function: This function simply allocates the device struct, and sets the bus to PCI before initialising.
+// It also sets the GPU revision to C0 because NV3T config doesn't let you configure the rev (there were multiple steppings, but it's basically irrelevant),
+// and sets RAM to 8 MB (the only supported config on ZX cards)
+void* nv3t_init_pci(const device_t* info)
+{
+    nv3 = (nv3_t*)calloc(1, sizeof(nv3_t));
+    nv3->nvbase.bus_generation = nv_bus_pci;
+    nv3->nvbase.gpu_revision = NV3_PCI_CFG_REVISION_C00;
+    nv3->nvbase.vram_amount = NV3_VRAM_SIZE_8MB;
+    nv3_init(info);
+    return nv3;
+}
+
+// RIVA 128 ZX AGP initialisation function: This function simply allocates the device struct, and sets the bus to AGP before initialising.
+// It also sets the GPU revision to C0 because NV3T config doesn't let you configure the rev (there were multiple steppings, but it's basically irrelevant)
+// and sets RAM to 8 MB (the only supported config on ZX cards)
+void* nv3t_init_agp(const device_t* info)
+{
+    nv3 = (nv3_t*)calloc(1, sizeof(nv3_t));
+    nv3->nvbase.bus_generation = nv_bus_agp_2x; //  Riva 128 ZX is AGP2X 
+    nv3->nvbase.gpu_revision = NV3_PCI_CFG_REVISION_C00;
+    nv3->nvbase.vram_amount = NV3_VRAM_SIZE_8MB;
     nv3_init(info);
     return nv3;
 }
@@ -1239,8 +1313,8 @@ int32_t nv3_available(void)
 // 2MB or 4MB VRAM
 const device_t nv3_device_pci = 
 {
-    .name = "NVidia RIVA 128 (NV3) PCI",
-    .internal_name = "nv3",
+    .name = "nVIDIA RIVA 128 (NV3) PCI",
+    .internal_name = "nv3_pci",
     .flags = DEVICE_PCI,
     .local = 0,
     .init = nv3_init_pci,
@@ -1256,7 +1330,7 @@ const device_t nv3_device_pci =
 // 2MB or 4MB VRAM
 const device_t nv3_device_agp = 
 {
-    .name = "NVidia RIVA 128 (NV3) AGP",
+    .name = "nVIDIA RIVA 128 (NV3) AGP",
     .internal_name = "nv3_agp",
     .flags = DEVICE_AGP,
     .local = 0,
@@ -1266,4 +1340,38 @@ const device_t nv3_device_agp =
     .force_redraw = nv3_force_redraw,
     .available = nv3_available,
     .config = nv3_config,
+};
+
+// NV3T (RIVA 128 ZX)
+// PCI
+// 8MB VRAM
+const device_t nv3t_device_pci = 
+{
+    .name = "nVIDIA RIVA 128 ZX (NV3T) PCI",
+    .internal_name = "nv3t_pci",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = nv3t_init_pci,
+    .close = nv3_close,
+    .speed_changed = nv3_speed_changed,
+    .force_redraw = nv3_force_redraw,
+    .available = nv3_available,
+    .config = nv3t_config,
+};
+
+// NV3T (RIVA 128)
+// AGP
+// 2MB or 4MB VRAM
+const device_t nv3t_device_agp = 
+{
+    .name = "nVIDIA RIVA 128 ZX (NV3T) AGP",
+    .internal_name = "nv3t_agp",
+    .flags = DEVICE_AGP,
+    .local = 0,
+    .init = nv3t_init_agp,
+    .close = nv3_close,
+    .speed_changed = nv3_speed_changed,
+    .force_redraw = nv3_force_redraw,
+    .available = nv3_available,
+    .config = nv3t_config,
 };

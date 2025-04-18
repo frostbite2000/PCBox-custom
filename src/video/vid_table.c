@@ -195,6 +195,7 @@ video_cards[] = {
     { .device = &tgui9680_pci_device,                           .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &voodoo_banshee_device,                         .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &creative_voodoo_banshee_device,                .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &quantum3d_raven_device,                        .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &voodoo_3_1000_device,                          .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &voodoo_3_2000_device,                          .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &voodoo_3_3000_device,                          .flags = VIDEO_FLAG_TYPE_NONE },
@@ -253,6 +254,8 @@ video_cards[] = {
     { .device = &voodoo_3_3500_si_agp_device,                   .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &nv3_device_agp,                                .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &nv3_device_pci,                                .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &nv3t_device_agp,                               .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &nv3t_device_pci,                               .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = NULL,                                           .flags = VIDEO_FLAG_TYPE_NONE }
   // clang-format on
 };
