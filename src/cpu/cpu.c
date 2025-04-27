@@ -3386,10 +3386,6 @@ cpu_ven_reset(void)
                 msr.mcr_ctrl |= (1 << 17);
             }
             break;
-        
-        case CPU_ATHLON:
-            msr.mtrr_cap = 0x00000508ULL;
-            /* FALLTHROUGH */
 
         case CPU_ATHLON:
             msr.mtrr_cap = 0x00000508ULL;
@@ -3452,12 +3448,6 @@ cpu_ven_reset(void)
             msr.padlock_rng = 0x00000040;
             cpu_reset_longhaul();
             break;
-
-        case CPU_CYRIX3N:
-            msr.fcr         = (1 << 7) | (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) |
-                              (1 << 19) | (1 << 21);
-            msr.padlock_rng = 0x00000040;
-            cpu_reset_longhaul();
     }
 }
 
