@@ -44,8 +44,6 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 #define NV3_DMA_CHANNELS_TOTAL                          0x7F            // This is also used somewhere despite there only being 8*8 = 64 channels
 
-#define NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT             1               // The amount by which we have to ration out the memory clock because it's not fast enough...
-                                                                        // Multiply by this value to get the real clock speed.
 #define NV3_LAST_VALID_GRAPHICS_OBJECT_ID               0x1F
 
 // The class ids are represented with 5 bits in PGRAPH, but 7 bits in PFIFO!
@@ -79,9 +77,9 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_VBIOS_DEFAULT                               NV3_VBIOS_ERAZOR_V15403
 
 // Temporary, will be loaded from settings
-#define NV3_VRAM_SIZE_2MB                                   0x200000 // 2MB
-#define NV3_VRAM_SIZE_4MB                                   0x400000 // 4MB
-#define NV3_VRAM_SIZE_8MB                                   0x800000 // NV3T only
+#define NV3_VRAM_SIZE_2MB                               0x200000 // 2MB
+#define NV3_VRAM_SIZE_4MB                               0x400000 // 4MB
+#define NV3_VRAM_SIZE_8MB                               0x800000 // NV3T only
 // There is also 1mb supported by the card but it was never used
 
 // PCI config
@@ -299,6 +297,9 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PFIFO_CACHE1_STATUS_EMPTY                   4           // 1 if ramro is empty
 #define NV3_PFIFO_CACHE1_STATUS_FULL                    8
 #define NV3_PFIFO_CACHE1_DMA_STATUS                     0x3218
+#define NV3_PFIFO_CACHE1_DMA_STATUS_STATE               0
+#define NV3_PFIFO_CACHE1_DMA_STATUS_STATE_IDLE          0x00
+#define NV3_PFIFO_CACHE1_DMA_STATUS_STATE_RUNNING       0x01
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_0                   0x3220
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_1                   0x3224
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_2                   0x3228
@@ -308,8 +309,11 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_3_TARGET_NODE_AGP   0x03        // The type of bus we are sending over
 
 // Why does a gpu need its own translation lookaside buffer and pagetable format. Are they crazy
+// Seems to be the same format as the notifier engine
 #define NV3_PFIFO_CACHE1_DMA_TLB_TAG                    0x3230
-#define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // Base of pagetableor DMA
+#define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // pagetable entry for dma
+#define NV3_PFIFO_CACHE1_DMA_TLB_PTE_IS_PRESENT         1
+#define NV3_PFIFO_CACHE1_DMA_TLB_FRAME_ADDRESS          12          // 31:12 
 #define NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE                0x3238      // Base of pagetable for DMA
 #define NV3_PFIFO_CACHE1_PULL0                          0x3240
 //todo: merge stuff
@@ -676,10 +680,7 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PRMCIO_START                                0x601000
 
 
-#define NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_MONO         0x6013B4    // Current CRTC Register Index - Monochrome
-#define NV3_PRMCIO_CRTC_REGISTER_CUR_MONO               0x6013B5    // Currently Selected CRTC Register - Monochrome
-#define NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_COLOR        0x6013D4    // Current CRTC Register Index - Colour
-#define NV3_PRMCIO_CRTC_REGISTER_CUR_COLOR              0x6013D5    
+
 #define NV3_PRMCIO_END                                  0x601FFF
 
 #define NV3_PDAC_START                                  0x680000    // OPTIONAL external DAC
@@ -787,6 +788,9 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 // CRTC/CIO (0x3b0-0x3df)
 
+#define NV3_CRTC_REGISTER_INDEX_MONO                    0x3B4    
+#define NV3_CRTC_REGISTER_MONO                          0x3B5    // Currently Selected CRTC Register - Monochrome 
+
 #define NV3_CRTC_DATA_OUT                               0x3C0
 #define NV3_CRTC_MISCOUT                                0x3C2
 
@@ -795,6 +799,8 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 #define NV3_CRTC_REGISTER_INDEX                         0x3D4 
 #define NV3_CRTC_REGISTER_CURRENT                       0x3D5
+
+#define NV3_CRTC_REGISTER_WTF                           0x3D8
 
 // These are standard (0-18h)
 #define NV3_CRTC_REGISTER_HTOTAL                        0x00
@@ -826,7 +832,7 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 
 // These are nvidia, licensed from weitek (25-63)
-#define NV3_CRTC_REGISTER_RPC0                          0x19        // What does this mean?
+#define NV3_CRTC_REGISTER_RPC0                          0x19        // 7:5 - [10:8] of CRTC. 4:0 - [20:16] of 21-bit display buffer address
 #define NV3_CRTC_REGISTER_RPC1                          0x1A        // What does this mean?
 #define NV3_CRTC_REGISTER_READ_BANK                     0x1D
 #define NV3_CRTC_REGISTER_WRITE_BANK                    0x1E
@@ -1076,8 +1082,8 @@ typedef struct nv3_pramdac_s
     uint32_t hserr_width;       // horizontal sync error width
 
     uint8_t user_pixel_mask;                        // pixel mask for DAC lookup
-    uint32_t user_read_mode_address;                 // user read mode address
-    uint32_t user_write_mode_address;                // user write mode address
+    uint32_t user_read_mode_address;                // user read mode address
+    uint32_t user_write_mode_address;               // user write mode address
     uint8_t palette[NV3_USER_DAC_PALETTE_SIZE];     // Palette Info/CLUT - 256 entriesxr,g,b = 768 bytes
 } nv3_pramdac_t;
 
@@ -1191,10 +1197,10 @@ typedef struct nv3_pgraph_s
     uint32_t abs_uclip_ymin;
     uint32_t abs_uclip_ymax;
     // Canvas stuff
-    nv3_position_16_bigy_t src_canvas_min;
-    nv3_position_16_bigy_t src_canvas_max;
-    nv3_position_16_bigy_t dst_canvas_min;
-    nv3_position_16_bigy_t dst_canvas_max;
+    nv3_coord_16_bigy_t src_canvas_min;
+    nv3_coord_16_bigy_t src_canvas_max;
+    nv3_coord_16_bigy_t dst_canvas_min;
+    nv3_coord_16_bigy_t dst_canvas_max;
     // Pattern stuff
     nv3_color_expanded_t pattern_color_0_rgb;               // ignore alpha
     uint32_t pattern_color_0_alpha;                         // only 7:0 relevant
@@ -1216,13 +1222,13 @@ typedef struct nv3_pgraph_s
     uint32_t notifier;
     bool notify_pending;                                    // Determines if a notification is pending.
     /* Are these even used */
-    nv3_position_16_bigy_t clip0_min;
-    nv3_position_16_bigy_t clip0_max;
-    nv3_position_16_bigy_t clip1_min;
-    nv3_position_16_bigy_t clip1_max;
+    nv3_coord_16_bigy_t clip0_min;
+    nv3_coord_16_bigy_t clip0_max;
+    nv3_coord_16_bigy_t clip1_min;
+    nv3_coord_16_bigy_t clip1_max;
     /* idk */
-    nv3_position_16_t clip_start;                           // Start of the clipping region
-    nv3_position_16_t clip_size;                            // Size of the clipping region.
+    nv3_coord_16_t clip_start;                           // Start of the clipping region
+    nv3_coord_16_t clip_size;                            // Size of the clipping region.
     bool fifo_access;                                       // Determines if PGRAPH can access PFIFO.
     nv3_pgraph_status_t status;                             // Current status of the 3D engine.
     uint32_t trapped_address;
@@ -1245,12 +1251,12 @@ typedef struct nv3_pgraph_s
     struct nv3_object_class_00C win95_gdi_text;
     /* These are here so we can hold the current state of the image draw */
     uint32_t win95_gdi_text_bit_count;
-    nv3_position_16_t win95_gdi_text_current_position;     
+    nv3_coord_16_t win95_gdi_text_current_position;     
     struct nv3_object_class_00D m2mf;
     struct nv3_object_class_00E scaled_image_from_memory;
     struct nv3_object_class_010 blit;
     struct nv3_object_class_011 image;
-    nv3_position_16_t image_current_position;               /* This is here so we can hold the current state of the image */
+    nv3_coord_16_t image_current_position;               /* This is here so we can hold the current state of the image */
     struct nv3_object_class_012 bitmap;
     struct nv3_object_class_014 transfer2memory;
     struct nv3_object_class_015 stretched_image_from_cpu;
@@ -1431,26 +1437,26 @@ typedef struct nv3_s
     nv_base_t nvbase;   // Base Nvidia structure
     
     // Config
-    nv3_straps_t straps;
-    nv3_pci_config_t pci_config;
+    nv3_straps_t straps;            // OEM Configuration
+    nv3_pci_config_t pci_config;    // PCI Configuration
 
     // Subsystems
-    nv3_pmc_t pmc;              // Master Control
-    nv3_pfb_t pfb;              // Framebuffer/VRAM
-    nv3_pbus_t pbus;            // Bus Control
-    nv3_pfifo_t pfifo;          // FIFO for command submission
+    nv3_pmc_t pmc;                  // Master Control
+    nv3_pfb_t pfb;                  // Framebuffer/VRAM
+    nv3_pbus_t pbus;                // Bus Control
+    nv3_pfifo_t pfifo;              // FIFO for command submission
 
-    nv3_pramdac_t pramdac;      // RAMDAC (CLUT etc)
-    nv3_pgraph_t pgraph;        // 2D/3D Graphics
-    nv3_pextdev_t pextdev;      // Chip configuration
-    nv3_ptimer_t ptimer;        // programmable interval timer
-    nv3_ramin_ramht_t ramht;   // hashtable for PGRAPH objects
-    nv3_ramin_ramro_t ramro;   // anti-fuckup mechanism for idiots who fucked up the FIFO submission
-    nv3_ramin_ramfc_t ramfc;   // context for unused channels
-    nv3_ramin_ramau_t ramau;   // auxillary weirdnes
-    nv3_ramin_t pramin;        // Ram for INput of DMA objects. Very important!
-    nv3_pvideo_t pvideo;        // Video overlay
-    nv3_pme_t pme;              // Mediaport - external MPEG decoder and video interface
+    nv3_pramdac_t pramdac;          // RAMDAC (CLUT etc)
+    nv3_pgraph_t pgraph;            // 2D/3D Graphics
+    nv3_pextdev_t pextdev;          // Chip configuration
+    nv3_ptimer_t ptimer;            // programmable interval timer
+    nv3_ramin_ramht_t ramht;        // hashtable for PGRAPH objects
+    nv3_ramin_ramro_t ramro;        // anti-fuckup mechanism for idiots who fucked up the FIFO submission
+    nv3_ramin_ramfc_t ramfc;        // context for unused channels
+    nv3_ramin_ramau_t ramau;        // auxillary weirdnes
+    nv3_ramin_t pramin;             // Ram for INput of DMA objects. Very important!
+    nv3_pvideo_t pvideo;            // Video overlay
+    nv3_pme_t pme;                  // Mediaport - external MPEG decoder and video interface
     //more here
 
 } nv3_t;

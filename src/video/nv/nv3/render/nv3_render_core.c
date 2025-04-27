@@ -31,10 +31,10 @@
 #include <86box/utils/video_stdlib.h>
 
 /* Functions only used in this translation unit */
-void nv3_render_8bpp(nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj);
-void nv3_render_15bpp(nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj);
-void nv3_render_16bpp(nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj);
-void nv3_render_32bpp(nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj);
+void nv3_render_8bpp(nv3_coord_16_t position, nv3_coord_16_t size, nv3_grobj_t grobj, bool use_destination_buffer);
+void nv3_render_15bpp(nv3_coord_16_t position, nv3_coord_16_t size, nv3_grobj_t grobj, bool use_destination_buffer);
+void nv3_render_16bpp(nv3_coord_16_t position, nv3_coord_16_t size, nv3_grobj_t grobj, bool use_destination_buffer);
+void nv3_render_32bpp(nv3_coord_16_t position, nv3_coord_16_t size, nv3_grobj_t grobj, bool use_destination_buffer);
 
 /* Expand a colour.
    NOTE: THE GPU INTERNALLY OPERATES ON RGB10!!!!!!!!!!!
@@ -229,25 +229,12 @@ void nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool use_
 }
 
 /* Combine the current buffer with the pitch to get the address in the framebuffer to draw from for a given position. */
-uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t grobj)
+uint32_t nv3_render_get_vram_address(nv3_coord_16_t position, nv3_grobj_t grobj)
 {
     uint32_t vram_x = position.x;
     uint32_t vram_y = position.y;
     uint32_t current_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
 
-    /*
-    uint32_t destination_buffer = 5; // 5 = just use the source buffer
-
-    // src is hardcoded to 1, dst to 0. Hmm...
-    if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER0_ENABLED) & 0x01) destination_buffer = 0;
-    if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER1_ENABLED) & 0x01) destination_buffer = 1;
-    if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER2_ENABLED) & 0x01) destination_buffer = 2;
-    if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER3_ENABLED) & 0x01) destination_buffer = 3;
-
-    if (destination_buffer != current_buffer
-    && destination_buffer != 5)
-        current_buffer = destination_buffer;
-*/
     uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp;
 
     // we have to multiply the x position by the number of bytes per pixel
@@ -273,7 +260,7 @@ uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t gro
 
 
 /* Combine the current buffer with the pitch to get the address in the video ram for a specific position relative to a specific framebuffer */
-uint32_t nv3_render_get_vram_address_for_buffer(nv3_position_16_t position, nv3_grobj_t grobj, uint32_t buffer)
+uint32_t nv3_render_get_vram_address_for_buffer(nv3_coord_16_t position, nv3_grobj_t grobj, uint32_t buffer)
 {
     uint32_t vram_x = position.x;
     uint32_t vram_y = position.y;
@@ -302,9 +289,9 @@ uint32_t nv3_render_get_vram_address_for_buffer(nv3_position_16_t position, nv3_
 }
 
 /* Convert a dumb framebuffer address to a position. No buffer setup or anything, but just start at 0,0 for address 0. */
-nv3_position_16_t nv3_render_get_dfb_position(uint32_t vram_address)
+nv3_coord_16_t nv3_render_get_dfb_position(uint32_t vram_address)
 {
-    nv3_position_16_t pos = {0};
+    nv3_coord_16_t pos = {0};
 
     uint32_t pitch = nv3->nvbase.svga.hdisp;
 
@@ -334,7 +321,7 @@ nv3_position_16_t nv3_render_get_dfb_position(uint32_t vram_address)
 }
 
 /* Read an 8bpp pixel from the framebuffer. */
-uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj)
+uint8_t nv3_render_read_pixel_8(nv3_coord_16_t position, nv3_grobj_t grobj)
 { 
     // hope you call it with the right bit
     uint32_t vram_address = nv3_render_get_vram_address(position, grobj);
@@ -343,7 +330,7 @@ uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj)
 }
 
 /* Read an 16bpp pixel from the framebuffer. */
-uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj)
+uint16_t nv3_render_read_pixel_16(nv3_coord_16_t position, nv3_grobj_t grobj)
 { 
     // hope you call it with the right bit
     uint32_t vram_address = nv3_render_get_vram_address(position, grobj);
@@ -355,7 +342,7 @@ uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj)
 }
 
 /* Read an 16bpp pixel from the framebuffer. */
-uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj)
+uint32_t nv3_render_read_pixel_32(nv3_coord_16_t position, nv3_grobj_t grobj)
 { 
     // hope you call it with the right bit
     uint32_t vram_address = nv3_render_get_vram_address(position, grobj);
@@ -367,16 +354,12 @@ uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj)
 }
 
 /* Plots a pixel. */
-void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t grobj)
+void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t grobj)
 {
 
     // PFB_0 is always set to hardcoded "NO_TILING" value of 0x1114.
     // It seems, you are meant to 
 
-    /* put this here for debugging + it may be needed later. */
-    #ifdef DEBUG
-    uint8_t color_format_object = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_COLOR_FORMAT) & 0x07;
-    #endif
     bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
 
     uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp; // maybe y16 too?z
@@ -460,6 +443,7 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
             break;
         case 15:
         case 16:
+        {
             uint16_t* vram_16 = (uint16_t*)(nv3->nvbase.svga.vram);
             pixel_addr_vram >>= 1; 
   
@@ -488,7 +472,9 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 11] = changeframecount;
 
             break;
+        }
         case 32:
+        {
             uint32_t* vram_32 = (uint32_t*)(nv3->nvbase.svga.vram);
             pixel_addr_vram >>= 2; 
 
@@ -499,12 +485,13 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 10] = changeframecount;
 
             break;
+        }
     }
     
     /* Go write the pixel */
-    nv3_size_16_t size = {0};
-    size.w = size.h = 1; 
-    nv3_render_current_bpp(&nv3->nvbase.svga, position, size, grobj, true);
+    nv3_coord_16_t size = {0};
+    size.x = size.y = 1; 
+    nv3_render_current_bpp(&nv3->nvbase.svga, position, size, grobj, true, false);
 }
 
 /* Ensure the correct monitor size */
@@ -542,10 +529,10 @@ void nv3_render_ensure_screen_size(void)
 /* Blit to the monitor from DFB, 8bpp */
 void nv3_render_current_bpp_dfb_8(uint32_t address)
 {
-    nv3_size_16_t size = {0};
-    size.w = size.h = 1; 
+    nv3_coord_16_t size = {0};
+    size.x = size.y = 1; 
 
-    nv3_position_16_t pos = nv3_render_get_dfb_position(address);
+    nv3_coord_16_t pos = nv3_render_get_dfb_position(address);
 
     uint32_t* p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
     uint32_t data = *(uint32_t*)&(nv3->nvbase.svga.vram[address]);
@@ -556,10 +543,10 @@ void nv3_render_current_bpp_dfb_8(uint32_t address)
 /* Blit to the monitor from DFB, 15/16bpp */
 void nv3_render_current_bpp_dfb_16(uint32_t address)
 {
-    nv3_size_16_t size = {0};
-    size.w = size.h = 1; 
+    nv3_coord_16_t size = {0};
+    size.x = size.y = 1; 
 
-    nv3_position_16_t pos = nv3_render_get_dfb_position(address);
+    nv3_coord_16_t pos = nv3_render_get_dfb_position(address);
 
     uint32_t* p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
     uint32_t data = *(uint32_t*)&(nv3->nvbase.svga.vram[address]);
@@ -577,10 +564,10 @@ void nv3_render_current_bpp_dfb_16(uint32_t address)
 /* Blit to the monitor from DFB, 32bpp */
 void nv3_render_current_bpp_dfb_32(uint32_t address)
 {
-    nv3_size_16_t size = {0};
-    size.w = size.h = 1; 
+    nv3_coord_16_t size = {0};
+    size.x = size.y = 1; 
 
-    nv3_position_16_t pos = nv3_render_get_dfb_position(address);
+    nv3_coord_16_t pos = nv3_render_get_dfb_position(address);
 
     uint32_t data = *(uint32_t*)&(nv3->nvbase.svga.vram[address]);
 
@@ -605,7 +592,7 @@ void nv3_render_current_bpp_dfb_32(uint32_t address)
 
 
 /* Blit to the monitor from GPU, current bpp */
-void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj, bool run_render_check)
+void nv3_render_current_bpp(svga_t *svga, nv3_coord_16_t pos, nv3_coord_16_t size, nv3_grobj_t grobj, bool run_render_check, bool use_destination_buffer)
 {
     /* Ensure that we are in the correct mode. Modified SVGA core code */
     nv3_render_ensure_screen_size();
@@ -641,16 +628,16 @@ void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t pos, nv3_size_16_t s
             fatal("NV3 - 4bpp not implemented (not even sure if it's SVGA only)");
             break; 
         case 8:
-            nv3_render_8bpp(pos, size, grobj);
+            nv3_render_8bpp(pos, size, grobj, use_destination_buffer);
             break; 
         case 15:
-            nv3_render_15bpp(pos, size, grobj);
+            nv3_render_15bpp(pos, size, grobj, use_destination_buffer);
             break; 
         case 16:
-            nv3_render_16bpp(pos, size, grobj);
+            nv3_render_16bpp(pos, size, grobj, use_destination_buffer);
             break;
         case 32:
-            nv3_render_32bpp(pos, size, grobj);
+            nv3_render_32bpp(pos, size, grobj, use_destination_buffer);
             break; 
     }
     
@@ -660,7 +647,7 @@ void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t pos, nv3_size_16_t s
     Blit a certain region from the (destination buffer base + (position in vram)) to the 86Box monitor, indexed 8 bits per pixel format
 */
 
-void nv3_render_8bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
+void nv3_render_8bpp(nv3_coord_16_t pos, nv3_coord_16_t size, nv3_grobj_t grobj, bool use_destination_buffer)
 {
     if (!nv3)
         return; 
@@ -672,12 +659,15 @@ void nv3_render_8bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grob
 
     p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
 
-    for (uint32_t y = 0; y < size.h; y++)
+    for (uint32_t y = 0; y < size.y; y++)
     {
         /* re-set the vram address because we are basically "jumping" halfway across a line here */
-        vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
+        if (use_destination_buffer)
+            vram_base = nv3_render_get_vram_address_for_buffer(pos, grobj, 0); // hardcode to zero for now
+        else
+            vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
 
-        for (uint32_t x = 0; x < size.w; x++)
+        for (uint32_t x = 0; x < size.x; x++)
         {
             p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];
@@ -698,7 +688,7 @@ void nv3_render_8bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grob
     Blit a certain region from the (destination buffer base + (position in vram)) to the 86Box monitor, 15 bits per pixel format
 */
 
-void nv3_render_15bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
+void nv3_render_15bpp(nv3_coord_16_t pos, nv3_coord_16_t size, nv3_grobj_t grobj, bool use_destination_buffer)
 {
     if (!nv3)
         return; 
@@ -710,12 +700,15 @@ void nv3_render_15bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t gro
 
     p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
 
-    for (uint32_t y = 0; y < size.h; y++)
+    for (uint32_t y = 0; y < size.y; y++)
     {
         /* re-set the vram address because we are basically "jumping" halfway across a line here */
-        vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
+        if (use_destination_buffer)
+            vram_base = nv3_render_get_vram_address_for_buffer(pos, grobj, 0); // hardcode to zero for now
+        else
+            vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
 
-        for (uint32_t x = 0; x < size.w; x++)
+        for (uint32_t x = 0; x < size.x; x++)
         {
             p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];
@@ -736,7 +729,7 @@ void nv3_render_15bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t gro
     Blit a certain region from the (destination buffer base + (position in vram)) to the 86Box monitor, 16 bits per pixel format
 */
 
-void nv3_render_16bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
+void nv3_render_16bpp(nv3_coord_16_t pos, nv3_coord_16_t size, nv3_grobj_t grobj, bool use_destination_buffer)
 {    
     if (!nv3)
         return; 
@@ -748,12 +741,15 @@ void nv3_render_16bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t gro
 
     p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
 
-    for (uint32_t y = 0; y < size.h; y++)
+    for (uint32_t y = 0; y < size.y; y++)
     {
-        /* re-get the vram address because we are basically "jumping" halfway across a line here */
-        vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
+        /* re-set the vram address because we are basically "jumping" halfway across a line here */
+        if (use_destination_buffer)
+            vram_base = nv3_render_get_vram_address_for_buffer(pos, grobj, 0); // hardcode to zero for now
+        else
+            vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
 
-        for (uint32_t x = 0; x < size.w; x++)
+        for (uint32_t x = 0; x < size.x; x++)
         {
             p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];
@@ -774,7 +770,7 @@ void nv3_render_16bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t gro
     Blit a certain region from the (destination buffer base + (position in vram)) to the 86Box monitor, 32 bits per pixel format
 */
 
-void nv3_render_32bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
+void nv3_render_32bpp(nv3_coord_16_t pos, nv3_coord_16_t size, nv3_grobj_t grobj, bool use_destination_buffer)
 {
     if (!nv3)
         return; 
@@ -786,12 +782,15 @@ void nv3_render_32bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t gro
 
     p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
 
-    for (uint32_t y = 0; y < size.h; y++)
+    for (uint32_t y = 0; y < size.y; y++)
     {
-        /* re-get the vram address because we are basically "jumping" halfway across a line here */
-        vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
-        
-        for (uint32_t x = 0; x < size.w; x++)
+        /* re-set the vram address because we are basically "jumping" halfway across a line here */
+        if (use_destination_buffer)
+            vram_base = nv3_render_get_vram_address_for_buffer(pos, grobj, 0); // hardcode to zero for now
+        else
+            vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
+
+        for (uint32_t x = 0; x < size.x; x++)
         {
             p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];

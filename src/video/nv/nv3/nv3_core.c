@@ -196,7 +196,6 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
 
         nv_log_verbose_only("Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
-
         nv3_svga_write(real_address, val & 0xFF, nv3);
         nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
         
@@ -272,7 +271,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
             ret = (NV_PCI_DEVICE_NV3 >> 8);
             break;
         
-        // various capabilities
+        // various capabilities enabled by default 
         // IO space         enabled
         // Memory space     enabled
         // Bus master       enabled
@@ -282,7 +281,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
         // 66Mhz FSB        capable
 
         case PCI_REG_COMMAND_L:
-            ret = nv3->pci_config.pci_regs[PCI_REG_COMMAND_L] ; // we actually respond to the fucking 
+            ret = nv3->pci_config.pci_regs[PCI_REG_COMMAND_L]; 
             break;
         
         case PCI_REG_COMMAND_H:
@@ -537,7 +536,7 @@ void nv3_recalc_timings(svga_t* svga)
         case NV3_CRTC_REGISTER_PIXELMODE_16BPP:
             /* This is some sketchy shit that is an attempt at an educated guess
             at pixel clock differences between 9x and NT only in 16bpp. If there is ever an error on 9x with "interlaced" looking graphics,
-            this is what's causing it. Possibly fucking *ReactOS* of all things */
+            this is what's causing it. Possibly fucking up *ReactOS* of all things */
             if ((svga->crtc[NV3_CRTC_REGISTER_VRETRACESTART] >> 1) & 0x01)
                 svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 2;
             else 
@@ -632,6 +631,9 @@ uint8_t nv3_svga_read(uint16_t addr, void* priv)
         case NV3_CRTC_REGISTER_INDEX:
             ret = nv3->nvbase.svga.crtcreg;
             break;
+        case NV3_CRTC_REGISTER_WTF:
+            ret = 0x08; // Required to not freeze in certain situations on v3.xx drivers
+            break; 
         case NV3_CRTC_REGISTER_CURRENT:
             // Support the extended NVIDIA CRTC register range
             switch (nv3->nvbase.svga.crtcreg)
@@ -760,11 +762,13 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv)
                         nv3->nvbase.svga.hdisp += 0x100;
                     break;
                 case NV3_CRTC_REGISTER_I2C_GPIO:
+                {
                     uint8_t scl = !!(val & 0x20);
                     uint8_t sda = !!(val & 0x10);
                     // Set an I2C GPIO register
                     i2c_gpio_set(nv3->nvbase.i2c, scl, sda);
                     break;
+                }
 
             }
 

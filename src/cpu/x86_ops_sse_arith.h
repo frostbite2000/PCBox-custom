@@ -812,13 +812,13 @@ opADDPS_xmm_xmm_a16(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_add(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_add(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_add(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
     
     return 0;
 }
@@ -839,13 +839,13 @@ opADDPS_xmm_xmm_a32(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_add(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_add(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_add(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -859,13 +859,13 @@ opADDSS_xmm_xmm_a16(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_add(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -879,13 +879,13 @@ opADDSS_xmm_xmm_a32(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_add(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -906,13 +906,13 @@ opMULPS_xmm_xmm_a16(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_mul(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_mul(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_mul(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -933,13 +933,13 @@ opMULPS_xmm_xmm_a32(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_mul(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_mul(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_mul(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -953,13 +953,13 @@ opMULSS_xmm_xmm_a16(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_mul(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -973,13 +973,13 @@ opMULSS_xmm_xmm_a32(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_mul(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1000,13 +1000,13 @@ opSUBPS_xmm_xmm_a16(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_sub(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_sub(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_sub(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1027,13 +1027,13 @@ opSUBPS_xmm_xmm_a32(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_sub(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_sub(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_sub(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1047,13 +1047,13 @@ opSUBSS_xmm_xmm_a16(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_sub(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1067,13 +1067,13 @@ opSUBSS_xmm_xmm_a32(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_sub(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1094,13 +1094,13 @@ opMINPS_xmm_xmm_a16(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_min(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_min(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_min(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1121,13 +1121,13 @@ opMINPS_xmm_xmm_a32(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_min(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_min(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_min(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1141,13 +1141,13 @@ opMINSS_xmm_xmm_a16(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_min(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1161,13 +1161,13 @@ opMINSS_xmm_xmm_a32(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_min(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
 
     return 0;
@@ -1189,13 +1189,13 @@ opDIVPS_xmm_xmm_a16(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_div(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_div(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_div(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1216,13 +1216,13 @@ opDIVPS_xmm_xmm_a32(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_div(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_div(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_div(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1236,13 +1236,13 @@ opDIVSS_xmm_xmm_a16(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_div(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1256,13 +1256,13 @@ opDIVSS_xmm_xmm_a32(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_div(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1283,13 +1283,13 @@ opMAXPS_xmm_xmm_a16(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_max(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_max(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_max(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1310,13 +1310,13 @@ opMAXPS_xmm_xmm_a32(uint32_t fetchdat)
     cpu_state.XMM[cpu_reg].f[1] = f32_max(cpu_state.XMM[cpu_reg].f[1], src.f[1], &status);
     cpu_state.XMM[cpu_reg].f[2] = f32_max(cpu_state.XMM[cpu_reg].f[2], src.f[2], &status);
     cpu_state.XMM[cpu_reg].f[3] = f32_max(cpu_state.XMM[cpu_reg].f[3], src.f[3], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1330,13 +1330,13 @@ opMAXSS_xmm_xmm_a16(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_max(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -1350,13 +1350,13 @@ opMAXSS_xmm_xmm_a32(uint32_t fetchdat)
     struct softfloat_status_t status = mxcsr_to_softfloat_status_word();
     SSE_GETSRC();
     cpu_state.XMM[cpu_reg].f[0] = f32_max(cpu_state.XMM[cpu_reg].f[0], src.f[0], &status);
-    /*softfloat_status_word_to_mxcsr(status);
+    softfloat_status_word_to_mxcsr(status);
     int unmasked = (~cpu_state.mxcsr >> 7) & 0x3f;
     if ((cpu_state.mxcsr & 0x3f) & (unmasked & 0x3f)) {
         if (cr4 & CR4_OSXMMEXCPT)
             x86_int(0x13);
-        //ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
-    }*/
+        ILLEGAL_ON(!(cr4 & CR4_OSXMMEXCPT));
+    }
 
     return 0;
 }
@@ -2484,10 +2484,10 @@ opPMINSW_mm_mm_a16(uint32_t fetchdat)
 
     MMX_GETSRC();
 
-    dst->sw[0] = fmin(dst->sw[0], src.sw[0]);
-    dst->sw[1] = fmin(dst->sw[1], src.sw[1]);
-    dst->sw[2] = fmin(dst->sw[2], src.sw[2]);
-    dst->sw[3] = fmin(dst->sw[3], src.sw[3]);
+    dst->sw[0] = (dst->sw[0] < src.sw[0]) ? dst->sw[0] : src.sw[0];
+    dst->sw[1] = (dst->sw[1] < src.sw[1]) ? dst->sw[1] : src.sw[1];
+    dst->sw[2] = (dst->sw[2] < src.sw[2]) ? dst->sw[2] : src.sw[2];
+    dst->sw[3] = (dst->sw[3] < src.sw[3]) ? dst->sw[3] : src.sw[3];
 
     CLOCK_CYCLES(1);
     MMX_SETEXP(cpu_reg); 
@@ -2508,10 +2508,10 @@ opPMINSW_mm_mm_a32(uint32_t fetchdat)
 
     MMX_GETSRC();
 
-    dst->sw[0] = fmin(dst->sw[0], src.sw[0]);
-    dst->sw[1] = fmin(dst->sw[1], src.sw[1]);
-    dst->sw[2] = fmin(dst->sw[2], src.sw[2]);
-    dst->sw[3] = fmin(dst->sw[3], src.sw[3]);
+    dst->sw[0] = (dst->sw[0] < src.sw[0]) ? dst->sw[0] : src.sw[0];
+    dst->sw[1] = (dst->sw[1] < src.sw[1]) ? dst->sw[1] : src.sw[1];
+    dst->sw[2] = (dst->sw[2] < src.sw[2]) ? dst->sw[2] : src.sw[2];
+    dst->sw[3] = (dst->sw[3] < src.sw[3]) ? dst->sw[3] : src.sw[3];
 
     CLOCK_CYCLES(1);
     MMX_SETEXP(cpu_reg); 
@@ -2525,14 +2525,14 @@ opPMINSW_xmm_xmm_a16(uint32_t fetchdat)
     SSE_ENTER();
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3) {
-        cpu_state.XMM[cpu_reg].sw[0] = fmin(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = fmin(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = fmin(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = fmin(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = fmin(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = fmin(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = fmin(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = fmin(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = (cpu_state.XMM[cpu_reg].sw[0] < cpu_state.XMM[cpu_rm].sw[0]) ? cpu_state.XMM[cpu_reg].sw[0] : cpu_state.XMM[cpu_rm].sw[0];
+        cpu_state.XMM[cpu_reg].sw[1] = (cpu_state.XMM[cpu_reg].sw[1] < cpu_state.XMM[cpu_rm].sw[1]) ? cpu_state.XMM[cpu_reg].sw[1] : cpu_state.XMM[cpu_rm].sw[1];
+        cpu_state.XMM[cpu_reg].sw[2] = (cpu_state.XMM[cpu_reg].sw[2] < cpu_state.XMM[cpu_rm].sw[2]) ? cpu_state.XMM[cpu_reg].sw[2] : cpu_state.XMM[cpu_rm].sw[2];
+        cpu_state.XMM[cpu_reg].sw[3] = (cpu_state.XMM[cpu_reg].sw[3] < cpu_state.XMM[cpu_rm].sw[3]) ? cpu_state.XMM[cpu_reg].sw[3] : cpu_state.XMM[cpu_rm].sw[3];
+        cpu_state.XMM[cpu_reg].sw[4] = (cpu_state.XMM[cpu_reg].sw[4] < cpu_state.XMM[cpu_rm].sw[4]) ? cpu_state.XMM[cpu_reg].sw[4] : cpu_state.XMM[cpu_rm].sw[4];
+        cpu_state.XMM[cpu_reg].sw[5] = (cpu_state.XMM[cpu_reg].sw[5] < cpu_state.XMM[cpu_rm].sw[5]) ? cpu_state.XMM[cpu_reg].sw[5] : cpu_state.XMM[cpu_rm].sw[5];
+        cpu_state.XMM[cpu_reg].sw[6] = (cpu_state.XMM[cpu_reg].sw[6] < cpu_state.XMM[cpu_rm].sw[6]) ? cpu_state.XMM[cpu_reg].sw[6] : cpu_state.XMM[cpu_rm].sw[6];
+        cpu_state.XMM[cpu_reg].sw[7] = (cpu_state.XMM[cpu_reg].sw[7] < cpu_state.XMM[cpu_rm].sw[7]) ? cpu_state.XMM[cpu_reg].sw[7] : cpu_state.XMM[cpu_rm].sw[7];
         CLOCK_CYCLES(1);
     } else {
         int16_t src[8];
@@ -2562,14 +2562,14 @@ opPMINSW_xmm_xmm_a16(uint32_t fetchdat)
         src[7] = readmemw(easeg, cpu_state.eaaddr + 14);
         if (cpu_state.abrt)
             return 1;
-        cpu_state.XMM[cpu_reg].sw[0] = fmin(cpu_state.XMM[cpu_reg].sw[0], src[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = fmin(cpu_state.XMM[cpu_reg].sw[1], src[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = fmin(cpu_state.XMM[cpu_reg].sw[2], src[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = fmin(cpu_state.XMM[cpu_reg].sw[3], src[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = fmin(cpu_state.XMM[cpu_reg].sw[4], src[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = fmin(cpu_state.XMM[cpu_reg].sw[5], src[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = fmin(cpu_state.XMM[cpu_reg].sw[6], src[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = fmin(cpu_state.XMM[cpu_reg].sw[7], src[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = (cpu_state.XMM[cpu_reg].sw[0] < src[0]) ? cpu_state.XMM[cpu_reg].sw[0] : src[0];
+        cpu_state.XMM[cpu_reg].sw[1] = (cpu_state.XMM[cpu_reg].sw[1] < src[1]) ? cpu_state.XMM[cpu_reg].sw[1] : src[1];
+        cpu_state.XMM[cpu_reg].sw[2] = (cpu_state.XMM[cpu_reg].sw[2] < src[2]) ? cpu_state.XMM[cpu_reg].sw[2] : src[2];
+        cpu_state.XMM[cpu_reg].sw[3] = (cpu_state.XMM[cpu_reg].sw[3] < src[3]) ? cpu_state.XMM[cpu_reg].sw[3] : src[3];
+        cpu_state.XMM[cpu_reg].sw[4] = (cpu_state.XMM[cpu_reg].sw[4] < src[4]) ? cpu_state.XMM[cpu_reg].sw[4] : src[4];
+        cpu_state.XMM[cpu_reg].sw[5] = (cpu_state.XMM[cpu_reg].sw[5] < src[5]) ? cpu_state.XMM[cpu_reg].sw[5] : src[5];
+        cpu_state.XMM[cpu_reg].sw[6] = (cpu_state.XMM[cpu_reg].sw[6] < src[6]) ? cpu_state.XMM[cpu_reg].sw[6] : src[6];
+        cpu_state.XMM[cpu_reg].sw[7] = (cpu_state.XMM[cpu_reg].sw[7] < src[7]) ? cpu_state.XMM[cpu_reg].sw[7] : src[7];
     }
 
     return 0;
@@ -2581,14 +2581,14 @@ opPMINSW_xmm_xmm_a32(uint32_t fetchdat)
     SSE_ENTER();
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3) {
-        cpu_state.XMM[cpu_reg].sw[0] = fmin(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = fmin(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = fmin(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = fmin(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = fmin(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = fmin(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = fmin(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = fmin(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = (cpu_state.XMM[cpu_reg].sw[0] < cpu_state.XMM[cpu_rm].sw[0]) ? cpu_state.XMM[cpu_reg].sw[0] : cpu_state.XMM[cpu_rm].sw[0];
+        cpu_state.XMM[cpu_reg].sw[1] = (cpu_state.XMM[cpu_reg].sw[1] < cpu_state.XMM[cpu_rm].sw[1]) ? cpu_state.XMM[cpu_reg].sw[1] : cpu_state.XMM[cpu_rm].sw[1];
+        cpu_state.XMM[cpu_reg].sw[2] = (cpu_state.XMM[cpu_reg].sw[2] < cpu_state.XMM[cpu_rm].sw[2]) ? cpu_state.XMM[cpu_reg].sw[2] : cpu_state.XMM[cpu_rm].sw[2];
+        cpu_state.XMM[cpu_reg].sw[3] = (cpu_state.XMM[cpu_reg].sw[3] < cpu_state.XMM[cpu_rm].sw[3]) ? cpu_state.XMM[cpu_reg].sw[3] : cpu_state.XMM[cpu_rm].sw[3];
+        cpu_state.XMM[cpu_reg].sw[4] = (cpu_state.XMM[cpu_reg].sw[4] < cpu_state.XMM[cpu_rm].sw[4]) ? cpu_state.XMM[cpu_reg].sw[4] : cpu_state.XMM[cpu_rm].sw[4];
+        cpu_state.XMM[cpu_reg].sw[5] = (cpu_state.XMM[cpu_reg].sw[5] < cpu_state.XMM[cpu_rm].sw[5]) ? cpu_state.XMM[cpu_reg].sw[5] : cpu_state.XMM[cpu_rm].sw[5];
+        cpu_state.XMM[cpu_reg].sw[6] = (cpu_state.XMM[cpu_reg].sw[6] < cpu_state.XMM[cpu_rm].sw[6]) ? cpu_state.XMM[cpu_reg].sw[6] : cpu_state.XMM[cpu_rm].sw[6];
+        cpu_state.XMM[cpu_reg].sw[7] = (cpu_state.XMM[cpu_reg].sw[7] < cpu_state.XMM[cpu_rm].sw[7]) ? cpu_state.XMM[cpu_reg].sw[7] : cpu_state.XMM[cpu_rm].sw[7];
         CLOCK_CYCLES(1);
     } else {
         int16_t src[8];
@@ -2618,14 +2618,14 @@ opPMINSW_xmm_xmm_a32(uint32_t fetchdat)
         src[7] = readmemw(easeg, cpu_state.eaaddr + 14);
         if (cpu_state.abrt)
             return 1;
-        cpu_state.XMM[cpu_reg].sw[0] = fmin(cpu_state.XMM[cpu_reg].sw[0], src[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = fmin(cpu_state.XMM[cpu_reg].sw[1], src[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = fmin(cpu_state.XMM[cpu_reg].sw[2], src[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = fmin(cpu_state.XMM[cpu_reg].sw[3], src[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = fmin(cpu_state.XMM[cpu_reg].sw[4], src[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = fmin(cpu_state.XMM[cpu_reg].sw[5], src[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = fmin(cpu_state.XMM[cpu_reg].sw[6], src[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = fmin(cpu_state.XMM[cpu_reg].sw[7], src[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = (cpu_state.XMM[cpu_reg].sw[0] < src[0]) ? cpu_state.XMM[cpu_reg].sw[0] : src[0];
+        cpu_state.XMM[cpu_reg].sw[1] = (cpu_state.XMM[cpu_reg].sw[1] < src[1]) ? cpu_state.XMM[cpu_reg].sw[1] : src[1];
+        cpu_state.XMM[cpu_reg].sw[2] = (cpu_state.XMM[cpu_reg].sw[2] < src[2]) ? cpu_state.XMM[cpu_reg].sw[2] : src[2];
+        cpu_state.XMM[cpu_reg].sw[3] = (cpu_state.XMM[cpu_reg].sw[3] < src[3]) ? cpu_state.XMM[cpu_reg].sw[3] : src[3];
+        cpu_state.XMM[cpu_reg].sw[4] = (cpu_state.XMM[cpu_reg].sw[4] < src[4]) ? cpu_state.XMM[cpu_reg].sw[4] : src[4];
+        cpu_state.XMM[cpu_reg].sw[5] = (cpu_state.XMM[cpu_reg].sw[5] < src[5]) ? cpu_state.XMM[cpu_reg].sw[5] : src[5];
+        cpu_state.XMM[cpu_reg].sw[6] = (cpu_state.XMM[cpu_reg].sw[6] < src[6]) ? cpu_state.XMM[cpu_reg].sw[6] : src[6];
+        cpu_state.XMM[cpu_reg].sw[7] = (cpu_state.XMM[cpu_reg].sw[7] < src[7]) ? cpu_state.XMM[cpu_reg].sw[7] : src[7];
     }
 
     return 0;
@@ -2662,10 +2662,10 @@ opPMAXSW_mm_mm_a16(uint32_t fetchdat)
 
     MMX_GETSRC();
 
-    dst->sw[0] = fmax(dst->sw[0], src.sw[0]);
-    dst->sw[1] = fmax(dst->sw[1], src.sw[1]);
-    dst->sw[2] = fmax(dst->sw[2], src.sw[2]);
-    dst->sw[3] = fmax(dst->sw[3], src.sw[3]);
+    dst->sw[0] = (dst->sw[0] > src.sw[0]) ? dst->sw[0] : src.sw[0];
+    dst->sw[1] = (dst->sw[1] > src.sw[1]) ? dst->sw[1] : src.sw[1];
+    dst->sw[2] = (dst->sw[2] > src.sw[2]) ? dst->sw[2] : src.sw[2];
+    dst->sw[3] = (dst->sw[3] > src.sw[3]) ? dst->sw[3] : src.sw[3];
 
     CLOCK_CYCLES(1);
     MMX_SETEXP(cpu_reg); 
@@ -2686,10 +2686,10 @@ opPMAXSW_mm_mm_a32(uint32_t fetchdat)
 
     MMX_GETSRC();
 
-    dst->sw[0] = fmax(dst->sw[0], src.sw[0]);
-    dst->sw[1] = fmax(dst->sw[1], src.sw[1]);
-    dst->sw[2] = fmax(dst->sw[2], src.sw[2]);
-    dst->sw[3] = fmax(dst->sw[3], src.sw[3]);
+    dst->sw[0] = (dst->sw[0] > src.sw[0]) ? dst->sw[0] : src.sw[0];
+    dst->sw[1] = (dst->sw[1] > src.sw[1]) ? dst->sw[1] : src.sw[1];
+    dst->sw[2] = (dst->sw[2] > src.sw[2]) ? dst->sw[2] : src.sw[2];
+    dst->sw[3] = (dst->sw[3] > src.sw[3]) ? dst->sw[3] : src.sw[3];
 
     CLOCK_CYCLES(1);
     MMX_SETEXP(cpu_reg); 
@@ -2703,14 +2703,14 @@ opPMAXSW_xmm_xmm_a16(uint32_t fetchdat)
     SSE_ENTER();
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3) {
-        cpu_state.XMM[cpu_reg].sw[0] = fmax(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = fmax(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = fmax(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = fmax(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = fmax(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = fmax(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = fmax(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = fmax(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = (cpu_state.XMM[cpu_reg].sw[0] > cpu_state.XMM[cpu_rm].sw[0]) ? cpu_state.XMM[cpu_reg].sw[0] : cpu_state.XMM[cpu_rm].sw[0];
+        cpu_state.XMM[cpu_reg].sw[1] = (cpu_state.XMM[cpu_reg].sw[1] > cpu_state.XMM[cpu_rm].sw[1]) ? cpu_state.XMM[cpu_reg].sw[1] : cpu_state.XMM[cpu_rm].sw[1];
+        cpu_state.XMM[cpu_reg].sw[2] = (cpu_state.XMM[cpu_reg].sw[2] > cpu_state.XMM[cpu_rm].sw[2]) ? cpu_state.XMM[cpu_reg].sw[2] : cpu_state.XMM[cpu_rm].sw[2];
+        cpu_state.XMM[cpu_reg].sw[3] = (cpu_state.XMM[cpu_reg].sw[3] > cpu_state.XMM[cpu_rm].sw[3]) ? cpu_state.XMM[cpu_reg].sw[3] : cpu_state.XMM[cpu_rm].sw[3];
+        cpu_state.XMM[cpu_reg].sw[4] = (cpu_state.XMM[cpu_reg].sw[4] > cpu_state.XMM[cpu_rm].sw[4]) ? cpu_state.XMM[cpu_reg].sw[4] : cpu_state.XMM[cpu_rm].sw[4];
+        cpu_state.XMM[cpu_reg].sw[5] = (cpu_state.XMM[cpu_reg].sw[5] > cpu_state.XMM[cpu_rm].sw[5]) ? cpu_state.XMM[cpu_reg].sw[5] : cpu_state.XMM[cpu_rm].sw[5];
+        cpu_state.XMM[cpu_reg].sw[6] = (cpu_state.XMM[cpu_reg].sw[6] > cpu_state.XMM[cpu_rm].sw[6]) ? cpu_state.XMM[cpu_reg].sw[6] : cpu_state.XMM[cpu_rm].sw[6];
+        cpu_state.XMM[cpu_reg].sw[7] = (cpu_state.XMM[cpu_reg].sw[7] > cpu_state.XMM[cpu_rm].sw[7]) ? cpu_state.XMM[cpu_reg].sw[7] : cpu_state.XMM[cpu_rm].sw[7];
         CLOCK_CYCLES(1);
     } else {
         int16_t src[8];
@@ -2740,14 +2740,14 @@ opPMAXSW_xmm_xmm_a16(uint32_t fetchdat)
         src[7] = readmemw(easeg, cpu_state.eaaddr + 14);
         if (cpu_state.abrt)
             return 1;
-        cpu_state.XMM[cpu_reg].sw[0] = fmax(cpu_state.XMM[cpu_reg].sw[0], src[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = fmax(cpu_state.XMM[cpu_reg].sw[1], src[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = fmax(cpu_state.XMM[cpu_reg].sw[2], src[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = fmax(cpu_state.XMM[cpu_reg].sw[3], src[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = fmax(cpu_state.XMM[cpu_reg].sw[4], src[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = fmax(cpu_state.XMM[cpu_reg].sw[5], src[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = fmax(cpu_state.XMM[cpu_reg].sw[6], src[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = fmax(cpu_state.XMM[cpu_reg].sw[7], src[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = (cpu_state.XMM[cpu_reg].sw[0] > src[0]) ? cpu_state.XMM[cpu_reg].sw[0] : src[0];
+        cpu_state.XMM[cpu_reg].sw[1] = (cpu_state.XMM[cpu_reg].sw[1] > src[1]) ? cpu_state.XMM[cpu_reg].sw[1] : src[1];
+        cpu_state.XMM[cpu_reg].sw[2] = (cpu_state.XMM[cpu_reg].sw[2] > src[2]) ? cpu_state.XMM[cpu_reg].sw[2] : src[2];
+        cpu_state.XMM[cpu_reg].sw[3] = (cpu_state.XMM[cpu_reg].sw[3] > src[3]) ? cpu_state.XMM[cpu_reg].sw[3] : src[3];
+        cpu_state.XMM[cpu_reg].sw[4] = (cpu_state.XMM[cpu_reg].sw[4] > src[4]) ? cpu_state.XMM[cpu_reg].sw[4] : src[4];
+        cpu_state.XMM[cpu_reg].sw[5] = (cpu_state.XMM[cpu_reg].sw[5] > src[5]) ? cpu_state.XMM[cpu_reg].sw[5] : src[5];
+        cpu_state.XMM[cpu_reg].sw[6] = (cpu_state.XMM[cpu_reg].sw[6] > src[6]) ? cpu_state.XMM[cpu_reg].sw[6] : src[6];
+        cpu_state.XMM[cpu_reg].sw[7] = (cpu_state.XMM[cpu_reg].sw[7] > src[7]) ? cpu_state.XMM[cpu_reg].sw[7] : src[7];
     }
 
     return 0;
@@ -2759,14 +2759,14 @@ opPMAXSW_xmm_xmm_a32(uint32_t fetchdat)
     SSE_ENTER();
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3) {
-        cpu_state.XMM[cpu_reg].sw[0] = fmax(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = fmax(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = fmax(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = fmax(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = fmax(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = fmax(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = fmax(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = fmax(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = (cpu_state.XMM[cpu_reg].sw[0] > cpu_state.XMM[cpu_rm].sw[0]) ? cpu_state.XMM[cpu_reg].sw[0] : cpu_state.XMM[cpu_rm].sw[0];
+        cpu_state.XMM[cpu_reg].sw[1] = (cpu_state.XMM[cpu_reg].sw[1] > cpu_state.XMM[cpu_rm].sw[1]) ? cpu_state.XMM[cpu_reg].sw[1] : cpu_state.XMM[cpu_rm].sw[1];
+        cpu_state.XMM[cpu_reg].sw[2] = (cpu_state.XMM[cpu_reg].sw[2] > cpu_state.XMM[cpu_rm].sw[2]) ? cpu_state.XMM[cpu_reg].sw[2] : cpu_state.XMM[cpu_rm].sw[2];
+        cpu_state.XMM[cpu_reg].sw[3] = (cpu_state.XMM[cpu_reg].sw[3] > cpu_state.XMM[cpu_rm].sw[3]) ? cpu_state.XMM[cpu_reg].sw[3] : cpu_state.XMM[cpu_rm].sw[3];
+        cpu_state.XMM[cpu_reg].sw[4] = (cpu_state.XMM[cpu_reg].sw[4] > cpu_state.XMM[cpu_rm].sw[4]) ? cpu_state.XMM[cpu_reg].sw[4] : cpu_state.XMM[cpu_rm].sw[4];
+        cpu_state.XMM[cpu_reg].sw[5] = (cpu_state.XMM[cpu_reg].sw[5] > cpu_state.XMM[cpu_rm].sw[5]) ? cpu_state.XMM[cpu_reg].sw[5] : cpu_state.XMM[cpu_rm].sw[5];
+        cpu_state.XMM[cpu_reg].sw[6] = (cpu_state.XMM[cpu_reg].sw[6] > cpu_state.XMM[cpu_rm].sw[6]) ? cpu_state.XMM[cpu_reg].sw[6] : cpu_state.XMM[cpu_rm].sw[6];
+        cpu_state.XMM[cpu_reg].sw[7] = (cpu_state.XMM[cpu_reg].sw[7] > cpu_state.XMM[cpu_rm].sw[7]) ? cpu_state.XMM[cpu_reg].sw[7] : cpu_state.XMM[cpu_rm].sw[7];
         CLOCK_CYCLES(1);
     } else {
         int16_t src[8];
@@ -2796,14 +2796,14 @@ opPMAXSW_xmm_xmm_a32(uint32_t fetchdat)
         src[7] = readmemw(easeg, cpu_state.eaaddr + 14);
         if (cpu_state.abrt)
             return 1;
-        cpu_state.XMM[cpu_reg].sw[0] = fmax(cpu_state.XMM[cpu_reg].sw[0], src[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = fmax(cpu_state.XMM[cpu_reg].sw[1], src[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = fmax(cpu_state.XMM[cpu_reg].sw[2], src[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = fmax(cpu_state.XMM[cpu_reg].sw[3], src[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = fmax(cpu_state.XMM[cpu_reg].sw[4], src[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = fmax(cpu_state.XMM[cpu_reg].sw[5], src[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = fmax(cpu_state.XMM[cpu_reg].sw[6], src[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = fmax(cpu_state.XMM[cpu_reg].sw[7], src[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = (cpu_state.XMM[cpu_reg].sw[0] > src[0]) ? cpu_state.XMM[cpu_reg].sw[0] : src[0];
+        cpu_state.XMM[cpu_reg].sw[1] = (cpu_state.XMM[cpu_reg].sw[1] > src[1]) ? cpu_state.XMM[cpu_reg].sw[1] : src[1];
+        cpu_state.XMM[cpu_reg].sw[2] = (cpu_state.XMM[cpu_reg].sw[2] > src[2]) ? cpu_state.XMM[cpu_reg].sw[2] : src[2];
+        cpu_state.XMM[cpu_reg].sw[3] = (cpu_state.XMM[cpu_reg].sw[3] > src[3]) ? cpu_state.XMM[cpu_reg].sw[3] : src[3];
+        cpu_state.XMM[cpu_reg].sw[4] = (cpu_state.XMM[cpu_reg].sw[4] > src[4]) ? cpu_state.XMM[cpu_reg].sw[4] : src[4];
+        cpu_state.XMM[cpu_reg].sw[5] = (cpu_state.XMM[cpu_reg].sw[5] > src[5]) ? cpu_state.XMM[cpu_reg].sw[5] : src[5];
+        cpu_state.XMM[cpu_reg].sw[6] = (cpu_state.XMM[cpu_reg].sw[6] > src[6]) ? cpu_state.XMM[cpu_reg].sw[6] : src[6];
+        cpu_state.XMM[cpu_reg].sw[7] = (cpu_state.XMM[cpu_reg].sw[7] > src[7]) ? cpu_state.XMM[cpu_reg].sw[7] : src[7];
     }
 
     return 0;
