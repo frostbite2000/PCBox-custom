@@ -53,6 +53,19 @@ void nv3_render_blit_image(uint32_t color, nv3_grobj_t grobj)
     /* Some extra data is sent as padding, we need to clip it off using size_out */
 
     uint16_t clip_x = nv3->pgraph.image.point.x + nv3->pgraph.image.size.x;
+
+    if (nv3->pgraph.image_current_position.x < clip_x) 
+        nv3_render_write_pixel_win9x(nv3->pgraph.image_current_position, pixel3, grobj);
+
+    if (nv3->pgraph.image_current_position.x < clip_x) 
+        nv3_render_write_pixel_win9x(nv3->pgraph.image_current_position, pixel2, grobj);
+
+    if (nv3->pgraph.image_current_position.x < clip_x) 
+        nv3_render_write_pixel_win9x(nv3->pgraph.image_current_position, pixel1, grobj);
+
+    if (nv3->pgraph.image_current_position.x < clip_x) 
+        nv3_render_write_pixel_win9x(nv3->pgraph.image_current_position, pixel0, grobj);
+
     /* we need to unpack them - IF THIS IS USED SOMEWHERE ELSE, DO SOMETHING ELSE WITH IT */
     /* the reverse order is due to the endianness */
     switch (nv3->nvbase.svga.bpp)

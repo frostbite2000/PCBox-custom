@@ -1223,6 +1223,8 @@ void* nv3_init(const device_t *info)
     nv3_ptimer_init();              // Initialise programmable interval timer
     nv3_pvideo_init();              // Initialise video overlay engine
 
+    nv3_init_transparency();
+
     nv_log("Initialising I2C...");
     nv3->nvbase.i2c = i2c_gpio_init("nv3_i2c");
     nv3->nvbase.ddc = ddc_init(i2c_gpio_get_bus(nv3->nvbase.i2c));

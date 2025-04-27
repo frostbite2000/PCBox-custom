@@ -29,6 +29,11 @@ uint8_t nv3_render_read_pixel_8(nv3_coord_16_t position, nv3_grobj_t grobj);
 uint16_t nv3_render_read_pixel_16(nv3_coord_16_t position, nv3_grobj_t grobj);
 uint32_t nv3_render_read_pixel_32(nv3_coord_16_t position, nv3_grobj_t grobj);
 
+/* Windows 9x UI rendering fixes */
+void nv3_init_transparency(void);
+bool nv3_is_win9x_transparent_pixel(uint32_t color, int format);
+void nv3_render_write_pixel_win9x(nv3_coord_16_t position, uint32_t color, nv3_grobj_t grobj);
+
 /* Address */
 uint32_t nv3_render_get_vram_address(nv3_coord_16_t position, nv3_grobj_t grobj);
 uint32_t nv3_render_get_vram_address_for_buffer(nv3_coord_16_t position, nv3_grobj_t grobj, uint32_t buffer);

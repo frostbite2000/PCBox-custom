@@ -1191,6 +1191,8 @@ typedef struct nv3_pgraph_s
     nv3_pgraph_context_user_t context_user;
     uint32_t context_cache[NV3_PGRAPH_CONTEXT_CACHE_SIZE];  // DMA context cache (nv3_pgraph_context_user_t array?)
 
+    uint32_t transparency_color;  // Color key for transparency
+
     // UCLIP stuff
     uint32_t abs_uclip_xmin;
     uint32_t abs_uclip_xmax;

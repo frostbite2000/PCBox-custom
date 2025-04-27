@@ -138,7 +138,7 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
             break;
         case nv3_pgraph_pixel_format_r10g10b10:
             /* sometimes alpha isn't used but we should incorporate it anyway */
-            if (color.a > 0x00) packed_color | (1 << 31);
+            if (color.a > 0x00) packed_color |= (1 << 31);
 
             packed_color |= (color.r << 30);
             packed_color |= (color.g << 20);

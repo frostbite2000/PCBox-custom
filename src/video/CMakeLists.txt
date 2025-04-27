@@ -132,6 +132,7 @@ add_library(vid OBJECT
     nv/nv3/render/nv3_render_core.c
     nv/nv3/render/nv3_render_primitives.c   
     nv/nv3/render/nv3_render_blit.c    
+    nv/nv3/render/nv3_render_nv3_win9x_render_fix.c
  
 )
 
