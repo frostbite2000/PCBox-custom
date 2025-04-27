@@ -86,12 +86,14 @@ add_library(vid OBJECT
     nv/nv_base.c nv/nv_rivatimer.c
     
     nv/nv3/nv3_core.c 
+    nv/nv3/nv3_3d_core.c
     nv/nv3/nv3_core_config.c 
     nv/nv3/nv3_core_arbiter.c  
 
     nv/nv3/subsystems/nv3_pramdac.c 
     nv/nv3/subsystems/nv3_pfifo.c
     nv/nv3/subsystems/nv3_pgraph.c 
+    nv/nv3/subsystems/nv3_pgraph_3d.c 
     nv/nv3/subsystems/nv3_pmc.c 
     nv/nv3/subsystems/nv3_pme.c
     nv/nv3/subsystems/nv3_pextdev.c

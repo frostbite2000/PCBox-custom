@@ -27,6 +27,7 @@
 #include <86box/video.h>
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
+#include <86box/nv/nv3_3d_core.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
 
 // Initialise the PGRAPH subsystem.
@@ -35,6 +36,7 @@ void nv3_pgraph_init(void)
     nv_log("Initialising PGRAPH...");
     // Set up the vblank interrupt
     nv3->nvbase.svga.vblank_start = nv3_pgraph_vblank_start;
+    nv3_pgraph_3d_init();
     nv_log("Done!\n");    
 }
 
