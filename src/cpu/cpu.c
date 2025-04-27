@@ -51,6 +51,16 @@
 #endif /* USE_DYNAREC */
 #include "x87_timings.h"
 
+#define CCR1_USE_SMI  (1 << 1)
+#define CCR1_SMAC     (1 << 2)
+#define CCR1_SM3      (1 << 7)
+
+#define CCR3_SMI_LOCK (1 << 0)
+#define CCR3_NMI_EN   (1 << 1)
+
+SSE_REG  XMM[8];
+uint32_t mxcsr;
+
 enum {
     CPUID_FPU       = (1 << 0),  /* On-chip Floating Point Unit */
     CPUID_VME       = (1 << 1),  /* Virtual 8086 mode extensions */
@@ -174,6 +184,8 @@ const OpFn *x86_2386_opcodes_REPNE;
 uint16_t cpu_fast_off_count;
 uint16_t cpu_fast_off_val;
 uint16_t temp_seg_data[4] = { 0, 0, 0, 0 };
+
+int sse_xmm;
 
 int isa_cycles;
 int cpu_inited;
@@ -311,6 +323,9 @@ uint8_t rcr[8] = { 0 };
 
 /* Table for FXTRACT. */
 double exp_pow_table[0x800];
+
+int is_repe;
+int is_repne;
 
 static int cyrix_addr;
 
@@ -629,11 +644,11 @@ cpu_set(void)
     x86_2386_opcodes_REPNE = ops_2386_REPNE;
     x86_opcodes_3DNOW      = ops_3DNOW;
 #ifdef USE_DYNAREC
-    x86_dynarec_opcodes_REPE  = dynarec_ops_REPE;
+    x86_dynarec_opcodes_REPE     = dynarec_ops_REPE;
     x86_dynarec_opcodes_REPE_0f  = NULL;
-    x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
-    x86_dynarec_opcodes_REPNE_0f  = NULL;
-    x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOW;
+    x86_dynarec_opcodes_REPNE    = dynarec_ops_REPNE;
+    x86_dynarec_opcodes_REPNE_0f = NULL;
+    x86_dynarec_opcodes_3DNOW    = dynarec_ops_3DNOW;
 #endif /* USE_DYNAREC */
 
     if (hasfpu) {
@@ -1961,7 +1976,7 @@ cpu_set(void)
 
             timing_misaligned = 3;
 
-            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX | CPU_FEATURE_PSE36 | CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_CLFLUSH | CPU_FEATURE_NX | CPU_FEATURE_SSE3;
+            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX | CPU_FEATURE_SSE;
             msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_PGE;
             cpu_CR4_mask |= CR4_OSFXSR | CR4_OSXMMEXCPT;
@@ -2160,8 +2175,9 @@ cpu_set(void)
             timing_misaligned = 2;
 
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MMX | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_SSE;
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
-            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE | CR4_PGE | CR4_OSXMMEXCPT | CR4_OSFXSR;
+
+            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) | (1 << 21);
+            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE | CR4_PGE | CR4_OSFXSR | CR4_OSXMMEXCPT;
 
             cpu_cyrix_alignment = 1;
 
@@ -2962,18 +2978,104 @@ cpu_CPUID(void)
 
         case CPU_PENTIUM3:
             if (!EAX) {
-                EAX = 0x00000002;
-                EBX = 0x756e6547;
+                EAX = (((CPUID >= 0x6b0) || (msr.bbl_cr_ctl & (1 << 21))) ? 0x00000002 : 0x00000003);
+                EBX = 0x756e6547; /* GenuineIntel */
                 EDX = 0x49656e69;
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
                 EAX = CPUID;
-                EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_PSE36 | CPUID_SSE;
+                if (CPUID >= 0x680) { /* Brand ID (Coppermine+) */
+                    if (!strncmp(cpu_f->internal_name, "celeron", 7)) {
+                        if (CPUID == 0x6b1) /* Tualatin-256 stepping 1 */
+                            EBX = 0x3;
+                        else /* Other Celeron */
+                            EBX = 0x1;
+                    } else if ((CPUID >= 0x6b0) && ((cpu_s->rspeed == 1266666666) || (cpu_s->rspeed == 1400000000))) /* Tualatin-S */
+                        EBX = 0x4;
+                    else if (cpu_f->package == CPU_PKG_SLOT2) /* Pentium III Xeon */
+                        EBX = 0x3;
+                    else /* Other Pentium III's */
+                        EBX = 0x2;
+                } else
+                    EBX = 0;
+                ECX = 0;
+                EDX = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_SSE;
+                if ((CPUID < 0x6b0) && !(msr.bbl_cr_ctl & (1 << 21)))
+                    EDX |= CPUID_PSN;
             } else if (EAX == 2) {
-                EAX = 0x00000001;
+                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
+                                     Instruction TLB: 4 MB pages, fully associative, 2 entries
+                                     Data TLB: 4 KB pages, 4-way set associative, 64 entries */
                 EBX = ECX = 0;
-                EDX       = 0x00000000;
+                if (cpu_f->package == CPU_PKG_SLOT2) { /* Pentium III Xeon */
+                    if (CPUID >= 0x6a0) /* Cascades 2 MB */
+                        EDX = 0x0c040885; /* 2nd-level cache: 2 MB, 8-way set associative, 32-byte line size
+                                             1st-level data cache: 16 KB, 4-way set associative, 32-byte line size
+                                             Data TLB: 4 MB pages, 4-way set associative, 8 entries
+                                             1st-level instruction cache: 16 KB, 4-way set associative, 32-byte line size */
+                    else if (CPUID >= 0x680) /* Cascades */
+                        EDX = 0x0c040882; /* 2nd-level cache: 256 KB, 8-way set associative, 32-byte line size */
+                    else /* Tanner */
+                        EDX = 0x0c040845; /* 2nd-level cache: 2 MB, 4-way set associative, 32-byte line size */
+                } else if (!strncmp(cpu_f->internal_name, "celeron", 7)) { /* Celeron */
+                    if (CPUID >= 0x6b0) /* Tualatin-256 */
+                        EDX = 0x0c040882; /* 2nd-level cache: 256 KB, 8-way set associative, 32-byte line size */
+                    else /* Coppermine-128 */
+                        EDX = 0x0c040841; /* 2nd-level cache: 128 KB, 4-way set associative, 32-byte line size */
+                } else { /* Pentium III */
+                    if ((CPUID >= 0x6b0) && ((cpu_s->rspeed == 1266666666) || (cpu_s->rspeed == 1400000000))) /* Tualatin-S */
+                        EDX = 0x0c040883; /* 2nd-level cache: 512 KB, 8-way set associative, 32-byte line size */
+                    else if (CPUID >= 0x680) /* Coppermine and Tualatin */
+                        EDX = 0x0c040882; /* 2nd-level cache: 256 KB, 8-way set associative, 32-byte line size */
+                    else /* Katmai */
+                        EDX = 0x0c040843; /* 2nd-level cache: 512 KB, 4-way set associative, 32-byte line size */
+                }
+            } else if ((CPUID < 0x6b0) && (EAX == 3) && !(msr.bbl_cr_ctl & (1 << 21))) { /* Serial number (Katmai/Coppermine) */
+                EAX = EBX = 0;
+                ECX = 0x0000086b;
+                EDX = 0x00000000;
+            } else if ((CPUID >= 0x6b0) && (EAX == 0x80000000)) {
+                EAX = 0x80000004;
+                EBX = ECX = EDX = 0;
+            } else if ((CPUID >= 0x6b0) && (EAX == 0x80000002)) { /* Brand string (Tualatin+) */
+                EAX = 0x65746e49; /*Intel(R)*/
+                EBX = 0x2952286c;
+                if (!strncmp(cpu_f->internal_name, "celeron", 7)) {
+                    ECX = 0x6c654320; /* Celeron*/
+                    EDX = 0x6e6f7265;
+                } else {
+                    ECX = 0x6e655020; /* Pentium*/
+                    EDX = 0x6d756974;
+                }
+            } else if ((CPUID >= 0x6b0) && (EAX == 0x80000003)) { /* Brand string, continued */
+                if (!strncmp(cpu_f->internal_name, "celeron", 7)) {
+                    EAX = 0x294d5428; /*(TM) CPU        */
+                    EBX = 0x55504320;
+                    ECX = EDX = 0x20202020;
+                } else {
+                    EAX = 0x20295228; /*(R) III CPU */
+                    EBX = 0x20494949;
+                    ECX = 0x20555043;
+                    if (!((cpu_s->rspeed == 1266666666) || (cpu_s->rspeed == 1400000000)))
+                        EDX = 0x20202020; /*    */
+                    else if (CPUID < 0x6b4)
+                        EDX = 0x696d6166; /*fami*/
+                    else 
+                        EDX = 0x2053202d; /*- S */
+                }
+            } else if ((CPUID >= 0x6b0) && (EAX == 0x80000004)) { /* Brand string, continued */
+                if (((cpu_s->rspeed == 1266666666) || (cpu_s->rspeed == 1400000000)) && (CPUID < 0x6b4))
+                    EAX = 0x2020796c; /*ly  */
+                else
+                    EAX = 0x20202020; /*    */
+                EBX = 0x20202020; /*    */
+                ECX = 0x20303030;
+                uint32_t mhz = cpu_s->rspeed / 1000000;
+                if (mhz < 1000)
+                    ECX |= (((mhz % 10) << 16) | (((mhz / 10) % 10) << 8) | ((mhz / 100) % 10));
+                else
+                    ECX |= ((1 << 28) | ((mhz % 10) << 24) | (((mhz / 10) % 10) << 16) | (((mhz / 100) % 10) << 8) | (mhz / 1000));
+                EDX = 0x007a484d; /*MHz*/
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -3030,7 +3132,7 @@ cpu_CPUID(void)
                         EDX |= CPUID_PGE;
                     break;
                 case 0x80000000:
-                     EAX = ((CPUID >= 0x670) ? 0x80000006 : 0x80000005);
+                    EAX = ((CPUID >= 0x670) ? 0x80000006 : 0x80000005);
                     break;
                 case 0x80000001:
                     EAX = CPUID;
@@ -3061,6 +3163,7 @@ cpu_CPUID(void)
                 case 0x80000006:
                     if (CPUID >= 0x670)
                         ECX = 0x40040120; /* L2 data cache */
+                    break;
                 default:
                     EAX = EBX = ECX = EDX = 0;
                     break;
@@ -3288,6 +3391,9 @@ cpu_ven_reset(void)
             msr.mtrr_cap = 0x00000508ULL;
             /* FALLTHROUGH */
 
+        case CPU_ATHLON:
+            msr.mtrr_cap = 0x00000508ULL;
+            /* FALLTHROUGH */
         case CPU_K6_2P:
         case CPU_K6_3P:
         case CPU_K6_3:
@@ -3337,6 +3443,13 @@ cpu_ven_reset(void)
         case CPU_CYRIX3S:
             msr.fcr = (1 << 7) | (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) |
                       (1 << 20) | (1 << 21);
+            cpu_reset_longhaul();
+            break;
+
+        case CPU_CYRIX3N:
+            msr.fcr         = (1 << 7) | (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) |
+                              (1 << 19) | (1 << 21);
+            msr.padlock_rng = 0x00000040;
             cpu_reset_longhaul();
             break;
 
@@ -4368,7 +4481,7 @@ pentium_invalid_rdmsr:
                     EAX = msr.evntsel[ECX - 0x186] & 0xffffffff;
                     EDX = msr.evntsel[ECX - 0x186] >> 32;
                     break;
-//#if 0
+#if 1
                 case 0x198:
                     EAX = msr.ecx198 & 0xffffffff;
                     EDX = msr.ecx198 >> 32;
@@ -4385,7 +4498,7 @@ pentium_invalid_rdmsr:
                     EAX = msr.ecx1a0 & 0xffffffff;
                     EDX = msr.ecx1a0 >> 32;
                     break;
-//#endif
+#endif
                 /* Unknown */
                 case 0x1d3:
                     break;
@@ -5409,7 +5522,7 @@ pentium_invalid_wrmsr:
                 case 0x187:
                     msr.evntsel[ECX - 0x186] = EAX | ((uint64_t) EDX << 32);
                     break;
-//#if 0
+#if 1
                 case 0x198:
                     msr.ecx198 = EAX | ((uint64_t) EDX << 32);
                     break;
@@ -5422,7 +5535,7 @@ pentium_invalid_wrmsr:
                 case 0x1a0:
                     msr.ecx1a0 = EAX | ((uint64_t) EDX << 32);
                     break;
-//#endif
+#endif
                 case 0x1d3:
                     break;
                 /* DEBUGCTLMSR - Debugging Control Register */
