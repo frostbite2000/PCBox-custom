@@ -501,7 +501,7 @@ static void nv3_d3d5_render_triangle(nv3_grobj_t grobj) {
                     uint32_t final_color = (final_a << 24) | (final_r << 16) | (final_g << 8) | final_b;
                     
                     // Write pixel to framebuffer
-                    nv3_position_16_t pos = { x, y };
+                    nv3_coord_16_t pos = { x, y };
                     nv3_render_write_pixel(pos, final_color, grobj);
                 }
             }

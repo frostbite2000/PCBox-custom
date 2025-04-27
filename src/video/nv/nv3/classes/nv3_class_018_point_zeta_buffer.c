@@ -34,7 +34,7 @@
 typedef struct nv3_point_zeta_state {
     nv3_d3d5_control_out_t control_out;       // Output control settings
     nv3_d3d5_alpha_control_t alpha_control;   // Alpha control settings
-    nv3_position_16_t point;                  // Current point position
+    nv3_coord_16_t point;                     // Current point position
     nv3_zeta_buffer_t zeta_buffer[8];         // Z-buffer data for points
     int buffer_index;                         // Current buffer index
 } nv3_point_zeta_state_t;
@@ -72,7 +72,7 @@ void nv3_class_018_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             
         // Set point position
         case 0x0308:
-            memcpy(&point_zeta_state.point, &param, sizeof(nv3_position_16_t));
+            memcpy(&point_zeta_state.point, &param, sizeof(nv3_coord_16_t));
             nv_log_verbose_only("Point Z-Buffer: Set point position to (%d, %d)\n", 
                 point_zeta_state.point.x, point_zeta_state.point.y);
             break;
@@ -211,7 +211,7 @@ static void nv3_point_zeta_render(nv3_grobj_t grobj) {
             uint32_t argb = (a << 24) | (r << 16) | (g << 8) | b;
             
             // Write the point to the framebuffer
-            nv3_position_16_t pos = { x, y };
+            nv3_coord_16_t pos = { x, y };
             nv3_render_write_pixel(pos, argb, grobj);
         }
     }

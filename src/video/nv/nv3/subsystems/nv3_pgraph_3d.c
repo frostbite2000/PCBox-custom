@@ -27,11 +27,7 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
-
-// Forward declarations
-extern void nv3_3d_core_init(void);
-extern void nv3_3d_core_reset(void);
-extern void nv3_3d_core_close(void);
+#include <86box/nv/nv3_3d_core.h>
 
 // Initialize 3D core integration with PGRAPH
 void nv3_pgraph_3d_init(void) {

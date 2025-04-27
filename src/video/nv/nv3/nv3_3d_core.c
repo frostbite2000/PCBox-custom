@@ -29,6 +29,7 @@
 #include <86box/nv/vid_nv3.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
 #include <86box/nv/render/vid_nv3_render.h>
+#include <86box/nv/nv3_3d_core.h>
 
 // Forward declarations for class initialization
 extern void nv3_class_017_init(void); // D3D5 Triangle with Z-buffer
