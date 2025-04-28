@@ -36,7 +36,7 @@ void nv3_render_write_pixel_win9x(nv3_coord_16_t position, uint32_t color, nv3_g
 
 /* Address */
 uint32_t nv3_render_get_vram_address(nv3_coord_16_t position, nv3_grobj_t grobj);
-uint32_t nv3_render_get_vram_address_for_buffer(nv3_coord_16_t position, nv3_grobj_t grobj, uint32_t buffer);
+uint32_t nv3_render_get_vram_address_for_buffer(nv3_coord_16_t position, uint32_t buffer);
 
 /* Colour Conversion */
 uint32_t nv3_render_get_palette_index(uint8_t index);                                       // Get a colour for a palette index. (The colours are 24 bit RGB888 with a 0xFF alpha added for some purposes.)
