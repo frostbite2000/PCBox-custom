@@ -2044,7 +2044,7 @@ cpu_set(void)
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE;
 
 #ifdef USE_DYNAREC
-            codegen_timing_set(&codegen_timing_k6);
+            codegen_timing_set(&codegen_timing_k7);
 #endif
             amd_k7_smram_aseg = smram_add();
             amd_k7_smram_tseg = smram_add();
