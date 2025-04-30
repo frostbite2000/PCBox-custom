@@ -41,6 +41,7 @@
 #define VIA_691  0x06910600
 #define VIA_693A 0x06914400
 #define VIA_694  0x0691c200
+#define VIA_694T 0x0691c400
 #define VIA_8601 0x86010500
 
 typedef struct via_apollo_t {
@@ -122,6 +123,8 @@ via_apollo_setup(via_apollo_t *dev)
 
     if ((dev->id >= VIA_585) || (dev->id < VIA_597))
         dev->pci_conf[0x06] = 0xa0;
+    else if (dev->id == VIA_694T)
+        dev->pci_conf[0x06] = 0x10;
     else
         dev->pci_conf[0x06] = 0x90;
 
@@ -141,15 +144,33 @@ via_apollo_setup(via_apollo_t *dev)
         dev->pci_conf[0x34] = 0xa0;
     }
 
+    if (dev->id >= VIA_694T) {
+        dev->pci_conf[0x10] = 0x08;
+        dev->pci_conf[0x34] = 0xa0;
+    }
+
     if ((dev->id >= VIA_585) || (dev->id < VIA_597))
         dev->pci_conf[0x52] = 0x02;
     else if (dev->id >= VIA_694)
-        dev->pci_conf[0x52] = (dev->id == VIA_694) ? 0x90 : 0x10;
+        dev->pci_conf[0x52] = (dev->id == VIA_694) && (dev->id == VIA_694T) ? 0x90 : 0x10;
 
     if (dev->id >= VIA_693A)
         dev->pci_conf[0x53] = 0x10;
+    else if (dev->id >= VIA_694T)
+        dev->pci_conf[0x53] = 0x03;
 
     if (dev->id == VIA_691) {
+        dev->pci_conf[0x56] = 0x01;
+        dev->pci_conf[0x57] = 0x01;
+    }
+
+    if (dev->id == VIA_694T) {
+        dev->pci_conf[0x5a] = 0x01;
+        dev->pci_conf[0x5b] = 0x01;
+        dev->pci_conf[0x5c] = 0x01;
+        dev->pci_conf[0x5d] = 0x01;
+        dev->pci_conf[0x5e] = 0x01;
+        dev->pci_conf[0x5f] = 0x01;
         dev->pci_conf[0x56] = 0x01;
         dev->pci_conf[0x57] = 0x01;
     }
@@ -224,6 +245,24 @@ via_apollo_setup(via_apollo_t *dev)
             dev->pci_conf[0xb1] = 0x63;
         }
     }
+
+    if (dev->id >= VIA_694T) {
+        dev->pci_conf[0xa0] = 0x02;
+        dev->pci_conf[0xa1] = 0x00;
+        dev->pci_conf[0xa2] = 0x20;
+        dev->pci_conf[0xa3] = 0x00;
+
+        dev->pci_conf[0xa4] = 0x03;
+        dev->pci_conf[0xa5] = 0x02;
+        dev->pci_conf[0xa6] = 0x00;
+        dev->pci_conf[0xa7] = 0x1f;
+
+        dev->pci_conf[0xac] = 0x08;
+        dev->pci_conf[0xad] = 0x02;
+
+        dev->pci_conf[0xb0] = 0x80;
+        dev->pci_conf[0xb1] = 0x63;
+    }
 }
 
 static void
@@ -261,7 +300,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
         case 0x0d:
             if (dev->id == VIA_8601)
                 dev->pci_conf[0x0d] = (dev->pci_conf[0x0d] & ~0x07) | (val & 0x07);
-            else if (dev->id == VIA_694)
+            else if ((dev->id == VIA_694) || (dev->id == VIA_694T))
                 dev->pci_conf[0x0d] = (dev->pci_conf[0x0d] & ~0xf8) | (val & 0xf8);
             else
                 dev->pci_conf[0x0d] = (dev->pci_conf[0x0d] & ~0x07) | (val & 0x07);
@@ -297,7 +336,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[0x50] = (dev->pci_conf[0x50] & ~0xf8) | (val & 0xf8);
             break;
         case 0x51: /* Cache Control 2 */
-            if (dev->id == VIA_694)
+            if ((dev->id == VIA_694) || (dev->id == VIA_694T))
                 dev->pci_conf[0x51] = (dev->pci_conf[0x51] & ~0xdd) | (val & 0xdd);
             else if (dev->id >= VIA_693A)
                 dev->pci_conf[0x51] = (dev->pci_conf[0x51] & ~0xd9) | (val & 0xd9);
@@ -321,7 +360,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
         case 0x53: /* System Performance Control */
             if (dev->id == VIA_8601)
                 dev->pci_conf[0x53] = (dev->pci_conf[0x53] & ~0xfc) | (val & 0xfc);
-            else if ((dev->id == VIA_691) || (dev->id == VIA_694))
+            else if ((dev->id == VIA_691) || (dev->id == VIA_694) || (dev->id == VIA_694T))
                 dev->pci_conf[0x53] = val;
             else if ((dev->id >= VIA_585) || (dev->id < VIA_597) || (dev->id == VIA_693A))
                 dev->pci_conf[0x53] = (dev->pci_conf[0x53] & ~0xf8) | (val & 0xf8);
@@ -495,7 +534,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
             if (dev->id != VIA_595) {
                 if (dev->id == VIA_597)
                     dev->pci_conf[0x68] = (dev->pci_conf[0x68] & ~0xfe) | (val & 0xfe);
-                else if ((dev->id == VIA_693A) || (dev->id == VIA_694))
+                else if ((dev->id == VIA_693A) || (dev->id == VIA_694) || (dev->id == VIA_694T))
                     dev->pci_conf[0x68] = (dev->pci_conf[0x68] & ~0xdc) | (val & 0xdc);
                 else
                     dev->pci_conf[0x68] = (dev->pci_conf[0x68] & ~0xfc) | (val & 0xfc);
@@ -532,7 +571,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[0x6c] = val;
             break;
         case 0x6d:
-            if ((dev->id == VIA_597) || (dev->id == VIA_694))
+            if ((dev->id == VIA_597) || (dev->id == VIA_694) || (dev->id == VIA_694T))
                 dev->pci_conf[0x6d] = (dev->pci_conf[0x6d] & ~0x0f) | (val & 0x0f);
             else if ((dev->id == VIA_598) || (dev->id == VIA_693A) || (dev->id == VIA_8601))
                 dev->pci_conf[0x6d] = (dev->pci_conf[0x6d] & ~0x7f) | (val & 0x7f);
@@ -547,7 +586,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
             }
             break;
         case 0x6e:
-            if ((dev->id == VIA_595) || (dev->id == VIA_694))
+            if ((dev->id == VIA_595) || (dev->id == VIA_694) || (dev->id == VIA_694T))
                 dev->pci_conf[0x6e] = val;
             else
                 dev->pci_conf[0x6e] = (dev->pci_conf[0x6e] & ~0xb7) | (val & 0xb7);
@@ -580,7 +619,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
         case 0x74:
             if ((dev->id == VIA_693A) || (dev->id == VIA_8601))
                 dev->pci_conf[0x74] = (dev->pci_conf[0x74] & ~0xdf) | (val & 0xdf);
-            else if (dev->id == VIA_694)
+            else if ((dev->id == VIA_694) || (dev->id == VIA_694T))
                 dev->pci_conf[0x74] = (dev->pci_conf[0x74] & ~0x9f) | (val & 0x9f);
             else
                 dev->pci_conf[0x74] = (dev->pci_conf[0x74] & ~0xc0) | (val & 0xc0);
@@ -613,7 +652,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
             dev->pci_conf[0x7a] = (dev->pci_conf[0x7a] & ~0x89) | (val & 0x89);
             break;
         case 0x7e:
-            if ((dev->id != VIA_8601) || (dev->id != VIA_694))
+            if ((dev->id != VIA_8601) || (dev->id != VIA_694) || (dev->id != VIA_694T))
                 dev->pci_conf[0x7e] = (dev->pci_conf[0x7e] & ~0x3f) | (val & 0x3f);
             break;
 
@@ -647,7 +686,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0xa8:
-            if (dev->id == VIA_694)
+            if ((dev->id == VIA_694) && (dev->id == VIA_694T))
                 dev->pci_conf[0xa8] = (dev->pci_conf[0xa8] & ~0x33) | (val & 0x33);
             else
                 dev->pci_conf[0xa8] = (dev->pci_conf[0xa8] & ~0x03) | (val & 0x03);
@@ -751,6 +790,7 @@ via_apollo_init(const device_t *info)
         case VIA_598:
         case VIA_693A:
         case VIA_694:
+        case VIA_694T:
             device_add(&via_mvp3_agp_device);
             break;
 
@@ -761,7 +801,7 @@ via_apollo_init(const device_t *info)
     if (dev->id >= VIA_597)
         dev->agpgart = device_add(&agpgart_device);
 
-    if ((dev->id >= VIA_694) && (dev->id != VIA_8601))
+    if ((dev->id >= VIA_694) && (dev->id >= VIA_694T) && (dev->id != VIA_8601))
         dev->drb_unit = 16;
     else if (dev->id >= VIA_597)
         dev->drb_unit = 8;
@@ -873,6 +913,20 @@ const device_t via_apro133a_device = {
     .internal_name = "via_apro_133a",
     .flags         = DEVICE_PCI,
     .local         = VIA_694, /*VT82C694X*/
+    .init          = via_apollo_init,
+    .close         = via_apollo_close,
+    .reset         = via_apollo_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t via_apro133t_device = {
+    .name          = "VIA Apollo Pro133T",
+    .internal_name = "via_apro_133t",
+    .flags         = DEVICE_PCI,
+    .local         = VIA_694T, /*VT82C694T*/
     .init          = via_apollo_init,
     .close         = via_apollo_close,
     .reset         = via_apollo_reset,

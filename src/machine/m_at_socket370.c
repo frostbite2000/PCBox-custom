@@ -543,6 +543,41 @@ machine_at_6via90ap_init(const machine_t *model)
 }
 
 int
+machine_at_abvh6t_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/abvh6t/VH6T_8G.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    device_add(&via_apro133t_device);
+    device_add(&via_vt82c686b_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(ics9xxx_get(ICS9250_18));
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&alc100_device);
+
+    return ret;
+}
+
+int
 machine_at_7sbb_init(const machine_t *model)
 {
     int ret;

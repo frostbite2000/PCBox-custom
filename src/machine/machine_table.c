@@ -188,6 +188,7 @@ const machine_filter_t machine_chipsets[] = {
     { "VIA Apollo Pro",             MACHINE_CHIPSET_VIA_APOLLO_PRO      },
     { "VIA Apollo Pro 133",         MACHINE_CHIPSET_VIA_APOLLO_PRO_133  },
     { "VIA Apollo Pro 133A",        MACHINE_CHIPSET_VIA_APOLLO_PRO_133A },
+    { "VIA Apollo Pro 133T",        MACHINE_CHIPSET_VIA_APOLLO_PRO_133T },
     { "VLSI SCAMP",                 MACHINE_CHIPSET_VLSI_SCAMP          },
     { "VLSI VL82C480",              MACHINE_CHIPSET_VLSI_VL82C480       },
     { "VLSI VL82C481",              MACHINE_CHIPSET_VLSI_VL82C481       },
@@ -16429,6 +16430,46 @@ const machine_t machines[] = {
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = &cmi8738_onboard_device,
+        .net_device = NULL
+    },
+    /* VIA Apollo Pro 133T */
+    {
+        .name = "[VIA Apollo Pro 133T] ABit AB-VH6T",
+        .internal_name = "abvh6t",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133T,
+        .init = machine_at_vbvh6t_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_A97 | MACHINE_BUS_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_AG | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
+        .ram = {
+            .min = 16384,
+            .max = 1572864,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
         .net_device = NULL
     },
     /* SiS (5)600 */
