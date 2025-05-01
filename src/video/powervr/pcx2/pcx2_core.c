@@ -892,7 +892,7 @@ pcx2_init(const device_t *info)
     
     /* Register PCI device */
     pcx2->card_id = device_get_instance();
-    pci_add_card(PCI_ADD_VIDEO, pcx2_pci_read, pcx2_pci_write, pcx2, &pcx2->pci_slot);
+    pci_add_card(PCI_ADD_NORMAL, pcx2_pci_read, pcx2_pci_write, pcx2, &pcx2->pci_slot);
     
     /* Initialize memory mappings */
     mem_mapping_add(&pcx2->mmio_mapping, 0, 0, 
