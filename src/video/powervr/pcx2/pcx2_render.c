@@ -94,13 +94,6 @@ typedef struct {
     int     e;  /* Exponent */
 } pcx2_pfloat_t;
 
-/* Define color formats */
-typedef struct {
-    uint8_t r;  /* Red component */
-    uint8_t g;  /* Green component */
-    uint8_t b;  /* Blue component */
-} pcx2_rgb_t;
-
 typedef struct {
     uint8_t r;  /* Red component */
     uint8_t g;  /* Green component */
@@ -1041,9 +1034,6 @@ pcx2_start_frame(pcx2_render_context_t *ctx)
     /* Update rendering state */
     ctx->render_state = PCX2_RENDER_STATE_ACTIVE;
     
-    /* Record start time */
-    ctx->render_start_time = timer_read();
-    
     /* Increment frame counter */
     ctx->frame_count++;
 }
@@ -1057,9 +1047,6 @@ pcx2_end_frame(pcx2_render_context_t *ctx)
 {
     /* Update rendering state */
     ctx->render_state = PCX2_RENDER_STATE_IDLE;
-    
-    /* Record end time */
-    ctx->render_end_time = timer_read();
 }
 
 /* Exported functions for PCX2 core integration */
@@ -1103,8 +1090,7 @@ pcx2_shutdown_render_pipeline(void *render_context)
  * Renders a frame based on the current parameter data
  */
 void 
-pcx2_render_frame(void *render_context, pcx2_rgb_t *frame_buffer, 
-                 int width, int height, uint32_t *object_list, int object_count)
+pcx2_render_frame(void *render_context, pcx2_rgb_t *frame_buffer, int width, int height, uint32_t *object_list, int object_count)
 {
     pcx2_render_context_t *ctx = (pcx2_render_context_t *)render_context;
     if (!ctx) {

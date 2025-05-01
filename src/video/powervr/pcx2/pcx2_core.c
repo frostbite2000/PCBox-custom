@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <stdbool.h>
 #define HAVE_STDARG_H
 
 #include "86box/86box.h"
@@ -185,7 +186,6 @@ static void     pcx2_pci_write(int func, int addr, uint8_t val, void *priv);
 static void     pcx2_load_reciprocal_table(pcx2_t *pcx2);
 static void     pcx2_load_fog_table(pcx2_t *pcx2);
 static void     pcx2_set_fog_color(pcx2_t *pcx2, uint32_t color);
-static void     pcx2_set_camera_scale(pcx2_t *pcx2, float x_scale, float y_scale);
 static void     pcx2_set_texture_filtering(pcx2_t *pcx2, int filter_mode);
 static void     pcx2_set_dithering(pcx2_t *pcx2, bool enable);
 static void     pcx2_set_fog_enable(pcx2_t *pcx2, bool enable);
@@ -200,6 +200,8 @@ pcx2_render_start_poll(void *priv)
 {
     pcx2_t *pcx2 = (pcx2_t *)priv;
 
+    pcx2->render_start_time = 0;
+
     timer_on_auto(&pcx2->renderstarttimer, pcx2->renderstarttime);
 }
 
@@ -207,6 +209,8 @@ void
 pcx2_render_end_poll(void *priv)
 {
     pcx2_t *pcx2 = (pcx2_t *)priv;
+
+    pcx2->render_end_time = 0;
 
     timer_on_auto(&pcx2->renderendtimer, pcx2->renderendtime);
 }
@@ -265,7 +269,7 @@ pcx2_reg_write(uint32_t addr, uint32_t val, void *priv)
             
             /* Start the 3D rendering process */
             pcx2->render_state = PCX2_RENDER_STATE_ACTIVE;
-            pcx2->render_start_time = timer_add(&pcx2->renderstarttimer, pcx2_render_start_poll, pcx2, 0);
+            timer_add(&pcx2->renderstarttimer, pcx2_render_start_poll, pcx2, 0);
             
             /* Process the 3D objects */
             pcx2_process_3d_objects(pcx2);
@@ -290,7 +294,7 @@ pcx2_reg_write(uint32_t addr, uint32_t val, void *priv)
             
             /* Update the rendering context with the new camera scale */
             if (pcx2->render_context) {
-                pcx2_set_render_camera_scale(pcx2->render_context, val);
+                pcx2_set_render_camera_scale(pcx2->render_context, pcx2->camera_x_scale, pcx2->camera_y_scale);
             }
             break;
             
@@ -605,35 +609,6 @@ pcx2_set_fog_enable(pcx2_t *pcx2, bool enable)
     }
 }
 
-/* PCX2 Set Camera Scale Function
- * Configures the camera projection scale for the 3D renderer
- * Based on the PowerVR Series1 HWSetCameraScale function
- */
-static void
-pcx2_set_camera_scale(pcx2_t *pcx2, float x_scale, float y_scale)
-{
-    /* Store the camera scale values in the PCX2 state */
-    pcx2->camera_x_scale = x_scale;
-    pcx2->camera_y_scale = y_scale;
-    
-    /* Convert float scale values to fixed point format used by hardware */
-    uint32_t x_scale_fixed = (uint32_t)(x_scale * 65536.0f);
-    uint32_t y_scale_fixed = (uint32_t)(y_scale * 65536.0f);
-    
-    /* Update the camera scale registers */
-    pcx2->regs[PCX_CAMERA_SCALE_X] = x_scale_fixed;
-    pcx2->regs[PCX_CAMERA_SCALE_Y] = y_scale_fixed;
-    
-    /* Log the camera scale change */
-    pcx2_log("PCX2: Camera scale set to X=%f, Y=%f (fixed: 0x%08x, 0x%08x)\n", 
-             x_scale, y_scale, x_scale_fixed, y_scale_fixed);
-    
-    /* Update the rendering context if it exists */
-    if (pcx2->render_context) {
-        pcx2_set_render_camera_scale(pcx2->render_context, x_scale, y_scale);
-    }
-}
-
 /* PCX2 Set Texture Filtering Mode Function
  * Configures the hardware texture filtering mode
  * Based on the PowerVR Series1 HWSetBilinearRegister function
@@ -719,7 +694,7 @@ pcx2_start_render(pcx2_t *pcx2)
     pcx2->render_state = PCX2_RENDER_STATE_ACTIVE;
     
     /* Record start time for performance monitoring */
-    pcx2->render_start_time = timer_add(&pcx2->renderstarttimer, pcx2_render_start_poll, pcx2, 0);
+    timer_add(&pcx2->renderstarttimer, pcx2_render_start_poll, pcx2, 0);
     
     /* Trigger the rendering process by writing to the start render register */
     pcx2->regs[PCX_STARTRENDER] = 1;
@@ -741,7 +716,7 @@ pcx2_start_render(pcx2_t *pcx2)
     pcx2->render_state = PCX2_RENDER_STATE_COMPLETE;
     
     /* Record end time and update statistics */
-    pcx2->render_end_time = timer_add(&pcx2->renderendtimer, pcx2_render_end_poll, pcx2, 0);
+    timer_add(&pcx2->renderendtimer, pcx2_render_end_poll, pcx2, 0);
     pcx2->frames_rendered++;
 }
 
@@ -844,9 +819,6 @@ pcx2_init_core_registers(pcx2_t *pcx2)
     pcx2_set_fog_color(pcx2, 0x00808080);    /* Medium gray fog color */
     pcx2->regs[PCX_FASTFOG] = 0x00000000;    /* Disable fast fog by default */
     
-    /* Set default camera scale */
-    pcx2_set_camera_scale(pcx2, 1.0f, 1.0f); /* Default scale */
-    
     /* Initialize rendering state */
     pcx2->render_state = PCX2_RENDER_STATE_IDLE;
     
@@ -892,7 +864,7 @@ pcx2_process_3d_objects(pcx2_t *pcx2)
     pcx2->render_state = PCX2_RENDER_STATE_COMPLETE;
     
     /* Record end time and update statistics */
-    pcx2->render_end_time = timer_add();
+    timer_add(&pcx2->renderendtimer, pcx2_render_end_poll, pcx2, 0);
     pcx2->frames_rendered++;
     
     /* Set the render complete interrupt */

@@ -37,8 +37,6 @@ typedef struct {
 /* Exported function prototypes */
 void pcx2_init_render_pipeline(void *pcx2_device, uint32_t *texture_mem, uint32_t *param_mem);
 void pcx2_shutdown_render_pipeline(void *render_context);
-void pcx2_render_frame(void *render_context, pcx2_rgb_t *frame_buffer, 
-                      int width, int height, uint32_t *object_list, int object_count);
 
 /* Rendering configuration functions */
 void pcx2_set_render_camera_scale(void *render_context, uint16_t scale);
