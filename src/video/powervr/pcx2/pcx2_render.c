@@ -34,6 +34,8 @@
 #include "rectable.h"
 #include "fogtable.h"
 
+#include "pcx2_render.h"
+
 /* Define PCX2-specific rendering parameters */
 #define PCX2_MAX_X_DIM           2048
 #define PCX2_MAX_Y_DIM           2048

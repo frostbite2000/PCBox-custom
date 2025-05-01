@@ -30,6 +30,8 @@
 #include "86box/plat.h"
 #include "86box/video.h"
 
+#include "86box/vid_powervr_pcx2.h"
+
 #include "pcx2_render.h"  /* Include the 3D rendering pipeline header */
 
 /* Include the reciprocal table and fog table */
@@ -122,6 +124,7 @@ typedef struct pcx2_t {
     int         card_id;              /* Unique card identifier */
 
     uint8_t		int_line;
+    uint8_t     irq_state;
     
     /* Rendering state */
     int             render_state;       /* Current rendering state */
@@ -145,6 +148,12 @@ typedef struct pcx2_t {
     uint64_t        render_end_time;    /* Timestamp when rendering completed */
     uint32_t        frames_rendered;    /* Total frames rendered */
     uint32_t        render_timeouts;    /* Total rendering timeouts */
+
+    pc_timer_t renderstarttimer;
+    pc_timer_t renderendtimer;
+
+    double renderstarttime;
+    double renderendtime;
 } pcx2_t;
 
 #ifdef ENABLE_PCX2_LOG
@@ -166,6 +175,8 @@ pcx2_log(const char *fmt, ...)
 #endif
 
 /* Function prototypes */
+void pcx2_render_start_poll(void *priv);
+void pcx2_render_end_poll(void *priv);
 static void     pcx2_update_irq(pcx2_t *pcx2);
 static uint32_t pcx2_reg_read(uint32_t addr, void *priv);
 static void     pcx2_reg_write(uint32_t addr, uint32_t val, void *priv);
@@ -183,6 +194,22 @@ static bool     pcx2_finished_render(pcx2_t *pcx2);
 static void     pcx2_set_x_clip(pcx2_t *pcx2, bool clip_left, int left, bool clip_right, int right);
 static void     pcx2_init_core_registers(pcx2_t *pcx2);
 static void     pcx2_process_3d_objects(pcx2_t *pcx2);
+
+void
+pcx2_render_start_poll(void *priv)
+{
+    pcx2_t *pcx2 = (pcx2_t *)priv;
+
+    timer_on_auto(&pcx2->renderstarttimer, pcx2->renderstarttime);
+}
+
+void
+pcx2_render_end_poll(void *priv)
+{
+    pcx2_t *pcx2 = (pcx2_t *)priv;
+
+    timer_on_auto(&pcx2->renderendtimer, pcx2->renderendtime);
+}
 
 /* PCX2 Register Read Function */
 static uint32_t
@@ -238,7 +265,7 @@ pcx2_reg_write(uint32_t addr, uint32_t val, void *priv)
             
             /* Start the 3D rendering process */
             pcx2->render_state = PCX2_RENDER_STATE_ACTIVE;
-            pcx2->render_start_time = timer_read();
+            pcx2->render_start_time = timer_add(&pcx2->renderstarttimer, pcx2_render_start_poll, pcx2, 0);
             
             /* Process the 3D objects */
             pcx2_process_3d_objects(pcx2);
@@ -318,9 +345,8 @@ pcx2_update_irq(pcx2_t *pcx2)
 {
     uint32_t status = pcx2->regs[PCX_INTSTATUS];
     uint32_t mask = pcx2->regs[PCX_INTMASK];
-    uint8_t raise_irq = (status & mask) ? 1 : 0;
     
-    pci_set_irq(pcx2->pci_slot, PCI_INTA, raise_irq);
+    pci_set_irq(pcx2->pci_slot, PCI_INTA, &pcx2->irq_state);
 }
 
 /* PCX2 PCI Configuration Read Function */
@@ -693,7 +719,7 @@ pcx2_start_render(pcx2_t *pcx2)
     pcx2->render_state = PCX2_RENDER_STATE_ACTIVE;
     
     /* Record start time for performance monitoring */
-    pcx2->render_start_time = timer_read();
+    pcx2->render_start_time = timer_add(&pcx2->renderstarttimer, pcx2_render_start_poll, pcx2, 0);
     
     /* Trigger the rendering process by writing to the start render register */
     pcx2->regs[PCX_STARTRENDER] = 1;
@@ -715,7 +741,7 @@ pcx2_start_render(pcx2_t *pcx2)
     pcx2->render_state = PCX2_RENDER_STATE_COMPLETE;
     
     /* Record end time and update statistics */
-    pcx2->render_end_time = timer_read();
+    pcx2->render_end_time = timer_add(&pcx2->renderendtimer, pcx2_render_end_poll, pcx2, 0);
     pcx2->frames_rendered++;
 }
 
@@ -866,7 +892,7 @@ pcx2_process_3d_objects(pcx2_t *pcx2)
     pcx2->render_state = PCX2_RENDER_STATE_COMPLETE;
     
     /* Record end time and update statistics */
-    pcx2->render_end_time = timer_read();
+    pcx2->render_end_time = timer_add();
     pcx2->frames_rendered++;
     
     /* Set the render complete interrupt */
