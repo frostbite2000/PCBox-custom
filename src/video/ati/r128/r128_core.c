@@ -375,7 +375,7 @@ uint8_t r128_ext_in(uint16_t addr, void *priv)
 {
     // sanity check
     if (!r128)
-        return; 
+        return 0x00; 
 }
 
 void r128_ext_out(uint16_t addr, uint8_t val, void *priv)
