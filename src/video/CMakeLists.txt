@@ -138,6 +138,7 @@ add_library(vid OBJECT
     ati/r128/r128_core.c
     ati/r128/r128_core_arbiter.c
     ati/r128/r128_core_config.c 
+    ati/rageiidvd/rageiidvd_core.c
  
 )
 
