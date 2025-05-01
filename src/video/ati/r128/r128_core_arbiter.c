@@ -69,8 +69,6 @@ void r128_mmio_arbitrate_write(uint32_t address, uint32_t value)
     if (!r128)
         return; 
 
-    r128_t* r128 = (r128_t*)svga->priv;
-
     if (!(address >= R128_DAC_MASK && address <= R128_DAC_DATA))
         address &= 0x4000;
 
