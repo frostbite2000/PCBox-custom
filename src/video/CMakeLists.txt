@@ -133,6 +133,11 @@ add_library(vid OBJECT
     nv/nv3/render/nv3_render_primitives.c   
     nv/nv3/render/nv3_render_blit.c    
     nv/nv3/render/nv3_render_nv3_win9x_render_fix.c
+
+    ati/ati_base.c
+    ati/r128/r128_core.c
+    ati/r128/r128_core_arbiter.c
+    ati/r128/r128_core_config.c 
  
 )
 

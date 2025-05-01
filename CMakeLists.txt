@@ -140,6 +140,7 @@ option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"              
 # Remove when merged, should just be -D
 option(NV_LOG       "NVidia RIVA 128 debug logging"                              ON)
 option(NV_LOG_ULTRA "Even more NVidia RIVA 128 debug logging"                    OFF)
+option(ATI_LOG      "ATI Rage debug logging"                                     ON)
 
 if (NV_LOG)
     add_compile_definitions(ENABLE_NV_LOG)
@@ -147,6 +148,10 @@ endif()
 
 if (NV_LOG_ULTRA)
     add_compile_definitions(ENABLE_NV_LOG_ULTRA)
+endif()
+
+if (ATI_LOG)
+    add_compile_definitions(ENABLE_ATI_LOG)
 endif()
 
 if((ARCH STREQUAL "arm64") OR (ARCH STREQUAL "arm"))

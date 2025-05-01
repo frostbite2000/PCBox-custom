@@ -605,6 +605,7 @@ extern const device_t nv3_device_pci;
 extern const device_t nv3_device_agp;
 extern const device_t nv3t_device_pci;
 extern const device_t nv3t_device_agp;
+extern const device_t r128_device_agp;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
