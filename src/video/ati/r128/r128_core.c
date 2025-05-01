@@ -361,11 +361,6 @@ uint8_t r128_pci_read(int32_t func, int32_t addr, void* priv)
             ret = 0x00;
             break;
 
-        //bar2-5 are not used and hardwired to 0
-        case R128_PCI_CFG_BAR_INVALID_START ... R128_PCI_CFG_BAR_INVALID_END:
-            ret = 0x00;
-            break;
-
         default: // by default just return pci_config.pci_regs
             ret = r128->pci_config.pci_regs[addr];
             break;
@@ -597,10 +592,10 @@ r128_svga_write(uint16_t addr, uint8_t val, void *priv)
             if (old != val) {
                 if (r128->atibase.svga.crtcreg < 0xe || r128->atibase.svga.crtcreg > 0x10) {
                     if ((r128->atibase.svga.crtcreg == 0xc) || (r128->atibase.svga.crtcreg == 0xd)) {
-                        svga->fullchange = 3;
-                        svga->ma_latch   = ((r128->atibase.svga.crtc[0xc] << 8) | r128->atibase.svga.crtc[0xd]) + ((r128->atibase.svga.crtc[8] & 0x60) >> 5);
+                        r128->atibase.svga->fullchange = 3;
+                        r128->atibase.svga->ma_latch   = ((r128->atibase.svga.crtc[0xc] << 8) | r128->atibase.svga.crtc[0xd]) + ((r128->atibase.svga.crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        r128->atibase.svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -796,16 +791,16 @@ void r128_update_mappings(void)
 
     // Setup BAR0 (MMIO)
 
-    ati_log("BAR0 (MMIO Base) = 0x%08x\n", r128->atibase.bar0_mmio_base);
+    ati_log("BAR2 (MMIO Base) = 0x%08x\n", r128->atibase.bar2_mmio_base);
 
     
-    if (r128->atibase.bar0_mmio_base)
-        mem_mapping_set_addr(&r128->atibase.mmio_mapping, r128->atibase.bar0_mmio_base, r128_MMIO_SIZE);
+    if (r128->atibase.bar2_mmio_base)
+        mem_mapping_set_addr(&r128->atibase.mmio_mapping, r128->atibase.bar2_mmio_base, R128_MMIO_SIZE);
 
     // if this breaks anything, remove it
-    ati_log("BAR1 (Linear Framebuffer) = 0x%08x\n", r128->atibase.bar1_lfb_base);
+    ati_log("BAR0 (Linear Framebuffer) = 0x%08x\n", r128->atibase.bar0_lfb_base);
 
-    if (r128->atibase.bar1_lfb_base)
+    if (r128->atibase.bar0_lfb_base)
     {
         if (r128->atibase.vram_amount == R128_VRAM_SIZE_16MB)
         {    
@@ -822,22 +817,22 @@ void r128_update_mappings(void)
     // Did we change the banked SVGA mode?
     switch (r128->atibase.svga.gdcreg[0x06] & 0x0c)
     {
-        case r128_CRTC_BANKED_128K_A0000:
+        case R128_CRTC_BANKED_128K_A0000:
             ati_log("SVGA Banked Mode = 128K @ A0000h\n");
             mem_mapping_set_addr(&r128->atibase.svga.mapping, 0xA0000, 0x20000); // 128kb @ 0xA0000
             r128->atibase.svga.banked_mask = 0x1FFFF;
             break;
-        case r128_CRTC_BANKED_64K_A0000:
+        case R128_CRTC_BANKED_64K_A0000:
             ati_log("SVGA Banked Mode = 64K @ A0000h\n");
             mem_mapping_set_addr(&r128->atibase.svga.mapping, 0xA0000, 0x10000); // 64kb @ 0xA0000
             r128->atibase.svga.banked_mask = 0xFFFF;
             break;
-        case r128_CRTC_BANKED_32K_B0000:
+        case R128_CRTC_BANKED_32K_B0000:
             ati_log("SVGA Banked Mode = 32K @ B0000h\n");
             mem_mapping_set_addr(&r128->atibase.svga.mapping, 0xB0000, 0x8000); // 32kb @ 0xB0000
             r128->atibase.svga.banked_mask = 0x7FFF;
             break;
-        case r128_CRTC_BANKED_32K_B8000:
+        case R128_CRTC_BANKED_32K_B8000:
             ati_log("SVGA Banked Mode = 32K @ B8000h\n");
             mem_mapping_set_addr(&r128->atibase.svga.mapping, 0xB8000, 0x8000); // 32kb @ 0xB8000
             r128->atibase.svga.banked_mask = 0x7FFF;
@@ -915,7 +910,7 @@ void* r128_init(const device_t *info)
 void* r128_init_agp(const device_t* info)
 {
     r128 = (r128_t*)calloc(1, sizeof(r128_t));
-    r128->atibase.bus_generation = nv_bus_agp_4x;
+    r128->atibase.bus_generation = ati_bus_agp_4x;
     r128_init(info);
     return r128;
 }

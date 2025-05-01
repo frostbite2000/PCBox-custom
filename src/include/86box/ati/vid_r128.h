@@ -673,6 +673,11 @@ extern const device_config_t r128_config[];
 #define R128_CRTC_REGISTER_LINECOMP                      0x18
 #define R128_CRTC_REGISTER_STANDARDVGA_END               0x18
 
+#define R128_CRTC_BANKED_128K_A0000                      0x00
+#define R128_CRTC_BANKED_64K_A0000                       0x04
+#define R128_CRTC_BANKED_32K_B0000                       0x08
+#define R128_CRTC_BANKED_32K_B8000                       0x0C
+
 
 
 

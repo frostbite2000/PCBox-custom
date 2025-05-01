@@ -20,14 +20,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <86Box/86box.h>
-#include <86Box/device.h>
-#include <86Box/mem.h>
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/mem.h>
 #include <86box/pci.h>
-#include <86Box/rom.h> // DEPENDENT!!!
-#include <86Box/video.h>
-#include <86Box/ati/vid_ati.h>
-#include <86Box/ati/vid_r128.h>
+#include <86box/rom.h> // DEPENDENT!!!
+#include <86box/video.h>
+#include <86box/ati/vid_ati.h>
+#include <86box/ati/vid_r128.h>
 
 // Arbitrates an MMIO read
 uint32_t r128_mmio_arbitrate_read(uint32_t address)
