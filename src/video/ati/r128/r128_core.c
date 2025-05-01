@@ -878,6 +878,10 @@ void* r128_init(const device_t *info)
 
     // set vram
     ati_log("VRAM=%d bytes\n", r128->atibase.svga.vram_max);
+    
+    // explicitly set the vram_mask to the correct size - 1
+    r128->atibase.svga.vram_mask = r128->atibase.svga.vram_max - 1;
+    ati_log("VRAM mask=0x%08x\n", r128->atibase.svga.vram_mask);
 
     // init memory mappings
     r128_init_mappings();
