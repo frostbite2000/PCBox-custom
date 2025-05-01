@@ -287,17 +287,6 @@ pcx2_reg_write(uint32_t addr, uint32_t val, void *priv)
                                      pcx2->fog_color & 0xFF);
             break;
             
-        case PCX_CAMERA:
-            /* Set camera scale */
-            pcx2->regs[offset] = val;
-            pcx2->camera_scale = val;
-            
-            /* Update the rendering context with the new camera scale */
-            if (pcx2->render_context) {
-                pcx2_set_render_camera_scale(pcx2->render_context, pcx2->camera_x_scale, pcx2->camera_y_scale);
-            }
-            break;
-            
         case PCX_BILINEAR:
             /* Set texture filtering mode */
             pcx2->regs[offset] = val;
@@ -935,7 +924,6 @@ pcx2_init(const device_t *info)
                              (pcx2->fog_color >> 16) & 0xFF,
                              (pcx2->fog_color >> 8) & 0xFF,
                              pcx2->fog_color & 0xFF);
-    pcx2_set_render_camera_scale(pcx2->render_context, pcx2->camera_x_scale, pcx2->camera_y_scale);
     pcx2_set_render_texture_filtering(pcx2->render_context, pcx2->texture_filter_mode);
     pcx2_set_render_fog_enable(pcx2->render_context, (pcx2->flags & PCX2_FLAG_FOG_ENABLE) ? 1 : 0);
     pcx2_set_render_dithering(pcx2->render_context, (pcx2->flags & PCX2_FLAG_DITHER_ENABLE) ? 1 : 0);

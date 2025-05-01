@@ -39,6 +39,7 @@ void pcx2_init_render_pipeline(void *pcx2_device, uint32_t *texture_mem, uint32_
 void pcx2_shutdown_render_pipeline(void *render_context);
 
 /* Rendering configuration functions */
+void pcx2_render_frame(void *render_context, pcx2_rgb_t *frame_buffer, int width, int height, uint32_t *object_list, int object_count)
 void pcx2_set_render_camera_scale(void *render_context, uint16_t scale);
 void pcx2_set_render_fog_color(void *render_context, uint8_t r, uint8_t g, uint8_t b);
 void pcx2_set_render_texture_filtering(void *render_context, uint8_t mode);

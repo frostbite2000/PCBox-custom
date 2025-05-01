@@ -1089,8 +1089,7 @@ pcx2_shutdown_render_pipeline(void *render_context)
  * PCX2 Render Frame
  * Renders a frame based on the current parameter data
  */
-void 
-pcx2_render_frame(void *render_context, pcx2_rgb_t *frame_buffer, int width, int height, uint32_t *object_list, int object_count)
+void pcx2_render_frame(void *render_context, pcx2_rgb_t *frame_buffer, int width, int height, uint32_t *object_list, int object_count)
 {
     pcx2_render_context_t *ctx = (pcx2_render_context_t *)render_context;
     if (!ctx) {
