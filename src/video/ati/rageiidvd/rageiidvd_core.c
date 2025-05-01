@@ -38,7 +38,7 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_ati_eeprom.h>
-#include <86box/ati/vid_rageiiidvd.h>
+#include <86box/ati/vid_rageiidvd.h>
 
 // Path to the ROM
 #define BIOS_RAGEIIDVD_ROM_PATH "roms/video/ati/rageiidvd/2mbsgr.VBI"
