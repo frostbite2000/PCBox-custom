@@ -17,11 +17,15 @@
 
 // Common R128... init
 #define HAVE_STDARG_H // wtf is this crap
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <stdarg.h>
 #include <86box/86box.h>
-#include <86box/ati/vid_ati.h>
+#ifndef RELEASE_BUILD
+#include <86box/device.h>
+#endif
+#include <86box/log.h>
 
 
 // Common logging
