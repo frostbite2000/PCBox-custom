@@ -27,6 +27,7 @@ extern "C" {
 #include <86box/vid_8514a_device.h>
 #include <86box/vid_xga_device.h>
 #include <86box/vid_ps55da2.h>
+#include <86box/vid_powervr_pcx2.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -59,7 +60,8 @@ SettingsDisplay::save()
     voodoo_enabled             = ui->checkBoxVoodoo->isChecked() ? 1 : 0;
     ibm8514_standalone_enabled = ui->checkBox8514->isChecked() ? 1 : 0;
     xga_standalone_enabled     = ui->checkBoxXga->isChecked() ? 1 : 0;
-    da2_standalone_enabled = ui->checkBoxDa2->isChecked() ? 1 : 0;
+    da2_standalone_enabled     = ui->checkBoxDa2->isChecked() ? 1 : 0;
+    pcx2_enabled               = ui->checkBoxPcx2->isChecked() ? 1 : 0;
 }
 
 void
@@ -155,6 +157,12 @@ void
 SettingsDisplay::on_pushButtonConfigureDa2_clicked()
 {
     DeviceConfig::ConfigureDevice(&ps55da2_device);
+}
+
+void
+SettingsDisplay::on_pushButtonConfigurePcx2_clicked()
+{
+    DeviceConfig::ConfigureDevice(&pcx2_device);
 }
 
 void
@@ -257,6 +265,13 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
             ui->checkBoxVoodoo->setChecked(voodoo_enabled);
         }
     }
+    
+    // Enable PowerVR PCX2 checkbox only if machine has PCI
+    ui->checkBoxPcx2->setEnabled(machineHasPci);
+    if (machineHasPci) {
+        ui->checkBoxPcx2->setChecked(pcx2_enabled);
+    }
+    ui->pushButtonConfigurePcx2->setEnabled(machineHasPci && ui->checkBoxPcx2->isChecked());
 }
 
 void
@@ -281,6 +296,12 @@ void
 SettingsDisplay::on_checkBoxDa2_stateChanged(int state)
 {
     ui->pushButtonConfigureDa2->setEnabled(state == Qt::Checked);
+}
+
+void
+SettingsDisplay::on_checkBoxPcx2_stateChanged(int state)
+{
+    ui->pushButtonConfigurePcx2->setEnabled(state == Qt::Checked);
 }
 
 void

@@ -38,6 +38,9 @@
 #include <86box/vid_mda.h>
 #include <86box/vid_xga_device.h>
 
+/* Include PowerVR PCX2 header */
+#include "video/powervr/pcx2/pcx2.h"
+
 typedef struct video_card_t {
     const device_t *device;
     int             flags;
@@ -378,6 +381,10 @@ video_post_reset(void)
 
     if (da2_standalone_enabled)
         da2_device_add();
+        
+    if (pcx2_enabled)
+        video_pcx2_init();
+        
     /* Reset the graphics card (or do nothing if it was already done
        by the machine's init function). */
     video_reset(gfxcard[0]);
@@ -389,6 +396,14 @@ video_voodoo_init(void)
     /* Enable the Voodoo if configured. */
     if (voodoo_enabled)
         device_add(&voodoo_device);
+}
+
+void 
+video_pcx2_init(void)
+{
+    /* Enable the PowerVR PCX2 if configured. */
+    if (pcx2_enabled)
+        device_add(&pcx2_device);
 }
 
 int
