@@ -275,7 +275,7 @@ uint8_t r128_pci_read(int32_t func, int32_t addr, void* priv)
 
         // pci status register
         case PCI_REG_STATUS_L:
-            ret = r128->pci_config.pci_regs[PCI_REG_STATUS_L];
+            ret = r128->pci_config.pci_regs[PCI_REG_STATUS_L] & (R128_PCI_STATUS_L_CAP_LIST || R128_PCI_STATUS_L_FAST_BACK || R128_PCI_STATUS_L_66MHZ_CAPABLE);
             break;
 
         case PCI_REG_STATUS_H:
@@ -420,7 +420,7 @@ void r128_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
             r128->pci_config.pci_regs[PCI_REG_STATUS_L] = val | (R128_PCI_STATUS_L_66MHZ_CAPABLE);
             break;
         case PCI_REG_STATUS_H:
-            r128->pci_config.pci_regs[PCI_REG_STATUS_H] = val | (R128_PCI_STATUS_H_FAST_DEVSEL_TIMING << R128_PCI_STATUS_H_DEVSEL_TIMING);
+            r128->pci_config.pci_regs[PCI_REG_STATUS_H] = val | (R128_PCI_STATUS_H_MEDIUM_DEVSEL_TIMING);
             break;
         //TODO: ACTUALLY REMAP THE MMIO AND NV_USER
         case R128_PCI_CFG_BAR0_BASE_ADDRESS:
@@ -459,7 +459,7 @@ void r128_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
                     r128->pci_config.pci_regs[R128_PCI_CFG_VBIOS_BASE_L] << 16;
 
                     // move it
-                    mem_mapping_set_addr(&r128->atibase.vbios.mapping, new_addr, 0x8000);
+                    mem_mapping_set_addr(&r128->atibase.vbios.mapping, new_addr, 0x10000);
 
                     ati_log("...i like to move it move it (VBIOS Relocation) 0x%04x -> 0x%04x\n", old_addr, new_addr);
 
@@ -732,16 +732,6 @@ void r128_init_mappings_svga(void)
         r128_dfb_write32,
         r128->atibase.svga.vram, 0, &r128->atibase.svga);
 
-    // the SVGA/LFB mapping is also mirrored
-    mem_mapping_add(&r128->atibase.framebuffer_mapping_mirror, 0, 0, 
-        r128_dfb_read8,
-        r128_dfb_read16,
-        r128_dfb_read32,
-        r128_dfb_write8,
-        r128_dfb_write16,
-        r128_dfb_write32,
-        r128->atibase.svga.vram, 0, &r128->atibase.svga);
-
     io_sethandler(0x03c0, 0x0020, 
     r128_svga_read, NULL, NULL, 
     r128_svga_write, NULL, NULL, 
@@ -801,17 +791,8 @@ void r128_update_mappings(void)
     ati_log("BAR0 (Linear Framebuffer) = 0x%08x\n", r128->atibase.bar0_lfb_base);
 
     if (r128->atibase.bar0_lfb_base)
-    {
-        if (r128->atibase.vram_amount == R128_VRAM_SIZE_16MB)
-        {    
-            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping, r128->atibase.bar0_lfb_base, R128_VRAM_SIZE_16MB);
-            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping_mirror, r128->atibase.bar0_lfb_base + R128_LFB_MIRROR_START, R128_VRAM_SIZE_16MB);
-        }
-        else if (r128->atibase.vram_amount == R128_VRAM_SIZE_32MB)
-        {    
-            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping, r128->atibase.bar0_lfb_base, R128_VRAM_SIZE_32MB);
-            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping_mirror, r128->atibase.bar0_lfb_base + R128_LFB_MIRROR_START, R128_VRAM_SIZE_32MB);
-        }
+    {   
+        mem_mapping_set_addr(&r128->atibase.framebuffer_mapping, r128->atibase.bar0_lfb_base, R128_VRAM_SIZE_64MB);
     }
 
     // Did we change the banked SVGA mode?
@@ -865,7 +846,7 @@ void* r128_init(const device_t *info)
     vbios_file = device_get_bios_file(&r128_device_agp, vbios_id, 0);
 
 
-    int32_t err = rom_init(&r128->atibase.vbios, vbios_file, 0xC0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    int32_t err = rom_init(&r128->atibase.vbios, vbios_file, 0xC0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
     
     if (err)
     {
