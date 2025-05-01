@@ -792,7 +792,13 @@ void r128_update_mappings(void)
 
     if (r128->atibase.bar0_lfb_base)
     {   
-        mem_mapping_set_addr(&r128->atibase.framebuffer_mapping, r128->atibase.bar0_lfb_base, R128_VRAM_SIZE_64MB);
+        // Ensure we don't map more memory than we actually have available
+        uint32_t vram_size = r128->atibase.svga.vram_max < R128_VRAM_SIZE_64MB ? 
+                            r128->atibase.svga.vram_max : 
+                            R128_VRAM_SIZE_64MB;
+                            
+        ati_log("Mapping framebuffer with size: %d bytes\n", vram_size);
+        mem_mapping_set_addr(&r128->atibase.framebuffer_mapping, r128->atibase.bar0_lfb_base, vram_size);
     }
 
     // Did we change the banked SVGA mode?
