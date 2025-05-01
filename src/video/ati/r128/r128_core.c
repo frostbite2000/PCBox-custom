@@ -906,13 +906,15 @@ void* r128_init(const device_t *info)
     return r128;
 }
 
-// RIVA 128 AGP initialisation function: This function simply allocates the device struct, and sets the bus to AGP before initialising.
+// Rage128 AGP initialisation function: This function simply allocates the device struct, and sets the bus to AGP before initialising.
 void* r128_init_agp(const device_t* info)
 {
     r128 = (r128_t*)calloc(1, sizeof(r128_t));
+    if (!r128)
+        return NULL;
+        
     r128->atibase.bus_generation = ati_bus_agp_4x;
-    r128_init(info);
-    return r128;
+    return r128_init(info);
 }
 
 void r128_close(void* priv)
