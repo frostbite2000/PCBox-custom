@@ -596,13 +596,13 @@ r128_svga_write(uint16_t addr, uint8_t val, void *priv)
                         r128->atibase.svga.ma_latch   = ((r128->atibase.svga.crtc[0xc] << 8) | r128->atibase.svga.crtc[0xd]) + ((r128->atibase.svga.crtc[8] & 0x60) >> 5);
                     } else {
                         r128->atibase.svga.fullchange = changeframecount;
-                        svga_recalctimings(svga);
+                        svga_recalctimings(&r128->atibase.svga);
                     }
                 }
             }
             break;
 
-            if (old_value != val)
+            if (old != val)
             {
                 if (r128->atibase.svga.crtcreg < 0xE
                 || r128->atibase.svga.crtcreg > 0x10)
