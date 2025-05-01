@@ -592,10 +592,10 @@ r128_svga_write(uint16_t addr, uint8_t val, void *priv)
             if (old != val) {
                 if (r128->atibase.svga.crtcreg < 0xe || r128->atibase.svga.crtcreg > 0x10) {
                     if ((r128->atibase.svga.crtcreg == 0xc) || (r128->atibase.svga.crtcreg == 0xd)) {
-                        r128->atibase.svga->fullchange = 3;
-                        r128->atibase.svga->ma_latch   = ((r128->atibase.svga.crtc[0xc] << 8) | r128->atibase.svga.crtc[0xd]) + ((r128->atibase.svga.crtc[8] & 0x60) >> 5);
+                        r128->atibase.svga.fullchange = 3;
+                        r128->atibase.svga.ma_latch   = ((r128->atibase.svga.crtc[0xc] << 8) | r128->atibase.svga.crtc[0xd]) + ((r128->atibase.svga.crtc[8] & 0x60) >> 5);
                     } else {
-                        r128->atibase.svga->fullchange = changeframecount;
+                        r128->atibase.svga.fullchange = changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -804,13 +804,13 @@ void r128_update_mappings(void)
     {
         if (r128->atibase.vram_amount == R128_VRAM_SIZE_16MB)
         {    
-            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping, r128->atibase.bar1_lfb_base, R128_VRAM_SIZE_16MB);
-            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping_mirror, r128->atibase.bar1_lfb_base + R128_LFB_MIRROR_START, R128_VRAM_SIZE_16MB);
+            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping, r128->atibase.bar0_lfb_base, R128_VRAM_SIZE_16MB);
+            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping_mirror, r128->atibase.bar0_lfb_base + R128_LFB_MIRROR_START, R128_VRAM_SIZE_16MB);
         }
         else if (r128->atibase.vram_amount == R128_VRAM_SIZE_32MB)
         {    
-            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping, r128->atibase.bar1_lfb_base, R128_VRAM_SIZE_32MB);
-            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping_mirror, r128->atibase.bar1_lfb_base + R128_LFB_MIRROR_START, R128_VRAM_SIZE_32MB);
+            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping, r128->atibase.bar0_lfb_base, R128_VRAM_SIZE_32MB);
+            mem_mapping_set_addr(&r128->atibase.framebuffer_mapping_mirror, r128->atibase.bar0_lfb_base + R128_LFB_MIRROR_START, R128_VRAM_SIZE_32MB);
         }
     }
 
