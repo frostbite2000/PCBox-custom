@@ -39,7 +39,7 @@
 #include <86box/vid_xga_device.h>
 
 /* Include PowerVR PCX2 header */
-#include "video/powervr/pcx2/pcx2.h"
+#include "86box/vid_powervr_pcx2.h"
 
 typedef struct video_card_t {
     const device_t *device;
