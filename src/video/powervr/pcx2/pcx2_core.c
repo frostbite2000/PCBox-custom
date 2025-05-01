@@ -379,11 +379,8 @@ pcx2_pci_read(int func, int addr, void *priv)
 static void 
 pcx2_recalc_mapping(pcx2_t *pcx2)
 {
-    svga_t *svga = &pcx2->svga;
-        
     if (!(pcx2->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
     //pclog("PCI mem off\n");
-        mem_mapping_disable(&svga->mapping);
         mem_mapping_disable(&pcx2->mmio_mapping);
         mem_mapping_disable(&pcx2->linear_mapping);
     return;
