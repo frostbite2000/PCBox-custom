@@ -43,6 +43,8 @@
 // Path to the ROM
 #define BIOS_RAGEIIDVD_ROM_PATH "roms/video/ati/rageiidvd/2mbsgr.VBI"
 
+static video_timings_t timing_rageiidvd_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+
 // MACH64 post-dividers for PLL
 static const int pll_post_dividers[8] = {
     1, 2, 4, 8, 3, 5, 6, 12
@@ -493,9 +495,8 @@ rageiidvd_recalctimings(svga_t *svga)
         svga->crtc[0x11] = 0x00; // Unlock CRTC registers
         
         svga->htotal = rageiidvd->htotal;
-        svga->dispend = rageiidvd->hres;
+        svga->dispend = rageiidvd->hres || rageiidvd->vres;
         svga->vtotal = rageiidvd->vtotal;
-        svga->vdispend = rageiidvd->vres;
     }
 }
 
@@ -506,7 +507,7 @@ rageiidvd_init(const device_t *info)
     
     rageiidvd_log("Initializing ATI Rage II+ DVD\n");
     
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_rageiidvd_pci);
     
     // Set up ROM
     rom_init(&rageiidvd->bios_rom, BIOS_RAGEIIDVD_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -515,7 +516,7 @@ rageiidvd_init(const device_t *info)
     rageiidvd->memory = device_get_config_int("memory");
     
     // Initialize SVGA
-    svga_init(info, &rageiidvd->svga, rageiidvd, rageiidvd->memory << 10,
+    svga_init(info, &rageiidvd->svga, rageiidvd, rageiidvd->memory << 20,
               rageiidvd_recalctimings,
               NULL, NULL, NULL, NULL);
               
