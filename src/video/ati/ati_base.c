@@ -15,7 +15,7 @@
  *          Copyright 2024 frostbite2000
  */
 
-// Common NV1/3/4... init
+// Common R128... init
 #define HAVE_STDARG_H // wtf is this crap
 #include <stdio.h>
 #include <stdint.h>
@@ -28,19 +28,73 @@
 #ifdef ENABLE_ATI_LOG
 int ati_do_log = ENABLE_ATI_LOG;
 
+void* ati_log_device;
+bool ati_log_full = false;
+
+void ati_log_set_device(void* device)
+{
+    #ifndef RELEASE_BUILD
+    if (device 
+    && device_get_config_int("ati_debug_fulllog"))
+    {
+        ati_log_full = true; 
+    }
+    #endif
+
+    ati_log_device = device;
+}
+
+void ati_log_internal(const char* fmt, va_list arg)
+{
+    if (!ati_log_device)
+        return;
+
+    // If our debug config option is configured, full log. Otherwise log with cyclical detection.
+    if (ati_log_full)   
+        log_out(ati_log_device, fmt, arg);
+    else
+        log_out_cyclic(ati_log_device, fmt, arg);
+    
+}
+
 void ati_log(const char *fmt, ...)
 {
-    va_list ap;
+    va_list arg; 
 
-    if (ati_do_log) {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
-    }
+    if (!ati_do_log)
+        return; 
+
+    va_start(arg, fmt);
+    ati_log_internal(fmt, arg);
+    va_end(arg);
 }
+
+void ati_log_verbose_only(const char *fmt, ...)
+{
+    #ifdef ENABLE_ati_LOG_ULTRA
+    va_list arg; 
+
+    if (!ati_do_log)
+        return; 
+
+    va_start(arg, fmt);
+    ati_log_internal(fmt, arg);
+    va_end(arg);
+    #endif
+}
+
 #else
-void
-ati_log(const char *fmt, ...)
+void ati_log(const char *fmt, ...)
+{
+    
+}
+
+void ati_log_verbose_only(const char *fmt, ...)
+{
+    
+}
+
+void ati_log_set_device(void* device)
 {
 
 }
