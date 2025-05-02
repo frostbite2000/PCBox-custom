@@ -87,11 +87,13 @@
      NEON250_MODE_3D  = 2
  };
  
- /* 3D engine functions */
- void neon_3d_init(neon250_t *neon250);
- void neon_3d_close(neon250_t *neon250);
- uint32_t neon_3d_read(neon250_t *neon250, uint32_t addr);
- void neon_3d_write(neon250_t *neon250, uint32_t addr, uint32_t value);
+/* 3D engine functions */
+void neon_3d_init(neon250_t *neon250);
+void neon_3d_reset(neon250_t *neon250);
+void neon_3d_close(neon250_t *neon250);
+uint32_t neon_3d_read(neon250_t *neon250, uint32_t addr);
+void neon_3d_write(neon250_t *neon250, uint32_t addr, uint32_t value);
+void neon_3d_process_commands(neon250_t *neon250);
  
  /* SVGA helper functions */
  void neon250_hwcursor_draw(svga_t *svga, int displine);

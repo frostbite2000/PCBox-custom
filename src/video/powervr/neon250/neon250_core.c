@@ -121,13 +121,21 @@ static uint8_t neon250_svga_read_linear(uint32_t addr, void *priv);
 #define NEON250_CRTC_V_SYNC_END   0x11
 #define NEON250_CRTC_MODE_CONTROL 0x17
 
-/* Extended registers unique to Neon 250 */
-#define NEON250_EXT_PIXELCLOCK    0x40
-#define NEON250_EXT_BPPCONTROL    0x41
-#define NEON250_EXT_HWCURSOR_CTRL 0x42
-#define NEON250_EXT_HWCURSOR_POS  0x43
-#define NEON250_EXT_HWCURSOR_ADDR 0x44
-#define NEON250_EXT_STRIDE        0x45
+/* Neon 250 device extended registers */
+enum {
+    NEON250_EXT_PIXELCLOCK    = 0x40,
+    NEON250_EXT_BPPCONTROL    = 0x41,
+    NEON250_EXT_HWCURSOR_CTRL = 0x42,
+    NEON250_EXT_HWCURSOR_POS  = 0x43,
+    NEON250_EXT_HWCURSOR_POS1 = 0x44,  // Instead of NEON250_EXT_HWCURSOR_POS+1
+    NEON250_EXT_HWCURSOR_POS2 = 0x45,  // Instead of NEON250_EXT_HWCURSOR_POS+2
+    NEON250_EXT_HWCURSOR_POS3 = 0x46,  // Instead of NEON250_EXT_HWCURSOR_POS+3
+    NEON250_EXT_HWCURSOR_ADDR = 0x47,
+    NEON250_EXT_HWCURSOR_ADDR1 = 0x48, // Instead of NEON250_EXT_HWCURSOR_ADDR+1
+    NEON250_EXT_HWCURSOR_ADDR2 = 0x49, // Instead of NEON250_EXT_HWCURSOR_ADDR+2
+    NEON250_EXT_HWCURSOR_ADDR3 = 0x4A, // Instead of NEON250_EXT_HWCURSOR_ADDR+3
+    NEON250_EXT_STRIDE        = 0x4B
+};
 
 /* MMIO register read function */
 static uint32_t
@@ -352,7 +360,7 @@ neon250_recalc_mapping(neon250_t *neon250)
 
     /* Set up MMIO mapping */
     if (neon250->mmio_base) {
-        mem_mapping_set_addr(&neon250->mmio_mapping, neon250->mmio_base, 0x10000);
+        mem_mapping_set_addr(&neon250->mmio_mapping, neon250->mmio_base, 0x4000);
     } else {
         mem_mapping_disable(&neon250->mmio_mapping);
     }
@@ -404,48 +412,11 @@ neon250_pci_write(int func, int addr, uint8_t val, void *priv)
         case 0x05: case 0x06:
             neon250->pci_regs[addr] &= ~(0xFF << (offset * 8));
             neon250->pci_regs[addr] |= (val << (offset * 8));
-            break;
+        break;
             
         case 0x07: case 0x08: case 0x09: case 0x0A: case 0x0B:
             return; /* Read-only registers */
             
-        case 0x04: /* Base addresses - handle special cases */
-        case 0x05:
-            switch (addr) {
-                case 0x04: /* MMIO base address */
-                    if (offset == 0) {
-                        neon250->pci_regs[addr] &= ~0xFF;
-                        neon250->pci_regs[addr] |= (val & 0xF0); /* 16-byte aligned, memory space */
-                    } else if (offset == 3) {
-                        neon250->pci_regs[addr] &= ~0xFF000000;
-                        neon250->pci_regs[addr] |= (val << 24);
-                        neon250->mmio_base = (neon250->pci_regs[addr] & 0xFFFFFFF0);
-                    }
-                    neon250_recalc_mapping(neon250);
-                    break;
-                    
-                case 0x05: /* Framebuffer base address */
-                    if (offset == 0) {
-                        neon250->pci_regs[addr] &= ~0xFF;
-                        neon250->pci_regs[addr] |= (val & 0xF0); /* 16-byte aligned, memory space */
-                    } else if (offset == 3) {
-                        neon250->pci_regs[addr] &= ~0xFF000000;
-                        neon250->pci_regs[addr] |= (val << 24);
-                        neon250->fb_base = (neon250->pci_regs[addr] & 0xFFFFFFF0);
-                    }
-                    neon250_recalc_mapping(neon250);
-                    break;
-            }
-            break;
-            
-        case 0x0F: /* Interrupt line */
-            if (offset == 0) {
-                neon250->pci_regs[addr] &= ~0xFF;
-                neon250->pci_regs[addr] |= val;
-                neon250->int_line = val;
-            }
-            break;
-           
         case 0x30: case 0x32:
         case 0x33:
             neon250->pci_regs[addr] = val;
@@ -454,17 +425,44 @@ neon250_pci_write(int func, int addr, uint8_t val, void *priv)
                 mem_mapping_set_addr(&neon250->bios_rom.mapping, addr, 0x20000);
             } else
                 mem_mapping_disable(&neon250->bios_rom.mapping);
-            break;        
+            break;   
 
         default:
-            if (addr < (256/4)) {
+            /* Handle base addresses and other registers */
+            if (addr == 0x04) { /* MMIO base address */
+                if (offset == 0) {
+                    neon250->pci_regs[addr] &= ~0xFF;
+                    neon250->pci_regs[addr] |= (val & 0xF0); /* 16-byte aligned, memory space */
+                } else if (offset == 3) {
+                    neon250->pci_regs[addr] &= ~0xFF000000;
+                    neon250->pci_regs[addr] |= (val << 24);
+                    neon250->mmio_base = (neon250->pci_regs[addr] & 0xFFFFFFF0);
+                }
+                neon250_recalc_mapping(neon250);
+            } 
+            else if (addr == 0x05) { /* Framebuffer base address */
+                if (offset == 0) {
+                    neon250->pci_regs[addr] &= ~0xFF;
+                    neon250->pci_regs[addr] |= (val & 0xF0); /* 16-byte aligned, memory space */
+                } else if (offset == 3) {
+                    neon250->pci_regs[addr] &= ~0xFF000000;
+                    neon250->pci_regs[addr] |= (val << 24);
+                    neon250->fb_base = (neon250->pci_regs[addr] & 0xFFFFFFF0);
+                }
+                neon250_recalc_mapping(neon250);
+            }
+            else if (addr == 0x0F && offset == 0) { /* Interrupt line */
+                neon250->pci_regs[addr] &= ~0xFF;
+                neon250->pci_regs[addr] |= val;
+                neon250->int_line = val;
+            }
+            else if (addr < (256/4)) {
                 neon250->pci_regs[addr] &= ~(0xFF << (offset * 8));
                 neon250->pci_regs[addr] |= (val << (offset * 8));
             }
             break;
     }
 }
-
 /* Initialize register defaults */
 static void
 neon250_init_registers(neon250_t *neon250)
@@ -545,8 +543,8 @@ neon250_svga_recalctimings(svga_t *svga)
         svga->hwcursor.x = neon250->regs[NEON250_EXT_HWCURSOR_POS] & 0xFFFF;
         svga->hwcursor.y = neon250->regs[NEON250_EXT_HWCURSOR_POS] >> 16;
         svga->hwcursor.addr = neon250->regs[NEON250_EXT_HWCURSOR_ADDR] & neon250->vram_mask;
-        svga->hwcursor.xsize = 64;
-        svga->hwcursor.ysize = 64;
+        svga->hwcursor.cur_xsize = 64; // Use cur_xsize instead of xsize
+        svga->hwcursor.cur_ysize = 64; // Use cur_ysize instead of ysize
     } else {
         svga->hwcursor.ena = 0;
     }
@@ -589,9 +587,9 @@ neon250_svga_out(uint16_t addr, uint8_t val, void *priv)
                         break;
                         
                     case NEON250_EXT_HWCURSOR_POS:
-                    case NEON250_EXT_HWCURSOR_POS+1:
-                    case NEON250_EXT_HWCURSOR_POS+2:
-                    case NEON250_EXT_HWCURSOR_POS+3:
+                    case NEON250_EXT_HWCURSOR_POS1:
+                    case NEON250_EXT_HWCURSOR_POS2:
+                    case NEON250_EXT_HWCURSOR_POS3:
                         /* Handle 32-bit cursor position (written as 4 bytes) */
                         {
                             int shift = 8 * (index - NEON250_EXT_HWCURSOR_POS);
@@ -602,9 +600,9 @@ neon250_svga_out(uint16_t addr, uint8_t val, void *priv)
                         break;
                         
                     case NEON250_EXT_HWCURSOR_ADDR:
-                    case NEON250_EXT_HWCURSOR_ADDR+1:
-                    case NEON250_EXT_HWCURSOR_ADDR+2:
-                    case NEON250_EXT_HWCURSOR_ADDR+3:
+                    case NEON250_EXT_HWCURSOR_ADDR1:
+                    case NEON250_EXT_HWCURSOR_ADDR2:
+                    case NEON250_EXT_HWCURSOR_ADDR3:
                         /* Handle 32-bit cursor address (written as 4 bytes) */
                         {
                             int shift = 8 * (index - NEON250_EXT_HWCURSOR_ADDR);
@@ -618,7 +616,7 @@ neon250_svga_out(uint16_t addr, uint8_t val, void *priv)
             }
             
             /* Let standard SVGA handler process normal registers */
-            svga_write_crtc(svga, index, val);
+            svga->crtc[index] = val; // Instead of svga_write_crtc
             
             /* Post-process critical registers that affect mode */
             switch (index) {
@@ -674,9 +672,9 @@ neon250_svga_in(uint16_t addr, void *priv)
                         break;
                         
                     case NEON250_EXT_HWCURSOR_POS:
-                    case NEON250_EXT_HWCURSOR_POS+1:
-                    case NEON250_EXT_HWCURSOR_POS+2:
-                    case NEON250_EXT_HWCURSOR_POS+3:
+                    case NEON250_EXT_HWCURSOR_POS1:
+                    case NEON250_EXT_HWCURSOR_POS2:
+                    case NEON250_EXT_HWCURSOR_POS3:
                         /* Handle 32-bit cursor position (read as 4 bytes) */
                         {
                             int shift = 8 * (svga->crtcreg - NEON250_EXT_HWCURSOR_POS);
@@ -685,9 +683,9 @@ neon250_svga_in(uint16_t addr, void *priv)
                         break;
                         
                     case NEON250_EXT_HWCURSOR_ADDR:
-                    case NEON250_EXT_HWCURSOR_ADDR+1:
-                    case NEON250_EXT_HWCURSOR_ADDR+2:
-                    case NEON250_EXT_HWCURSOR_ADDR+3:
+                    case NEON250_EXT_HWCURSOR_ADDR1:
+                    case NEON250_EXT_HWCURSOR_ADDR2:
+                    case NEON250_EXT_HWCURSOR_ADDR3:
                         /* Handle 32-bit cursor address (read as 4 bytes) */
                         {
                             int shift = 8 * (svga->crtcreg - NEON250_EXT_HWCURSOR_ADDR);
@@ -701,7 +699,7 @@ neon250_svga_in(uint16_t addr, void *priv)
                 }
             } else {
                 /* Standard CRTC registers */
-                ret = svga_read_crtc(svga, svga->crtcreg);
+                ret = svga->crtc[svga->crtcreg]; // Instead of svga_read_crtc
             }
             break;
             
@@ -738,7 +736,8 @@ neon250_svga_write_linear(uint32_t addr, uint8_t val, void *priv)
     /* Check if we need to update screen */
     if (neon250->vram[addr] != val) {
         neon250->vram[addr] = val;
-        svga_mark_dirty(svga, addr);
+        // Use svga_changeeframecount instead of svga_mark_dirty
+        svga->fullchange = changeframecount;
     }
 }
 
@@ -838,33 +837,23 @@ neon250_init(const device_t *info)
     /* Initialize the SVGA device for 2D operations */
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_neon250);
     
-    /* Create and initialize SVGA device with our custom callbacks */
-    neon250->svga = malloc(sizeof(svga_t));
-    memset(neon250->svga, 0, sizeof(svga_t));
+    /* Create SVGA device */
+    neon250->svga = svga_get_pri();
     
-    svga_init(neon250->svga, neon250, neon250->vram_size,
-             neon250_svga_recalctimings,
-             neon250_svga_in, neon250_svga_out,
-             NULL, NULL);
+    /* Set up SVGA capabilities */
+    neon250->svga->p = neon250;
+    neon250->svga->vram = neon250->vram;
+    neon250->svga->vram_max = neon250->vram_size;
+    neon250->svga->vram_display_mask = neon250->vram_mask;
+    
+    /* Register SVGA callbacks */
+    neon250->svga->recalctimings = neon250_svga_recalctimings;
     
     /* Enable hardware cursor */
     neon250->svga->hwcursor.ena = 0;
-    neon250->svga->hwcursor.ysize = 64;
-    neon250->svga->hwcursor.xsize = 64;
+    neon250->svga->hwcursor.cur_ysize = 64; // Fix field names
+    neon250->svga->hwcursor.cur_xsize = 64; // Fix field names
     
-    /* Set default SVGA capabilities */
-    neon250->svga->vram_display_mask = neon250->vram_mask;
-    neon250->svga->vram_max = neon250->vram_size;
-    neon250->svga->decode_mask = neon250->vram_mask;
-    neon250->svga->vram_mask = neon250->vram_mask;
-    
-    neon250->pci_regs[0x04] = 0x00;
-
-    neon250->pci_regs[0x2c] = 0x20;
-    neon250->pci_regs[0x2d] = 0x01;
-    neon250->pci_regs[0x2e] = 0x10;
-    neon250->pci_regs[0x2f] = 0x10;
-
     /* Initialize 3D engine */
     neon_3d_init(neon250);
     
@@ -874,8 +863,8 @@ neon250_init(const device_t *info)
     
     /* Set up mappings */
     mem_mapping_add(&neon250->mmio_mapping, 0, 0, 
-                   neon250_reg_read, NULL, NULL,
-                   neon250_reg_write, NULL, NULL,
+                   neon250_reg_read, NULL, NULL, // Fix parameter order
+                   neon250_reg_write, NULL, NULL, // Fix parameter order
                    NULL, MEM_MAPPING_EXTERNAL, neon250);
                    
     mem_mapping_add(&neon250->fb_mapping, 0, 0,
@@ -887,6 +876,9 @@ neon250_init(const device_t *info)
                    neon250_vram_read, NULL, NULL,
                    neon250_vram_write, NULL, NULL,
                    NULL, MEM_MAPPING_EXTERNAL, neon250);
+    
+    /* Initialize the PCI device */
+    neon250->card_id = info->local;
     
     /* Setup PCI BAR configuration */
     neon250->pci_regs[PCI_REG_COMMAND] = 0x00;
@@ -907,8 +899,8 @@ neon250_init(const device_t *info)
         svga_recalctimings(neon250->svga);
     }
     
-    /* Setup timer for rendering operations */
-    timer_add(&neon250->render_timer, neon250_render_frame, neon250, 0);
+    /* Setup timer for rendering operations with correct callback signature */
+    timer_add(&neon250->render_timer, (void(*)(void*))neon250_render_frame, neon250, 0);
     
     neon250_log("NEON250: Initialization complete\n");
     
