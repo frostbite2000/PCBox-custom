@@ -29,6 +29,8 @@
 #include "86box/mem.h"
 #include "86box/video.h"
 #include "86box/vid_svga.h"
+#include "86box/plat.h" /* For plat_timer_read() */
+#include "86box/vid_svga_render.h" /* For svga_mark_dirty() */
 
 #include "86box/vid_powervr_neon250.h"
 
@@ -850,15 +852,13 @@ static void neon_3d_transform_vertex(neon250_t *neon250, neon_vertex_t *v)
     
     /* Transform texture coordinates if texture mapping is enabled */
     if (state->texture_enabled) {
-        float u, v;
+        float tex_u = v->u;
+        float tex_v = v->v;
         float *tex = state->matrices.texture;
         
         /* Apply texture transformation matrix */
-        u = v->u * tex[0] + v->v * tex[4] + tex[12];
-        v = v->u * tex[1] + v->v * tex[5] + tex[13];
-        
-        v->u = u;
-        v->v = v;
+        v->u = tex_u * tex[0] + tex_v * tex[4] + tex[12];
+        v->v = tex_u * tex[1] + tex_v * tex[5] + tex[13];
     }
     
     /* Apply viewport transformation */

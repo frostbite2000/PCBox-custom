@@ -79,6 +79,19 @@
  #define NEON250_EXT_HWCURSOR_POS  0x43
  #define NEON250_EXT_HWCURSOR_ADDR 0x44
  #define NEON250_EXT_STRIDE        0x45
+
+ /* Core register definitions */
+ #define NEON_REG_INTSTATUS    0x00    /* Interrupt Status Register */
+ #define NEON_REG_INTMASK      0x01    /* Interrupt Mask Register */
+ #define NEON_REG_SOFTRESET    0x02    /* Soft Reset Register */
+ #define NEON_REG_POWERDOWN    0x03    /* Power Down Register */
+ #define NEON_REG_TEXCTRL      0x04    /* Texture Control Register */
+ #define NEON_REG_FOGCTRL      0x05    /* Fog Control Register */
+ #define NEON_REG_FOGCOLOR     0x06    /* Fog Color Register */
+ #define NEON_REG_RENDERCTRL   0x07    /* Render Control Register */
+ #define NEON_REG_OBJECTBASE   0x08    /* Object Base Address Register */
+ #define NEON_REG_FRAMEBASE    0x09    /* Frame Buffer Base Address Register */
+ #define NEON_REG_TEXBASE      0x0A    /* Texture Memory Base Address Register */
  
  /* Video modes */
  enum {
@@ -89,11 +102,11 @@
  
 /* 3D engine functions */
 void neon_3d_init(neon250_t *neon250);
-void neon_3d_reset(neon250_t *neon250);
+void neon_3d_reset(neon250_t *neon250);  /* Changed from static in implementation */
 void neon_3d_close(neon250_t *neon250);
 uint32_t neon_3d_read(neon250_t *neon250, uint32_t addr);
 void neon_3d_write(neon250_t *neon250, uint32_t addr, uint32_t value);
-void neon_3d_process_commands(neon250_t *neon250);
+void neon_3d_process_commands(neon250_t *neon250);  /* Changed from static in implementation */
  
  /* SVGA helper functions */
  void neon250_hwcursor_draw(svga_t *svga, int displine);
