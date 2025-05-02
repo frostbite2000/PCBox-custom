@@ -16,8 +16,15 @@
  #ifndef VIDEO_POWERVR_NEON250_H
  #define VIDEO_POWERVR_NEON250_H
  
- #include "86box/video.h"
- #include "86box/vid_svga.h"
+#include <86box/log.h>
+#include <86box/i2c.h>
+#include <86box/vid_ddc.h>
+#include <86box/timer.h>
+#include <86box/vid_svga.h>
+#include <86box/86box.h>
+#include <86box/video.h>
+#include <86box/vid_svga_render.h>
+#include <86box/rom.h>
  
  /* Forward declaration of 3D engine state */
  typedef struct neon_3d_state_t neon_3d_state_t;
