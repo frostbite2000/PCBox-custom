@@ -79,6 +79,12 @@
  #define NEON250_EXT_HWCURSOR_POS  0x43
  #define NEON250_EXT_HWCURSOR_ADDR 0x44
  #define NEON250_EXT_STRIDE        0x45
+ #define NEON250_EXT_HWCURSOR_POS1     0x44 /* Hardware cursor position byte 1 */
+ #define NEON250_EXT_HWCURSOR_POS2     0x45 /* Hardware cursor position byte 2 */
+ #define NEON250_EXT_HWCURSOR_POS3     0x46 /* Hardware cursor position byte 3 */
+ #define NEON250_EXT_HWCURSOR_ADDR1    0x48 /* Hardware cursor address byte 1 */
+ #define NEON250_EXT_HWCURSOR_ADDR2    0x49 /* Hardware cursor address byte 2 */
+ #define NEON250_EXT_HWCURSOR_ADDR3    0x4A /* Hardware cursor address byte 3 */
 
  /* Core register definitions */
  #define NEON_REG_INTSTATUS    0x00    /* Interrupt Status Register */

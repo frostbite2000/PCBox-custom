@@ -34,6 +34,9 @@
 
 #include "86box/vid_powervr_neon250.h"
 
+/* Forward declarations for external functions */
+extern void neon250_update_irq(neon250_t *neon250);
+
 /* PowerVR Neon 250 specific 3D registers */
 #define NEON_3D_CONTROL       0x100  /* 3D Control Register */
 #define NEON_3D_STATUS        0x101  /* 3D Status Register */
@@ -173,8 +176,8 @@ typedef struct neon_3d_state_t {
 } neon_3d_state_t;
 
 /* Local prototypes */
-static void neon_3d_reset(neon250_t *neon250);
-static void neon_3d_process_commands(neon250_t *neon250);
+void neon_3d_reset(neon250_t *neon250);
+void neon_3d_process_commands(neon250_t *neon250);
 static void neon_3d_draw_triangle(neon250_t *neon250, neon_vertex_t *v1, neon_vertex_t *v2, neon_vertex_t *v3);
 static void neon_3d_draw_line(neon250_t *neon250, neon_vertex_t *v1, neon_vertex_t *v2);
 static void neon_3d_draw_point(neon250_t *neon250, neon_vertex_t *v);
@@ -200,7 +203,7 @@ void neon_3d_init(neon250_t *neon250)
 }
 
 /* Reset the 3D engine */
-static void neon_3d_reset(neon250_t *neon250)
+void neon_3d_reset(neon250_t *neon250)
 {
     neon_3d_state_t *state = neon250->state_3d;
     
@@ -462,7 +465,7 @@ void neon_3d_write(neon250_t *neon250, uint32_t addr, uint32_t value)
 }
 
 /* Process 3D rendering commands */
-static void neon_3d_process_commands(neon250_t *neon250)
+void neon_3d_process_commands(neon250_t *neon250)
 {
     neon_3d_state_t *state = neon250->state_3d;
     uint32_t cmd_addr = state->object_addr;

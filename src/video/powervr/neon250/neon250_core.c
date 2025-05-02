@@ -121,21 +121,7 @@ static uint8_t neon250_svga_read_linear(uint32_t addr, void *priv);
 #define NEON250_CRTC_V_SYNC_END   0x11
 #define NEON250_CRTC_MODE_CONTROL 0x17
 
-/* Neon 250 device extended registers */
-enum {
-    NEON250_EXT_PIXELCLOCK    = 0x40,
-    NEON250_EXT_BPPCONTROL    = 0x41,
-    NEON250_EXT_HWCURSOR_CTRL = 0x42,
-    NEON250_EXT_HWCURSOR_POS  = 0x43,
-    NEON250_EXT_HWCURSOR_POS1 = 0x44,  /* HWCURSOR_POS + 1 */
-    NEON250_EXT_HWCURSOR_POS2 = 0x45,  /* HWCURSOR_POS + 2 */
-    NEON250_EXT_HWCURSOR_POS3 = 0x46,  /* HWCURSOR_POS + 3 */
-    NEON250_EXT_HWCURSOR_ADDR = 0x47,
-    NEON250_EXT_HWCURSOR_ADDR1 = 0x48, /* HWCURSOR_ADDR + 1 */
-    NEON250_EXT_HWCURSOR_ADDR2 = 0x49, /* HWCURSOR_ADDR + 2 */
-    NEON250_EXT_HWCURSOR_ADDR3 = 0x4A, /* HWCURSOR_ADDR + 3 */
-    NEON250_EXT_STRIDE        = 0x4B
-};
+/* Note: Extended registers are now defined in the header file */
 
 /* MMIO register read function */
 static uint32_t
