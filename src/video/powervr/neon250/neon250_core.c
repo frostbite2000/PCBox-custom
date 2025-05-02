@@ -529,8 +529,8 @@ neon250_svga_recalctimings(svga_t *svga)
         svga->hwcursor.x = neon250->regs[NEON250_EXT_HWCURSOR_POS] & 0xFFFF;
         svga->hwcursor.y = neon250->regs[NEON250_EXT_HWCURSOR_POS] >> 16;
         svga->hwcursor.addr = neon250->regs[NEON250_EXT_HWCURSOR_ADDR] & neon250->vram_mask;
-        svga->hwcursor.cur_xsize = 64; // Use cur_xsize instead of xsize
-        svga->hwcursor.cur_ysize = 64; // Use cur_ysize instead of ysize
+        svga->hwcursor.xsize = 64;
+        svga->hwcursor.ysize = 64;
     } else {
         svga->hwcursor.ena = 0;
     }
@@ -837,8 +837,8 @@ neon250_init(const device_t *info)
     
     /* Enable hardware cursor */
     neon250->svga->hwcursor.ena = 0;
-    neon250->svga->hwcursor.cur_ysize = 64; // Fix field names
-    neon250->svga->hwcursor.cur_xsize = 64; // Fix field names
+    neon250->svga->hwcursor.ysize = 64;
+    neon250->svga->hwcursor.xsize = 64;
     
     /* Initialize 3D engine */
     neon_3d_init(neon250);
@@ -849,8 +849,8 @@ neon250_init(const device_t *info)
     
     /* Set up mappings */
     mem_mapping_add(&neon250->mmio_mapping, 0, 0, 
-                   neon250_reg_read, NULL, NULL, // Fix parameter order
-                   neon250_reg_write, NULL, NULL, // Fix parameter order
+                   NULL, NULL, neon250_reg_read,
+                   NULL, NULL, neon250_reg_write,
                    NULL, MEM_MAPPING_EXTERNAL, neon250);
                    
     mem_mapping_add(&neon250->fb_mapping, 0, 0,

@@ -1275,9 +1275,6 @@ static void neon_3d_clear_buffers(neon250_t *neon250, bool clear_color, bool cle
                 }
                 break;
         }
-        
-        /* Mark framebuffer as dirty */
-        svga_mark_dirty(neon250->svga, display_addr, display_addr + (height * stride * (bpp / 8)));
     }
     
     /* Clear Z-buffer if requested */
