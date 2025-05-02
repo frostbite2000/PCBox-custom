@@ -9,9 +9,9 @@
  *          PowerVR PCX2 fog lookup table for fast fog effect calculation.
  *          Based on the PowerVR Series1 "Texas" rendering core.
  *
- * Authors: [Your name here],
+ * Authors: frostbite2000,
  *
- *          Copyright 2020-2025 [Your name here].
+ *          Copyright 2025 frostbite2000.
  */
 
 #ifndef FOGTABLE_H

@@ -137,6 +137,9 @@ add_library(vid OBJECT
     powervr/pcx2/pcx2_core.c
     powervr/pcx2/pcx2_render.c
     powervr/pcx2/pcx2.c
+
+    powervr/neon250/neon250_core.c
+    powervr/neon250/neon250_3d.c
 )
 
 if(R100)

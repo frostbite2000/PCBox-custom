@@ -41,6 +41,8 @@
 /* Include PowerVR PCX2 header */
 #include "86box/vid_powervr_pcx2.h"
 
+#include "86box/vid_powervr_neon250.h"
+
 typedef struct video_card_t {
     const device_t *device;
     int             flags;
@@ -259,6 +261,7 @@ video_cards[] = {
     { .device = &nv3_device_pci,                                .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &nv3t_device_agp,                               .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &nv3t_device_pci,                               .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &neon250_device,                                .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = NULL,                                           .flags = VIDEO_FLAG_TYPE_NONE }
   // clang-format on
 };

@@ -9,9 +9,9 @@
  *          PowerVR PCX2 3D rendering pipeline implementation.
  *          Based on the PowerVR Series 1 "Texas" rendering core.
  *
- * Authors: [Your name here],
+ * Authors: frostbite2000,
  *
- *          Copyright 2020-2025 [Your name here].
+ *          Copyright 2025 frostbite2000.
  */
 
 #include <stdarg.h>

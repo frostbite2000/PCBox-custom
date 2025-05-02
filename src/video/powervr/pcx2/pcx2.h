@@ -8,9 +8,9 @@
  *
  *          PowerVR PCX2 emulation definitions.
  *
- * Authors: [Your name here],
+ * Authors: frostbite2000,
  *
- *          Copyright 2020-2025 [Your name here].
+ *          Copyright 2025 frostbite2000.
  */
 
 #ifndef VIDEO_POWERVR_PCX2_H
