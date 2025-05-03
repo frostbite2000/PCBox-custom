@@ -34,9 +34,6 @@
 
 #include "86box/vid_powervr_neon250.h"
 
-/* Forward declarations for external functions */
-extern void neon250_update_irq(neon250_t *neon250);
-
 /* PowerVR Neon 250 specific 3D registers */
 #define NEON_3D_CONTROL       0x100  /* 3D Control Register */
 #define NEON_3D_STATUS        0x101  /* 3D Status Register */
@@ -687,12 +684,6 @@ void neon_3d_process_commands(neon250_t *neon250)
     
     /* Set rendering complete bit in status register */
     state->status |= 0x02;
-    
-    /* Generate an interrupt if enabled */
-    if (state->control & 0x02) {
-        neon250->regs[NEON_REG_INTSTATUS] |= 0x01;  /* Set render complete interrupt */
-        neon250_update_irq(neon250);
-    }
 }
 
 /* Transform a vertex using current matrices */
