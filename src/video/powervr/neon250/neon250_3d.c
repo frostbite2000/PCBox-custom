@@ -125,56 +125,6 @@ typedef struct neon_light_t {
     bool     enabled;        /* Light enabled flag */
 } neon_light_t;
 
-/* PowerVR Neon 250 3D engine state */
-typedef struct neon_3d_state_t {
-    uint32_t control;                /* 3D control register */
-    uint32_t status;                 /* 3D status register */
-    uint32_t zbuffer_addr;           /* Z-buffer base address */
-    uint32_t texture_addr;           /* Texture memory base address */
-    uint32_t display_addr;           /* Display buffer address */
-    uint32_t vertex_addr;            /* Vertex buffer address */
-    uint32_t object_addr;            /* Object list address */
-    
-    uint32_t scissor_x;              /* Scissor X coordinates */
-    uint32_t scissor_y;              /* Scissor Y coordinates */
-    
-    uint32_t fog_color;              /* Fog color (ARGB) */
-    uint32_t ambient_color;          /* Ambient light color (RGB) */
-    
-    uint32_t viewport_x;             /* Viewport X scale and offset */
-    uint32_t viewport_y;             /* Viewport Y scale and offset */
-    uint32_t viewport_z;             /* Viewport Z scale and offset */
-    
-    uint32_t config;                 /* 3D configuration */
-    
-    /* Current rendering state */
-    neon_material_t current_material; /* Current material properties */
-    neon_matrices_t matrices;         /* Current transformation matrices */
-    neon_light_t lights[8];           /* Light sources (max 8) */
-    neon_texture_t current_texture;   /* Current texture */
-    
-    /* Internal rendering buffers */
-    uint16_t *z_buffer;               /* Z-buffer (16-bit depth) */
-    uint32_t z_buffer_size;           /* Z-buffer size in bytes */
-    
-    /* Rendering statistics */
-    uint32_t triangles_rendered;      /* Total triangles rendered */
-    uint32_t lines_rendered;          /* Total lines rendered */
-    uint32_t points_rendered;         /* Total points rendered */
-    
-    /* Performance monitoring */
-    uint64_t render_start_time;       /* Render start time */
-    uint64_t render_end_time;         /* Render end time */
-    
-    /* State flags */
-    bool render_in_progress;          /* Rendering in progress flag */
-    bool texture_enabled;             /* Texture mapping enabled */
-    bool fog_enabled;                 /* Fog effect enabled */
-    bool dithering_enabled;           /* Dithering enabled */
-    bool bilinear_filtering;          /* Bilinear filtering enabled */
-    bool wireframe_mode;              /* Wireframe rendering mode */
-} neon_3d_state_t;
-
 /* Local prototypes */
 void neon_3d_reset(neon250_t *neon250);
 void neon_3d_process_commands(neon250_t *neon250);
@@ -289,9 +239,9 @@ void neon_3d_close(neon250_t *neon250)
 {
     if (neon250->state_3d) {
         /* Free Z-buffer */
-        if (neon250->state_3d->z_buffer) {
-            free(neon250->state_3d->z_buffer);
-            neon250->state_3d->z_buffer = NULL;
+        if (neon250->state_3d.z_buffer) {
+            free(neon250->state_3d.z_buffer);
+            neon250->state_3d.z_buffer = NULL;
         }
         
         /* Free 3D state structure */

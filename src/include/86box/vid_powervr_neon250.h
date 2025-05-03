@@ -27,7 +27,7 @@
 #include <86box/rom.h>
 
 /* PowerVR Neon 250 3D engine state */
-struct neon_3d_state_t {
+typedef struct neon_3d_state_t {
     uint32_t control;                /* 3D control register */
     uint32_t status;                 /* 3D status register */
     uint32_t zbuffer_addr;           /* Z-buffer base address */
@@ -48,8 +48,33 @@ struct neon_3d_state_t {
     
     uint32_t config;                 /* 3D configuration */
     
-    /* Additional state variables as needed */
-};
+    /* Current rendering state */
+    neon_material_t current_material; /* Current material properties */
+    neon_matrices_t matrices;         /* Current transformation matrices */
+    neon_light_t lights[8];           /* Light sources (max 8) */
+    neon_texture_t current_texture;   /* Current texture */
+    
+    /* Internal rendering buffers */
+    uint16_t *z_buffer;               /* Z-buffer (16-bit depth) */
+    uint32_t z_buffer_size;           /* Z-buffer size in bytes */
+    
+    /* Rendering statistics */
+    uint32_t triangles_rendered;      /* Total triangles rendered */
+    uint32_t lines_rendered;          /* Total lines rendered */
+    uint32_t points_rendered;         /* Total points rendered */
+    
+    /* Performance monitoring */
+    uint64_t render_start_time;       /* Render start time */
+    uint64_t render_end_time;         /* Render end time */
+    
+    /* State flags */
+    bool render_in_progress;          /* Rendering in progress flag */
+    bool texture_enabled;             /* Texture mapping enabled */
+    bool fog_enabled;                 /* Fog effect enabled */
+    bool dithering_enabled;           /* Dithering enabled */
+    bool bilinear_filtering;          /* Bilinear filtering enabled */
+    bool wireframe_mode;              /* Wireframe rendering mode */
+} neon_3d_state_t;
 
 /* Forward declaration of 3D engine state */
 typedef struct neon_3d_state_t neon_3d_state_t;
