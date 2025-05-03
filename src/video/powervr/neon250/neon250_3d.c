@@ -183,9 +183,9 @@ void neon_3d_close(neon250_t *neon250)
 {
     if (neon250->state_3d) {
         /* Free Z-buffer */
-        if (neon250->state_3d.z_buffer) {
-            free(neon250->state_3d.z_buffer);
-            neon250->state_3d.z_buffer = NULL;
+        if (neon250->state_3d->z_buffer) {
+            free(neon250->state_3d->z_buffer);
+            neon250->state_3d->z_buffer = NULL;
         }
         
         /* Free 3D state structure */
