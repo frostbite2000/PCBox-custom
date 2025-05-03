@@ -13,9 +13,9 @@
  *          Copyright 2025 frostbite2000.
  */
 
- #ifndef VIDEO_POWERVR_NEON250_H
- #define VIDEO_POWERVR_NEON250_H
- 
+#ifndef VIDEO_POWERVR_NEON250_H
+#define VIDEO_POWERVR_NEON250_H
+
 #include <86box/log.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
@@ -25,87 +25,112 @@
 #include <86box/video.h>
 #include <86box/vid_svga_render.h>
 #include <86box/rom.h>
- 
- /* Forward declaration of 3D engine state */
- typedef struct neon_3d_state_t neon_3d_state_t;
- 
- /* Forward declaration for the device struct */
- typedef struct neon250_t {
-     uint32_t    pci_regs[256/4];      /* PCI configuration registers */
-     uint32_t    regs[256];            /* Hardware registers */
-     
-     uint8_t    *vram;                 /* Video RAM buffer */
-     uint32_t    vram_size;            /* Video RAM size (in bytes) */
-     uint32_t    vram_mask;            /* Video RAM address mask */
-     
-     uint32_t    texture_memory_size;  /* Texture memory size (in bytes) */
-     uint8_t    *texture_memory;       /* Texture memory buffer */
-     
-     uint32_t    mmio_base;            /* MMIO base address */
-     uint32_t    fb_base;              /* Framebuffer base address */
-     
-     mem_mapping_t mmio_mapping;       /* Memory-mapped I/O region */
-     mem_mapping_t fb_mapping;         /* Framebuffer mapping */
-     mem_mapping_t vga_mapping;        /* VGA memory mapping */
-     
-     uint8_t     pci_slot;             /* PCI slot number */
-     int         card_id;              /* Unique card identifier */
-     
-     uint8_t     int_line;             /* Interrupt line */
-     uint8_t     irq_state;            /* IRQ state */
-     
-     int         render_state;         /* Current rendering state */
-     uint32_t    flags;                /* Feature flags */
-     
-     uint32_t    fog_color;            /* Fog color (RGB format) */
-     
-     svga_t     *svga;                 /* SVGA device for 2D operations */
-     
-     rom_t       bios_rom;             /* BIOS ROM */
-     
-     pc_timer_t  render_timer;         /* Timer for rendering operations */
-     
-     /* Performance monitoring */
-     uint32_t    frames_rendered;      /* Total frames rendered */
-     
-     /* 3D rendering state */
-     neon_3d_state_t *state_3d;        /* 3D engine state */
- } neon250_t;
- 
- /* Neon 250 device extended registers */
- #define NEON250_EXT_PIXELCLOCK    0x40
- #define NEON250_EXT_BPPCONTROL    0x41
- #define NEON250_EXT_HWCURSOR_CTRL 0x42
- #define NEON250_EXT_HWCURSOR_POS  0x43
- #define NEON250_EXT_HWCURSOR_POS1 0x44 /* Hardware cursor position byte 1 */
- #define NEON250_EXT_HWCURSOR_POS2 0x45 /* Hardware cursor position byte 2 */
- #define NEON250_EXT_HWCURSOR_POS3 0x46 /* Hardware cursor position byte 3 */
- #define NEON250_EXT_HWCURSOR_ADDR 0x47 /* Hardware cursor address */
- #define NEON250_EXT_HWCURSOR_ADDR1 0x48 /* Hardware cursor address byte 1 */
- #define NEON250_EXT_HWCURSOR_ADDR2 0x49 /* Hardware cursor address byte 2 */
- #define NEON250_EXT_HWCURSOR_ADDR3 0x4A /* Hardware cursor address byte 3 */
- #define NEON250_EXT_STRIDE        0x4B
 
- /* Core register definitions */
- #define NEON_REG_INTSTATUS    0x00    /* Interrupt Status Register */
- #define NEON_REG_INTMASK      0x01    /* Interrupt Mask Register */
- #define NEON_REG_SOFTRESET    0x02    /* Soft Reset Register */
- #define NEON_REG_POWERDOWN    0x03    /* Power Down Register */
- #define NEON_REG_TEXCTRL      0x04    /* Texture Control Register */
- #define NEON_REG_FOGCTRL      0x05    /* Fog Control Register */
- #define NEON_REG_FOGCOLOR     0x06    /* Fog Color Register */
- #define NEON_REG_RENDERCTRL   0x07    /* Render Control Register */
- #define NEON_REG_OBJECTBASE   0x08    /* Object Base Address Register */
- #define NEON_REG_FRAMEBASE    0x09    /* Frame Buffer Base Address Register */
- #define NEON_REG_TEXBASE      0x0A    /* Texture Memory Base Address Register */
- 
- /* Video modes */
- enum {
-     NEON250_MODE_VGA = 0,
-     NEON250_MODE_2D  = 1,
-     NEON250_MODE_3D  = 2
- };
- 
+/* PowerVR Neon 250 3D engine state */
+struct neon_3d_state_t {
+    uint32_t control;                /* 3D control register */
+    uint32_t status;                 /* 3D status register */
+    uint32_t zbuffer_addr;           /* Z-buffer base address */
+    uint32_t texture_addr;           /* Texture memory base address */
+    uint32_t display_addr;           /* Display buffer address */
+    uint32_t vertex_addr;            /* Vertex buffer address */
+    uint32_t object_addr;            /* Object list address */
+    
+    uint32_t scissor_x;              /* Scissor X coordinates */
+    uint32_t scissor_y;              /* Scissor Y coordinates */
+    
+    uint32_t fog_color;              /* Fog color (ARGB) */
+    uint32_t ambient_color;          /* Ambient light color (RGB) */
+    
+    uint32_t viewport_x;             /* Viewport X scale and offset */
+    uint32_t viewport_y;             /* Viewport Y scale and offset */
+    uint32_t viewport_z;             /* Viewport Z scale and offset */
+    
+    uint32_t config;                 /* 3D configuration */
+    
+    /* Additional state variables as needed */
+};
+
+/* Forward declaration of 3D engine state */
+typedef struct neon_3d_state_t neon_3d_state_t;
+
+/* Forward declaration for the device struct */
+typedef struct neon250_t {
+    uint32_t    pci_regs[256/4];      /* PCI configuration registers */
+    uint32_t    regs[256];            /* Hardware registers */
+    
+    uint8_t    *vram;                 /* Video RAM buffer */
+    uint32_t    vram_size;            /* Video RAM size (in bytes) */
+    uint32_t    vram_mask;            /* Video RAM address mask */
+    
+    uint32_t    texture_memory_size;  /* Texture memory size (in bytes) */
+    uint8_t    *texture_memory;       /* Texture memory buffer */
+    
+    uint32_t    mmio_base;            /* MMIO base address */
+    uint32_t    fb_base;              /* Framebuffer base address */
+    
+    mem_mapping_t mmio_mapping;       /* Memory-mapped I/O region */
+    mem_mapping_t fb_mapping;         /* Framebuffer mapping */
+    mem_mapping_t vga_mapping;        /* VGA memory mapping */
+    
+    uint8_t     pci_slot;             /* PCI slot number */
+    int         card_id;              /* Unique card identifier */
+    
+    uint8_t     int_line;             /* Interrupt line */
+    uint8_t     irq_state;            /* IRQ state */
+    
+    int         render_state;         /* Current rendering state */
+    uint32_t    flags;                /* Feature flags */
+    
+    uint32_t    fog_color;            /* Fog color (RGB format) */
+    
+    svga_t     *svga;                 /* SVGA device for 2D operations */
+    
+    rom_t       bios_rom;             /* BIOS ROM */
+    
+    pc_timer_t  render_timer;         /* Timer for rendering operations */
+    
+    /* Performance monitoring */
+    uint32_t    frames_rendered;      /* Total frames rendered */
+    
+    /* 3D rendering state */
+    neon_3d_state_t *state_3d;        /* 3D engine state */
+} neon250_t;
+
+/* Neon 250 device extended registers */
+#define NEON250_EXT_PIXELCLOCK    0x40
+#define NEON250_EXT_BPPCONTROL    0x41
+#define NEON250_EXT_HWCURSOR_CTRL 0x42
+#define NEON250_EXT_HWCURSOR_POS  0x43
+#define NEON250_EXT_HWCURSOR_POS1 0x44 /* Hardware cursor position byte 1 */
+#define NEON250_EXT_HWCURSOR_POS2 0x45 /* Hardware cursor position byte 2 */
+#define NEON250_EXT_HWCURSOR_POS3 0x46 /* Hardware cursor position byte 3 */
+#define NEON250_EXT_HWCURSOR_ADDR 0x47 /* Hardware cursor address */
+#define NEON250_EXT_HWCURSOR_ADDR1 0x48 /* Hardware cursor address byte 1 */
+#define NEON250_EXT_HWCURSOR_ADDR2 0x49 /* Hardware cursor address byte 2 */
+#define NEON250_EXT_HWCURSOR_ADDR3 0x4A /* Hardware cursor address byte 3 */
+#define NEON250_EXT_STRIDE        0x4B
+
+/* Core register definitions */
+#define NEON_REG_INTSTATUS    0x00    /* Interrupt Status Register */
+#define NEON_REG_INTMASK      0x01    /* Interrupt Mask Register */
+#define NEON_REG_SOFTRESET    0x02    /* Soft Reset Register */
+#define NEON_REG_POWERDOWN    0x03    /* Power Down Register */
+#define NEON_REG_TEXCTRL      0x04    /* Texture Control Register */
+#define NEON_REG_FOGCTRL      0x05    /* Fog Control Register */
+#define NEON_REG_FOGCOLOR     0x06    /* Fog Color Register */
+#define NEON_REG_RENDERCTRL   0x07    /* Render Control Register */
+#define NEON_REG_OBJECTBASE   0x08    /* Object Base Address Register */
+#define NEON_REG_FRAMEBASE    0x09    /* Frame Buffer Base Address Register */
+#define NEON_REG_TEXBASE      0x0A    /* Texture Memory Base Address Register */
+
+/* Video modes */
+enum {
+    NEON250_MODE_VGA = 0,
+    NEON250_MODE_2D  = 1,
+    NEON250_MODE_3D  = 2
+};
+
 /* 3D engine functions */
 void neon_3d_init(neon250_t *neon250);
 void neon_3d_reset(neon250_t *neon250);  /* Changed from static in implementation */
@@ -113,13 +138,13 @@ void neon_3d_close(neon250_t *neon250);
 uint32_t neon_3d_read(neon250_t *neon250, uint32_t addr);
 void neon_3d_write(neon250_t *neon250, uint32_t addr, uint32_t value);
 void neon_3d_process_commands(neon250_t *neon250);  /* Changed from static in implementation */
- 
- /* SVGA helper functions */
- void neon250_hwcursor_draw(svga_t *svga, int displine);
- void neon250_setup_hwcursor(neon250_t *neon250);
- void neon250_calc_mode(neon250_t *neon250, int width, int height, int bpp);
- 
- /* Device declaration */
- extern const device_t neon250_device;
- 
- #endif /* VIDEO_POWERVR_NEON250_H */
+
+/* SVGA helper functions */
+void neon250_hwcursor_draw(svga_t *svga, int displine);
+void neon250_setup_hwcursor(neon250_t *neon250);
+void neon250_calc_mode(neon250_t *neon250, int width, int height, int bpp);
+
+/* Device declaration */
+extern const device_t neon250_device;
+
+#endif /* VIDEO_POWERVR_NEON250_H */

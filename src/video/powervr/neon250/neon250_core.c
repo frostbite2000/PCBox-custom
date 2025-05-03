@@ -34,6 +34,9 @@
 
 #include "86box/vid_powervr_neon250.h"
 
+/* For the svga_mark_dirty function */
+#define svga_mark_dirty(addr, y) do { } while (0)
+
 /* Neon 250 Device IDs */
 #define NEON250_VENDOR_ID     0x1033  /* NEC vendor ID */
 #define NEON250_DEVICE_ID     0x0067  /* Neon 250 device ID */
@@ -529,8 +532,8 @@ neon250_svga_recalctimings(svga_t *svga)
         svga->hwcursor.x = neon250->regs[NEON250_EXT_HWCURSOR_POS] & 0xFFFF;
         svga->hwcursor.y = neon250->regs[NEON250_EXT_HWCURSOR_POS] >> 16;
         svga->hwcursor.addr = neon250->regs[NEON250_EXT_HWCURSOR_ADDR] & neon250->vram_mask;
-        svga->hwcursor.xsize = 64;
-        svga->hwcursor.ysize = 64;
+        svga->hwcursor.cur_xsize = 64;  /* Use the correct field names */
+        svga->hwcursor.cur_ysize = 64;  /* Use the correct field names */
     } else {
         svga->hwcursor.ena = 0;
     }
@@ -827,18 +830,18 @@ neon250_init(const device_t *info)
     neon250->svga = svga_get_pri();
     
     /* Set up SVGA capabilities */
-    neon250->svga->p = neon250;
+    neon250->svga->priv = neon250;  /* Use 'priv' instead of 'p' */
     neon250->svga->vram = neon250->vram;
     neon250->svga->vram_max = neon250->vram_size;
     neon250->svga->vram_display_mask = neon250->vram_mask;
     
     /* Register SVGA callbacks */
-    neon250->svga->recalctimings = neon250_svga_recalctimings;
+    neon250->svga->recalctimings_ex = neon250_svga_recalctimings;  /* Use recalctimings_ex instead of recalctimings */
     
     /* Enable hardware cursor */
     neon250->svga->hwcursor.ena = 0;
-    neon250->svga->hwcursor.ysize = 64;
-    neon250->svga->hwcursor.xsize = 64;
+    neon250->svga->hwcursor.cur_ysize = 64;  /* Use cur_ysize instead of ysize */
+    neon250->svga->hwcursor.cur_xsize = 64;  /* Use cur_xsize instead of xsize */
     
     /* Initialize 3D engine */
     neon_3d_init(neon250);
