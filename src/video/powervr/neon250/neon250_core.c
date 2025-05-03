@@ -100,7 +100,7 @@ static uint8_t  neon250_pci_read(int func, int addr, void *priv);
 static void     neon250_pci_write(int func, int addr, uint8_t val, void *priv);
 static void     neon250_recalc_mapping(neon250_t *neon250);
 static void     neon250_init_registers(neon250_t *neon250);
-static void     neon250_render_frame(neon250_t *neon250);
+void            neon250_render_frame(neon250_t *neon250);
 
 /* VGA pass-through functions */
 static uint8_t  neon250_vram_read(uint32_t addr, void *priv);
@@ -731,7 +731,7 @@ neon250_svga_write_linear(uint32_t addr, uint8_t val, void *priv)
 }
 
 /* Frame rendering function - process 3D commands */
-static void
+void
 neon250_render_frame(neon250_t *neon250)
 {
     /* In a real implementation, this would process 3D rendering commands */
@@ -809,39 +809,25 @@ neon250_init(const device_t *info)
 {
     neon250_t *neon250 = (neon250_t *)malloc(sizeof(neon250_t));
     memset(neon250, 0, sizeof(neon250_t));
-    
-    neon250_log("NEON250: Initializing\n");
-    
-    /* Allocate VRAM - Neon 250 typically had 32MB of VRAM */
+
     neon250->vram_size = 32 * 1024 * 1024;
     neon250->vram = (uint8_t *)malloc(neon250->vram_size);
     neon250->vram_mask = neon250->vram_size - 1;
     memset(neon250->vram, 0, neon250->vram_size);
-    
-    /* Allocate texture memory - 8MB */
+
     neon250->texture_memory_size = 8 * 1024 * 1024;
     neon250->texture_memory = (uint8_t *)malloc(neon250->texture_memory_size);
     memset(neon250->texture_memory, 0, neon250->texture_memory_size);
-    
-    /* Initialize the SVGA device for 2D operations */
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_neon250);
-    
-    /* Set up SVGA capabilities */
-    neon250->svga->vram = neon250->vram;
-    neon250->svga->vram_max = neon250->vram_size;
-    neon250->svga->vram_display_mask = neon250->vram_mask;
-    
-    /* Register SVGA callbacks */
-    neon250->svga->recalctimings_ex = neon250_svga_recalctimings;  /* Use recalctimings_ex instead of recalctimings */
-    
-    /* Initialize 3D engine */
-    neon_3d_init(neon250);
-    
-    /* Load the BIOS ROM */
-    rom_init(&neon250->bios_rom, "roms/video/pvr/n0020331.bin", 0xc0000, 0x20000, 0xffff,
-            0, MEM_MAPPING_EXTERNAL);
-    
-    /* Set up mappings */
+
+    svga_init(info, &neon250->svga, neon250, neon250->vram_size,
+              neon250_recalctimings, neon250_svga_in, neon250_svga_out,
+              NULL, NULL);
+
+    neon250->svga.decode_mask = neon250->vram_mask;
+
+    rom_init(&neon250->bios_rom, "roms/video/pvr/n0020331.bin", 0xc0000, 0x20000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+    mem_mapping_disable(&neon250->bios_rom.mapping);
+
     mem_mapping_add(&neon250->mmio_mapping, 0, 0, 
                    NULL, NULL, neon250_reg_read,
                    NULL, NULL, neon250_reg_write,
@@ -856,26 +842,28 @@ neon250_init(const device_t *info)
                    neon250_vram_read, NULL, NULL,
                    neon250_vram_write, NULL, NULL,
                    NULL, MEM_MAPPING_EXTERNAL, neon250);
-    
-    /* Setup PCI BAR configuration */
-    neon250->pci_regs[PCI_REG_COMMAND] = 0x00;
-    
-    /* Add the card to the PCI bus */
+
     pci_add_card(PCI_ADD_AGP, neon250_pci_read, neon250_pci_write, neon250, &neon250->pci_slot);
-    
-    /* Disable mappings until configured by PCI */
+
+    neon250->pci_regs[PCI_REG_COMMAND] = 0x00;
+    neon250->pci_regs[0x30] = 0x00;
+    neon250->pci_regs[0x32] = 0x0c;
+    neon250->pci_regs[0x33] = 0x00;
+
+    neon_3d_init(neon250);
+
+    neon250_init_registers(neon250);
+
     mem_mapping_disable(&neon250->mmio_mapping);
     mem_mapping_disable(&neon250->fb_mapping);
     mem_mapping_disable(&neon250->vga_mapping);
-    
-    /* Initialize registers */
-    neon250_init_registers(neon250);
-    
-    /* Setup timer for rendering operations with correct callback signature */
-    timer_add(&neon250->render_timer, (void(*)(void*))neon250_render_frame, neon250, 0);
-    
-    neon250_log("NEON250: Initialization complete\n");
-    
+
+    pci_add_card(PCI_ADD_AGP, neon250_pci_read, neon250_pci_write, neon250, &neon250->pci_slot);
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_neon250);
+
+    timer_add(&neon250->render_timer, neon250_render_frame, neon250, 0);
+
     return neon250;
 }
 
