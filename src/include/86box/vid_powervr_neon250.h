@@ -16,6 +16,7 @@
 #ifndef VIDEO_POWERVR_NEON250_H
 #define VIDEO_POWERVR_NEON250_H
 
+#include <stdbool.h>
 #include <86box/log.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
@@ -25,6 +26,62 @@
 #include <86box/video.h>
 #include <86box/vid_svga_render.h>
 #include <86box/rom.h>
+
+/* PowerVR Neon 250 vertex format */
+typedef struct neon_vertex_t {
+    float    x, y, z;        /* Vertex position */
+    float    nx, ny, nz;     /* Vertex normal */
+    float    u, v;           /* Texture coordinates */
+    uint32_t color;          /* Vertex color (ARGB) */
+} neon_vertex_t;
+
+/* PowerVR Neon 250 texture format */
+typedef struct neon_texture_t {
+    uint32_t address;        /* Texture address in VRAM */
+    uint16_t width;          /* Texture width */
+    uint16_t height;         /* Texture height */
+    uint8_t  format;         /* Texture format */
+    uint8_t  mipmap_levels;  /* Number of mipmap levels */
+    uint8_t  flags;          /* Texture flags */
+} neon_texture_t;
+
+/* PowerVR Neon 250 material properties */
+typedef struct neon_material_t {
+    uint32_t diffuse;        /* Diffuse color (ARGB) */
+    uint32_t specular;       /* Specular color (ARGB) */
+    uint32_t ambient;        /* Ambient color (ARGB) */
+    uint32_t emissive;       /* Emissive color (ARGB) */
+    float    power;          /* Specular power */
+    uint8_t  shading_mode;   /* Shading mode (flat, gouraud, etc.) */
+    uint8_t  blending_mode;  /* Alpha blending mode */
+    uint8_t  texture_op;     /* Texture operation */
+    uint8_t  texture_filter; /* Texture filtering */
+    bool     z_write;        /* Z-buffer write enable */
+    bool     z_test;         /* Z-buffer test enable */
+} neon_material_t;
+
+/* PowerVR Neon 250 transformation matrices */
+typedef struct neon_matrices_t {
+    float world[16];        /* World transformation matrix (4x4) */
+    float view[16];         /* View transformation matrix (4x4) */
+    float projection[16];   /* Projection transformation matrix (4x4) */
+    float texture[16];      /* Texture transformation matrix (4x4) */
+} neon_matrices_t;
+
+/* PowerVR Neon 250 light parameters */
+typedef struct neon_light_t {
+    uint32_t diffuse;        /* Diffuse color (RGB) */
+    uint32_t specular;       /* Specular color (RGB) */
+    float    position[4];    /* Light position (x,y,z,w) - w=0 for directional */
+    float    direction[3];   /* Light direction for spot/directional */
+    float    attenuation[3]; /* Attenuation factors (constant, linear, quadratic) */
+    float    range;          /* Range of the light */
+    float    falloff;        /* Spotlight falloff */
+    float    theta;          /* Spotlight inner cone angle */
+    float    phi;            /* Spotlight outer cone angle */
+    uint8_t  type;           /* Light type (point, directional, spot) */
+    bool     enabled;        /* Light enabled flag */
+} neon_light_t;
 
 /* PowerVR Neon 250 3D engine state */
 typedef struct neon_3d_state_t {
