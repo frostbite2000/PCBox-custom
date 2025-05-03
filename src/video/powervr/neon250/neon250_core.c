@@ -826,22 +826,13 @@ neon250_init(const device_t *info)
     /* Initialize the SVGA device for 2D operations */
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_neon250);
     
-    /* Create SVGA device */
-    neon250->svga = svga_get_pri();
-    
     /* Set up SVGA capabilities */
-    neon250->svga->priv = neon250;  /* Use 'priv' instead of 'p' */
     neon250->svga->vram = neon250->vram;
     neon250->svga->vram_max = neon250->vram_size;
     neon250->svga->vram_display_mask = neon250->vram_mask;
     
     /* Register SVGA callbacks */
     neon250->svga->recalctimings_ex = neon250_svga_recalctimings;  /* Use recalctimings_ex instead of recalctimings */
-    
-    /* Enable hardware cursor */
-    neon250->svga->hwcursor.ena = 0;
-    neon250->svga->hwcursor.cur_ysize = 64;  /* Use cur_ysize instead of ysize */
-    neon250->svga->hwcursor.cur_xsize = 64;  /* Use cur_xsize instead of xsize */
     
     /* Initialize 3D engine */
     neon_3d_init(neon250);
@@ -866,9 +857,6 @@ neon250_init(const device_t *info)
                    neon250_vram_write, NULL, NULL,
                    NULL, MEM_MAPPING_EXTERNAL, neon250);
     
-    /* Initialize the PCI device */
-    neon250->card_id = info->local;
-    
     /* Setup PCI BAR configuration */
     neon250->pci_regs[PCI_REG_COMMAND] = 0x00;
     
@@ -882,11 +870,6 @@ neon250_init(const device_t *info)
     
     /* Initialize registers */
     neon250_init_registers(neon250);
-    
-    /* Initialize the SVGA screen mode */
-    if (neon250->svga) {
-        svga_recalctimings(neon250->svga);
-    }
     
     /* Setup timer for rendering operations with correct callback signature */
     timer_add(&neon250->render_timer, (void(*)(void*))neon250_render_frame, neon250, 0);
@@ -916,8 +899,7 @@ neon250_close(void *priv)
         neon_3d_close(neon250);
         
     /* Free SVGA device */
-    if (neon250->svga)
-        svga_close(neon250->svga);
+    svga_close(neon250->svga);
     
     free(neon250);
 }
