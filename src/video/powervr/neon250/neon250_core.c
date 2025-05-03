@@ -873,7 +873,7 @@ neon250_init(const device_t *info)
     neon250->pci_regs[PCI_REG_COMMAND] = 0x00;
     
     /* Add the card to the PCI bus */
-    pci_add_card(PCI_ADD_NORMAL, neon250_pci_read, neon250_pci_write, neon250, &neon250->pci_slot);
+    pci_add_card(PCI_ADD_AGP, neon250_pci_read, neon250_pci_write, neon250, &neon250->pci_slot);
     
     /* Disable mappings until configured by PCI */
     mem_mapping_disable(&neon250->mmio_mapping);
